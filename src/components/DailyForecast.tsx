@@ -1,7 +1,7 @@
 
 import type { DailyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert } from '../utils/weatherCodes';
-import { ComposedChart, Area, Line, Bar, Scatter, ResponsiveContainer, YAxis, XAxis, ZAxis } from 'recharts';
+import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis } from 'recharts';
 
 interface DailyForecastProps {
   daily: DailyWeather[];
@@ -91,8 +91,8 @@ export function DailyForecast({ daily }: DailyForecastProps) {
           <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
             <defs>
               <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2} />
               </linearGradient>
               <linearGradient id="humidityGradient" x1="0" y1="0" x2="1" y2="0">
                 {chartData.map((d, i) => {
