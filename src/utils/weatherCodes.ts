@@ -35,3 +35,20 @@ export function getPressureColor(pressure: number) {
   if (pressure <= 1022) return 'bg-yellow-400 text-gray-900'; // Anticiclón moderado
   return 'bg-orange-500 text-white'; // Anticiclón fuerte
 }
+
+export function getThomsDiscomfortIndex(temp: number, humidity: number) {
+  const di = temp - 0.55 * (1 - humidity / 100) * (temp - 14.5);
+  
+  if (di < 21) return { value: di, shortLabel: 'BIEN', label: 'Bienestar (Sin estrés)', bgClass: 'bg-emerald-500' };
+  if (di < 24) return { value: di, shortLabel: 'LEVE', label: 'Fatiga Leve', bgClass: 'bg-yellow-400' };
+  if (di < 27) return { value: di, shortLabel: 'MOD', label: 'Fatiga Moderada', bgClass: 'bg-orange-500' };
+  return { value: di, shortLabel: 'ALTO', label: 'Estrés Severo (Riesgo alto)', bgClass: 'bg-red-600 text-white' };
+}
+
+export function getPressureDeltaAlert(deltaP: number) {
+  if (deltaP <= -5) return { label: 'RIESGO', detail: `${deltaP} hPa`, bgClass: 'bg-red-600 text-white' };
+  if (deltaP <= -3) return { label: 'BAJA', detail: `${deltaP} hPa`, bgClass: 'bg-orange-400 text-slate-900' };
+  if (deltaP >= 5) return { label: 'SUBE', detail: `+${deltaP} hPa`, bgClass: 'bg-sky-500 text-white' };
+  const sign = deltaP > 0 ? '+' : '';
+  return { label: 'ESTABLE', detail: `${sign}${deltaP} hPa`, bgClass: 'bg-slate-700 text-slate-300' };
+}
