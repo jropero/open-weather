@@ -11,11 +11,11 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 ## ✨ Características Principales
 
 *   **🚨 Alertas Biomédicas en Tiempo Real**
-    *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -5 hPa) respecto a la media del día anterior, un detonante científicamente documentado de las migrañas por descompresión de los vasos cerebrales y senos paranasales.
+    *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (950 hPa a 1050 hPa) para dar contexto instantáneo.
     *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa para advertir sobre altos niveles de fatiga cardiovascular ("bochorno").
 *   **📈 Ventana Temporal de 7 Días (Evolución y Pronóstico)**
-    *   Gráfica multicapa avanzada (*ComposedChart*) que actúa como un puente entre el pasado y el futuro. Se centra matemáticamente en el "**HOY**", mostrando 3 días de histórico empírico a la izquierda y 3 días de previsión a la derecha. 
-    *   Superpone 5 variables clave de forma limpia: la presión (área), la temperatura (línea), el viento (burbujas paramétricas según la fuerza de racha) y la lluvia (histograma sólido).
+    *   Gráfica multicapa con diseño inmersivo "sin ejes" (*borderless*). Se centra matemáticamente en el "**HOY**", mostrando 3 días de histórico empírico a la izquierda y 3 días de previsión a la derecha. 
+    *   Superpone de forma limpia las variables climáticas fundamentales: la presión (montaña roja), la temperatura (línea amarilla) y la lluvia (histograma con brechas divisorias diarias).
     *   **Fondo de Aurora (Heatmap):** El fondo del gráfico (CSS background paramétrico) actúa como un mapa de calor visual inmersivo que delata el nivel de humedad ambiental y su riesgo (Amarillo = Seco, Morado = Riesgo extremo de humedad).
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
