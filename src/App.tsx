@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getPressureDescription } from './utils/weatherCodes';
+import { getWeatherInfo, getPressureDescription, getThomsDiscomfortIndex, getPressureDeltaAlert } from './utils/weatherCodes';
 import { MapPin, Search } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -27,6 +27,20 @@ function WeatherDashboard() {
   const weatherLabel = getWeatherInfo(data.current.weatherCode).label;
   const pressureDesc = getPressureDescription(data.current.surfacePressure);
 
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const todayIndex = data.daily.findIndex(d => {
+    const dDate = new Date(d.date);
+    dDate.setHours(0,0,0,0);
+    return dDate.getTime() === today.getTime();
+  });
+  
+  const yesterday = todayIndex > 0 ? data.daily[todayIndex - 1] : null;
+  const currentDeltaP = yesterday ? Math.round(data.current.surfacePressure - yesterday.meanPressure) : 0;
+
+  const currentThom = getThomsDiscomfortIndex(data.current.temperature, data.current.humidity);
+  const currentDeltaAlert = getPressureDeltaAlert(currentDeltaP);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-400 to-blue-200 text-white p-4 font-sans selection:bg-blue-300">
       <header className="flex justify-between items-center mb-8">
@@ -45,8 +59,19 @@ function WeatherDashboard() {
             <WeatherIcon size={120} className="text-yellow-300 fill-current" strokeWidth={1} />
           </div>
           <h2 className="text-6xl font-light mb-2">{Math.round(data.current.temperature)}°</h2>
-          <p className="text-xl opacity-90">{weatherLabel}</p>
-          <p className="text-sm font-medium opacity-80 mt-1">Humedad: {Math.round(data.current.humidity)}%</p>
+          <p className="text-xl opacity-90 mb-1">{weatherLabel}</p>
+          <p className="text-sm font-medium opacity-80 mb-6">Humedad: {Math.round(data.current.humidity)}%</p>
+
+          {/* Alertas Biometeorológicas Actuales */}
+          <div className="flex justify-center items-center gap-3">
+            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentThom.bgClass} ${currentThom.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-md`} title={`Estrés Térmico: ${currentThom.label}`}>
+              Fatiga: {currentThom.shortLabel}
+            </div>
+            
+            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentDeltaAlert.bgClass} shadow-md`} title={`Variación de presión respecto a ayer: ${currentDeltaAlert.detail}`}>
+              Δ P: {currentDeltaAlert.label} {currentDeltaAlert.detail}
+            </div>
+          </div>
         </section>
 
         {/* Pressure Highlight Card */}
