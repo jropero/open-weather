@@ -1,4 +1,4 @@
-import React from 'react';
+
 import type { HistoricalWeather } from '../types/weather';
 import { getPressureDescription, getWeatherInfo } from '../utils/weatherCodes';
 

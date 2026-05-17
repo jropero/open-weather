@@ -1,4 +1,4 @@
-import React from 'react';
+
 import type { DailyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
 
@@ -22,8 +22,8 @@ export function FutureForecast({ daily }: FutureForecastProps) {
   if (futureDays.length === 0) return null;
 
   return (
-    <section className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-lg mt-4 text-slate-800">
-      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold">Próximos 3 Días</h3>
+    <section className="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-6 shadow-lg mt-4 text-slate-800">
+      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold px-1">Próximos 3 Días</h3>
       
       <div className="flex flex-col gap-4">
         {futureDays.map((day, idx) => {
