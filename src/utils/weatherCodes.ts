@@ -52,3 +52,45 @@ export function getPressureDeltaAlert(deltaP: number) {
   const sign = deltaP > 0 ? '+' : '';
   return { label: 'ESTABLE', detail: `${sign}${deltaP} hPa`, bgClass: 'bg-slate-700 text-slate-300' };
 }
+
+export function getMigraineRisk(deltaP: number, pressure: number, humidity: number, precip: number) {
+  let riskScore = 0;
+  const reasons: string[] = [];
+  
+  // 1. Barometric pressure changes (significant decrease)
+  if (deltaP <= -5) {
+    riskScore += 3;
+    reasons.push(`Caída de presión severa (${deltaP} hPa) [+3 pts]`);
+  } else if (deltaP <= -3) {
+    riskScore += 1;
+    reasons.push(`Caída de presión moderada (${deltaP} hPa) [+1 pt]`);
+  }
+
+  // 2. Lower absolute barometric pressure
+  if (pressure < 1010) {
+    riskScore += 1;
+    reasons.push(`Baja presión absoluta (${Math.round(pressure)} hPa) [+1 pt]`);
+  }
+
+  // 3. Higher humidity
+  if (humidity > 70) {
+    riskScore += 1;
+    reasons.push(`Alta humedad relativa (${Math.round(humidity)}%) [+1 pt]`);
+  }
+
+  // 4. Increased rainfall
+  if (precip > 0) {
+    riskScore += 1;
+    reasons.push(`Precipitaciones activas (${precip} mm) [+1 pt]`);
+  }
+
+  if (reasons.length === 0) {
+    reasons.push(`Estabilidad atmosférica total [0 pts]`);
+  }
+
+  if (riskScore >= 5) return { label: 'EXTREMO', detail: 'Patrón clínico de alto riesgo', bgClass: 'bg-purple-600 text-white', reasons, score: riskScore };
+  if (riskScore >= 3) return { label: 'ALTO', detail: 'Condiciones atmosféricas propicias', bgClass: 'bg-red-600 text-white', reasons, score: riskScore };
+  if (riskScore >= 2) return { label: 'MOD', detail: 'Riesgo moderado', bgClass: 'bg-orange-500 text-white', reasons, score: riskScore };
+  if (riskScore === 1) return { label: 'BAJO', detail: 'Riesgo leve', bgClass: 'bg-yellow-400 text-slate-900', reasons, score: riskScore };
+  return { label: 'MÍNIMO', detail: 'Clima estable (Sin riesgo)', bgClass: 'bg-emerald-500 text-slate-900', reasons, score: riskScore };
+}
