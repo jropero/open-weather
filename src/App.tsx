@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getPressureDescription, getThomsDiscomfortIndex, getPressureDeltaAlert } from './utils/weatherCodes';
+import { getWeatherInfo, getPressureDescription, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from './utils/weatherCodes';
 import { MapPin, Search } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -40,6 +40,12 @@ function WeatherDashboard() {
 
   const currentThom = getThomsDiscomfortIndex(data.current.temperature, data.current.humidity);
   const currentDeltaAlert = getPressureDeltaAlert(currentDeltaP);
+  const currentMigraineRisk = getMigraineRisk(
+    currentDeltaP, 
+    data.current.surfacePressure, 
+    data.current.humidity, 
+    data.daily.find(d => new Date(d.date).setHours(0,0,0,0) === today.getTime())?.precipitation || 0
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-400 to-blue-200 text-white p-4 font-sans selection:bg-blue-300">
@@ -63,7 +69,7 @@ function WeatherDashboard() {
           <p className="text-sm font-medium opacity-80 mb-6">Humedad: {Math.round(data.current.humidity)}%</p>
 
           {/* Alertas Biometeorológicas Actuales */}
-          <div className="flex justify-center items-center gap-3">
+          <div className="flex justify-center items-center gap-3 flex-wrap">
             <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentThom.bgClass} ${currentThom.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-md`} title={`Estrés Térmico: ${currentThom.label}`}>
               Fatiga: {currentThom.shortLabel}
             </div>
@@ -71,6 +77,25 @@ function WeatherDashboard() {
             <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentDeltaAlert.bgClass} shadow-md`} title={`Variación de presión respecto a ayer: ${currentDeltaAlert.detail}`}>
               Δ P: {currentDeltaAlert.label} {currentDeltaAlert.detail}
             </div>
+
+            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentMigraineRisk.bgClass} shadow-md flex items-center gap-2`} title={`Riesgo de Migraña basado en IA (DOI: 10.1111/head.14482): ${currentMigraineRisk.detail}`}>
+              <span className="text-sm">🧠</span> Riesgo Migraña: {currentMigraineRisk.label}
+            </div>
+          </div>
+
+          {/* Desglose Matemático del Riesgo */}
+          <div className="mt-5 mx-auto max-w-sm text-left bg-white/10 backdrop-blur-md rounded-xl p-4 text-xs shadow-inner border border-white/10">
+            <h4 className="font-bold opacity-90 mb-2 border-b border-white/20 pb-1.5 flex justify-between items-center">
+              <span>Desglose Clínico (DOI: 10.1111/head.14482)</span>
+              <span className="bg-black/20 px-2 py-0.5 rounded-full">{currentMigraineRisk.score} / 6 pts</span>
+            </h4>
+            <ul className="list-disc list-inside opacity-90 space-y-1.5 font-medium ml-1">
+              {currentMigraineRisk.reasons.map((reason, idx) => (
+                <li key={idx} className={reason.includes('+') ? 'text-white' : 'text-slate-300'}>
+                  {reason}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 

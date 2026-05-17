@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
+# 🌤️ Open-Weather: Biometeorological Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Una aplicación meteorológica médica de alta fidelidad diseñada específicamente para registrar y predecir el impacto de las variables atmosféricas en la salud humana, enfocándose en la **meteoropatía**, las **migrañas** y la **fatiga térmica**.
 
-Currently, two official plugins are available:
+## 🎯 Objetivo del Proyecto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+El cerebro humano y el sistema cardiovascular son altamente sensibles a los cambios de presión atmosférica y humedad. Este proyecto fue concebido como un panel de control biometeorológico personal para cruzar datos empíricos de presión, viento, lluvia, temperatura y humedad con episodios físicos (cansancio, dolores de cabeza tensionales y migrañas).
 
-## React Compiler
+## ✨ Características Principales
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+*   **🚨 Alertas Biomédicas en Tiempo Real**
+    *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -5 hPa) respecto a la media del día anterior, un detonante científicamente documentado de las migrañas por descompresión de los vasos cerebrales y senos paranasales.
+    *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa para advertir sobre altos niveles de fatiga cardiovascular ("bochorno").
+*   **📈 Evolución Clínica de 7 Días**
+    *   Gráfica multicapa interactiva que superpone 5 variables clave (Presión, Temperatura, Humedad, Viento y Precipitaciones), permitiendo encontrar patrones causales de los episodios a lo largo de la semana, junto a un informe diario de los índices de riesgo médico.
+*   **🔮 Previsión Médica a 3 Días**
+    *   Planificador a corto plazo que muestra con antelación las "píldoras de riesgo" (Migraña o Fatiga) para organizar la semana en base al estrés atmosférico pronosticado.
+*   **🕰️ Memoria Atmosférica (Archivo Histórico)**
+    *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
 
-## Expanding the ESLint configuration
+## 🔬 Validación Científica (IA y Big Data)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Nuestros algoritmos de alerta médica se basan en evidencia clínica reciente. Específicamente, el sistema compuesto de **Riesgo de Migraña** implementa directamente las conclusiones del estudio empírico *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), publicado en *Headache Journal* (2023).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Dicho estudio, tras analizar más de 330.000 eventos de dolor de cabeza con modelos predictivos, demostró que la incidencia de migrañas aumenta drásticamente cuando convergen de forma simultánea:
+1. **Caídas significativas de presión barométrica** (evaluado en la app mediante el cálculo del *Delta P* en 24h).
+2. **Presión barométrica absoluta baja**.
+3. **Alta humedad relativa**.
+4. **Incremento de precipitaciones**.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+La aplicación cruza estas 4 variables atmosféricas en tiempo real para emitir un **Índice de Riesgo de Migraña** compuesto (Bajo, Moderado, Alto, Extremo).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🚀 Arquitectura y Tecnologías
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (*Glassmorphism* oscuro y alto contraste A11y), construida sobre la pila más moderna del ecosistema React.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+*   **Core:** React 19, TypeScript, Vite.
+*   **Estilos:** Tailwind CSS v4, Lucide Icons.
+*   **Gráficos:** Recharts.
+*   **Fuente de Datos:** [Open-Meteo](https://open-meteo.com/). 
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🧠 ¿Por qué Open-Meteo?
+
+Se han descartado deliberadamente APIs comerciales tradicionales (OpenWeatherMap, WeatherAPI) a favor de Open-Meteo por una razón científica:
+La aplicación necesita extraer masivamente datos retrospectivos (Memoria Atmosférica) y calcular variaciones interdiarias precisas. Open-Meteo proporciona acceso instantáneo y gratuito a la base de datos **Copernicus ERA5** (European Centre for Medium-Range Weather Forecasts), que utiliza supercomputadoras para cruzar millones de registros históricos globales y calcular la presión atmosférica exacta en cualquier coordenada desde 1940. Es la arquitectura perfecta y más fiable para la meteoropatía.
+
+## 🛠️ Instalación y Desarrollo Local
+
+1. Clona el repositorio en tu máquina.
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Arranca el servidor de desarrollo ultrarrápido (HMR):
+   ```bash
+   npm run dev
+   ```
+4. Abre `http://localhost:5173/` en tu navegador.
