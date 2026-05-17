@@ -88,9 +88,9 @@ export function getMigraineRisk(deltaP: number, pressure: number, humidity: numb
     reasons.push(`Estabilidad atmosférica total [0 pts]`);
   }
 
-  if (riskScore >= 5) return { label: 'EXTREMO', detail: 'Patrón clínico de alto riesgo', bgClass: 'bg-purple-600 text-white', reasons, score: riskScore };
-  if (riskScore >= 3) return { label: 'ALTO', detail: 'Condiciones atmosféricas propicias', bgClass: 'bg-red-600 text-white', reasons, score: riskScore };
-  if (riskScore >= 2) return { label: 'MOD', detail: 'Riesgo moderado', bgClass: 'bg-orange-500 text-white', reasons, score: riskScore };
-  if (riskScore === 1) return { label: 'BAJO', detail: 'Riesgo leve', bgClass: 'bg-yellow-400 text-slate-900', reasons, score: riskScore };
+  if (riskScore >= 6) return { label: 'EXTREMO', detail: 'Patrón clínico de alto riesgo', bgClass: 'bg-purple-600 text-white', reasons, score: riskScore };
+  if (riskScore >= 4) return { label: 'ALTO', detail: 'Condiciones atmosféricas propicias', bgClass: 'bg-red-600 text-white', reasons, score: riskScore };
+  if (riskScore >= 3) return { label: 'MOD', detail: 'Riesgo moderado', bgClass: 'bg-orange-500 text-white', reasons, score: riskScore };
+  if (riskScore >= 2) return { label: 'BAJO', detail: 'Riesgo leve', bgClass: 'bg-yellow-400 text-slate-900', reasons, score: riskScore };
   return { label: 'MÍNIMO', detail: 'Clima estable (Sin riesgo)', bgClass: 'bg-emerald-500 text-slate-900', reasons, score: riskScore };
 }

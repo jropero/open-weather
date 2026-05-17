@@ -17,15 +17,18 @@ export function DailyForecast({ daily }: DailyForecastProps) {
     return dDate.getTime() === today.getTime();
   });
 
-  const pastDays = todayIndex >= 7 ? daily.slice(todayIndex - 7, todayIndex) : daily.slice(0, 7);
+  const startIndex = Math.max(0, todayIndex - 3);
+  const targetDays = daily.slice(startIndex, startIndex + 7);
 
-  const chartData = pastDays.map(d => {
+  const chartData = targetDays.map(d => {
     const actualIdx = daily.findIndex(x => x.date === d.date);
     const yesterday = actualIdx > 0 ? daily[actualIdx - 1] : d;
     const deltaP = Math.round(d.meanPressure - yesterday.meanPressure);
 
+    const isToday = actualIdx === todayIndex;
+    
     return {
-      name: new Date(d.date).toLocaleDateString('es-ES', { weekday: 'short' }),
+      name: isToday ? 'HOY' : new Date(d.date).toLocaleDateString('es-ES', { weekday: 'short' }),
       pressure: Math.round(d.meanPressure),
       temp: Math.round((d.maxTemp + d.minTemp) / 2),
       humidity: Math.round(d.humidity),
@@ -44,7 +47,7 @@ export function DailyForecast({ daily }: DailyForecastProps) {
 
   return (
     <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl p-3 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
-      <h3 className="text-sm uppercase tracking-wider mb-6 opacity-90 font-semibold px-1">Últimos 7 Días (Evolución)</h3>
+      <h3 className="text-sm uppercase tracking-wider mb-6 opacity-90 font-semibold px-1">Ventana de 7 Días (Evolución y Pronóstico)</h3>
 
       {/* Top row: Icons and values */}
       <div className="flex justify-between w-full px-2 mb-2">
@@ -170,7 +173,9 @@ export function DailyForecast({ daily }: DailyForecastProps) {
       <div className="flex justify-between w-full px-2 mt-2">
         {chartData.map((d, idx) => (
           <div key={idx} className="flex-1 flex justify-center">
-            <span className="text-xs opacity-90 capitalize drop-shadow-sm">{d.name}</span>
+            <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
+              {d.name}
+            </span>
           </div>
         ))}
       </div>
