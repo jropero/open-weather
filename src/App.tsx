@@ -48,8 +48,8 @@ function WeatherDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-400 to-blue-200 text-white p-4 font-sans selection:bg-blue-300">
-      <header className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-400 to-blue-200 text-white p-2 sm:p-4 font-sans selection:bg-blue-300">
+      <header className="flex justify-between items-center mb-8 px-2 sm:px-0 mt-2 sm:mt-0">
         <button onClick={() => setIsSelectorOpen(true)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <MapPin className="text-white" />
           <h1 className="text-xl font-semibold">{currentLocation.name}</h1>

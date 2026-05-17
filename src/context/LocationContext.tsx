@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import type { Location } from '../types/weather';
 
 export const PREDEFINED_LOCATIONS: Location[] = [
