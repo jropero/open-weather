@@ -1,6 +1,6 @@
 import React from 'react';
 import type { DailyWeather } from '../types/weather';
-import { getWeatherInfo } from '../utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert } from '../utils/weatherCodes';
 
 interface FutureForecastProps {
   daily: DailyWeather[];
@@ -30,25 +30,39 @@ export function FutureForecast({ daily }: FutureForecastProps) {
           const date = new Date(day.date);
           const { icon: Icon, label } = getWeatherInfo(day.weatherCode);
 
+          const yesterday = daily[todayIndex + idx];
+          const deltaP = yesterday ? Math.round(day.meanPressure - yesterday.meanPressure) : 0;
+          const deltaAlert = getPressureDeltaAlert(deltaP);
+
+          const meanTemp = (day.maxTemp + day.minTemp) / 2;
+          const thomIndex = getThomsDiscomfortIndex(meanTemp, day.humidity);
+
           return (
             <div key={idx} className="flex items-center justify-between pb-3 border-b border-slate-200 last:border-0 last:pb-0">
-              <div className="flex items-center gap-3 w-1/3">
+              <div className="flex items-center gap-3 w-[25%]">
                 <Icon size={24} className="text-amber-500 drop-shadow-sm" aria-label={label} />
                 <span className="font-bold capitalize">{date.toLocaleDateString('es-ES', { weekday: 'short' })}</span>
               </div>
               
-              <div className="flex-1 flex justify-end gap-5 text-right">
+              <div className="flex gap-1.5 w-[30%]">
+                 <div className={`px-1 py-1 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center flex-1 flex flex-col justify-center`} title={`Estrés Térmico: ${thomIndex.label}`}>
+                    <span className="opacity-80 text-[7px] leading-tight">Fatiga</span>
+                    <span className="leading-tight">{thomIndex.shortLabel}</span>
+                 </div>
+                 <div className={`px-1 py-1 rounded text-[8px] font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm text-center flex-1 flex flex-col justify-center`} title={`Variación de presión en 24h: ${deltaAlert.detail}`}>
+                    <span className="opacity-80 text-[7px] leading-tight">{deltaAlert.detail}</span>
+                    <span className="leading-tight">{deltaAlert.label}</span>
+                 </div>
+              </div>
+
+              <div className="flex-1 flex justify-end gap-3 text-right">
                 <div className="flex flex-col">
-                  <span className="text-sm font-extrabold">{Math.round(day.maxTemp)}° / {Math.round(day.minTemp)}°</span>
+                  <span className="text-sm font-extrabold">{Math.round(day.maxTemp)}°/{Math.round(day.minTemp)}°</span>
                   <span className="text-[10px] text-slate-500 font-semibold">Temp</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-extrabold">{Math.round(day.humidity)}%</span>
                   <span className="text-[10px] text-slate-500 font-semibold">Hum</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-extrabold">{Math.round(day.meanPressure)}</span>
-                  <span className="text-[10px] text-slate-500 font-semibold">hPa</span>
                 </div>
               </div>
             </div>
