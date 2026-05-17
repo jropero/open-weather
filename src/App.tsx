@@ -100,13 +100,28 @@ function WeatherDashboard() {
         </section>
 
         {/* Pressure Highlight Card */}
-        <section className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-lg text-slate-800">
+        <section className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-lg text-slate-800">
           <h3 className="text-sm uppercase tracking-wider mb-2 opacity-70 font-semibold">Presión Atmosférica</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-extrabold">{Math.round(data.current.surfacePressure)}</span>
             <span className="text-lg opacity-80 font-medium">hPa</span>
           </div>
-          <p className="mt-2 text-sm font-bold text-slate-600">{pressureDesc}</p>
+          <p className="mt-1 text-sm font-bold text-slate-600 mb-4">{pressureDesc}</p>
+          
+          {/* Rango Visual de Presión */}
+          <div className="relative w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+            {/* Espectro de color: Borrasca (Azul) -> Normal (Verde) -> Anticiclón (Naranja) */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-emerald-400 to-orange-500 opacity-80"></div>
+            {/* Indicador de posición actual */}
+            <div 
+              className="absolute top-0 h-full w-2 bg-slate-900 rounded-full border border-white shadow-sm transition-all duration-1000 ease-out" 
+              style={{ left: `calc(${Math.max(0, Math.min(100, ((Math.round(data.current.surfacePressure) - 950) / (1050 - 950)) * 100))}% - 4px)` }}
+            ></div>
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-wider">
+            <span>Min (950)</span>
+            <span>Max (1050)</span>
+          </div>
         </section>
 
         {/* Daily Forecast and Chart */}

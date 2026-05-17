@@ -88,7 +88,7 @@ export function DailyForecast({ daily }: DailyForecastProps) {
       {/* Multi-Line Chart */}
       <div className="h-40 w-full -ml-2 mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
         <ResponsiveContainer width="105%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={0}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
             <defs>
               <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
@@ -106,12 +106,10 @@ export function DailyForecast({ daily }: DailyForecastProps) {
               </linearGradient>
             </defs>
             <XAxis dataKey="name" hide />
-            <ZAxis type="number" dataKey="wind" range={[20, 250]} />
 
             <YAxis yAxisId="pressure" hide domain={[minPressure, maxPressure]} />
             <YAxis yAxisId="temp" hide domain={[minTemp, maxTemp]} />
             <YAxis yAxisId="humidity" hide domain={[0, 100]} />
-            <YAxis yAxisId="wind" hide domain={[0, 'dataMax + 20']} />
             <YAxis yAxisId="precip" hide domain={[0, 'dataMax + 15']} />
             <YAxis yAxisId="bg" hide domain={[0, 100]} />
 
@@ -158,13 +156,6 @@ export function DailyForecast({ daily }: DailyForecastProps) {
               dot={{ r: 2, fill: "#fcd34d", strokeWidth: 1, stroke: "#1e293b" }}
             />
 
-            {/* Viento: Burbujas Turquesa */}
-            <Scatter
-              yAxisId="wind"
-              dataKey="wind"
-              fill="#5eead4"
-              opacity={0.8}
-            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -183,29 +174,22 @@ export function DailyForecast({ daily }: DailyForecastProps) {
       {/* Guía de Lectura del Gráfico */}
       <div className="mt-5 pt-4 border-t border-slate-700/50 text-[10px] sm:text-xs">
         <h4 className="font-bold text-slate-400 mb-2 uppercase tracking-wider text-[9px]">Cómo interpretar este gráfico</h4>
-        <div className="grid grid-cols-2 gap-y-2 gap-x-2 opacity-90">
+        <div className="flex flex-col gap-y-2 opacity-90">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-gradient-to-b from-[#ef4444]/40 to-transparent border-t-2 border-[#f87171] flex-shrink-0"></span>
             <span><strong className="text-slate-200">Montaña Roja:</strong> Presión Atmosférica</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-[#fcd34d] flex-shrink-0"></span>
+            <span className="w-3 h-1 rounded-full bg-[#fcd34d] flex-shrink-0"></span>
             <span><strong className="text-slate-200">Línea Amarilla:</strong> Temperatura</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[#a5b4fc] opacity-80 flex-shrink-0"></span>
+            <span className="w-3 h-3 rounded-sm bg-[#a5b4fc]/50 flex-shrink-0"></span>
             <span><strong className="text-slate-200">Columnas Índigo:</strong> Volumen de Lluvia</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-gradient-to-r from-[#fcd34d] via-[#3b82f6] to-[#a855f7] rounded-sm opacity-60 flex-shrink-0"></span>
+            <span className="w-3 h-3 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7e22ce] flex-shrink-0"></span>
             <span><strong className="text-slate-200">Fondo (Aurora):</strong> Riesgo Humedad Alta</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 items-center justify-center w-3 flex-shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5eead4]"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#5eead4]"></span>
-            </div>
-            <span><strong className="text-slate-200">Burbujas:</strong> Viento (A mayor radio, más racha)</span>
           </div>
         </div>
       </div>
