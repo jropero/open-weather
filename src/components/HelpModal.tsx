@@ -1,4 +1,4 @@
-import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge } from 'lucide-react';
+import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge, BarChart3, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface HelpModalProps {
@@ -119,7 +119,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <FileText size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="font-extrabold text-slate-900 text-sm">
-                  {isEn ? 'Clinical Validation & Scientific Paper' : 'Validación Clínica y Paper Científico'}
+                  {isEn ? 'Scientific Basis: Katsuki et al. (2023)' : 'Base Científica: Katsuki et al. (2023)'}
                 </h4>
                 <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-0.5">
                   DOI: 10.1111/head.14482
@@ -129,37 +129,97 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             
             <p className="text-xs text-slate-700 font-medium">
               {isEn 
-                ? 'Our composite Migraine Risk Index implements directly the findings from the large-scale smartphone and AI scientific research:'
-                : 'Nuestro Índice de Riesgo de Migraña implementa directamente las conclusiones del estudio a gran escala con smartphones e inteligencia artificial:'}
+                ? 'Our Migraine Risk Index is based on the key risk factors identified by this peer-reviewed study published in Headache: The Journal of Head and Face Pain (2023):'
+                : 'Nuestro Índice de Riesgo de Migraña está basado en los factores de riesgo identificados por este estudio revisado por pares publicado en Headache: The Journal of Head and Face Pain (2023):'}
             </p>
             
             <blockquote className="border-l-4 border-blue-500 pl-3.5 my-2 italic text-xs text-slate-600">
               {isEn 
-                ? '"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence" (Headache Journal, 2023).'
-                : '“Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence” (Headache Journal, 2023).'}
+                ? '"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study."'
+                : '«Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study.»'}
             </blockquote>
 
-            <p className="text-xs text-slate-600">
-              {isEn 
-                ? 'By modeling over 330,000 headache events, researchers proved that migraine occurrences spike dramatically when 4 atmospheric variables align:'
-                : 'Tras analizar más de 330,000 crisis, los investigadores demostraron que las migrañas aumentan significativamente cuando convergen simultáneamente 4 factores:'}
-            </p>
+            {/* Study methodology */}
+            <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
+              <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <BarChart3 size={13} className="text-blue-500" />
+                {isEn ? 'Methodology & Dataset' : 'Metodología y Dataset'}
+              </h5>
+              <p className="text-[11px] text-slate-600">
+                {isEn 
+                  ? 'Researchers analyzed 336,951 hourly headache events from 4,375 smartphone app users (Dec 2020 – Nov 2021). They used gradient-boosted tree models and deep learning to calculate predictive "gain" values for each atmospheric variable — the higher the gain, the stronger the statistical association with headache onset.'
+                  : 'Los investigadores analizaron 336.951 eventos de dolor de cabeza por hora de 4.375 usuarios de app móvil (dic 2020 – nov 2021). Utilizaron modelos de gradient boosting y deep learning para calcular valores de «ganancia» predictiva para cada variable atmosférica: a mayor ganancia, mayor asociación estadística con el inicio de la cefalea.'}
+              </p>
+            </div>
 
-            <ol className="list-decimal list-inside text-xs text-slate-700 space-y-1 font-semibold ml-1">
-              <li>{isEn ? 'Significant 24-hour barometric pressure drops (Delta P).' : 'Caídas barométricas significativas en 24 horas (Delta P).'}</li>
-              <li>{isEn ? 'Low absolute barometric pressure.' : 'Presión barométrica absoluta baja.'}</li>
-              <li>{isEn ? 'High relative humidity.' : 'Humedad relativa ambiental elevada.'}</li>
-              <li>{isEn ? 'Active precipitation.' : 'Precipitaciones activas (lluvia).'}</li>
-            </ol>
+            {/* Gain table */}
+            <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
+              <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider mb-2">
+                {isEn ? 'Key Risk Factors (Feature Importance)' : 'Factores de Riesgo Clave (Importancia)'}
+              </h5>
+              <div className="space-y-1.5">
+                {[
+                  { factor: isEn ? 'Pressure drop 6h before event' : 'Caída de presión 6h antes', gain: 11.7, barWidth: '100%', color: 'bg-red-500' },
+                  { factor: isEn ? 'Higher humidity' : 'Humedad relativa alta', gain: 7.1, barWidth: '61%', color: 'bg-sky-500' },
+                  { factor: isEn ? 'Low pressure (next day)' : 'Presión baja (día siguiente)', gain: 6.7, barWidth: '57%', color: 'bg-indigo-400' },
+                  { factor: isEn ? 'High AM pressure (pre-drop)' : 'Presión alta matinal (pre-caída)', gain: 4.6, barWidth: '39%', color: 'bg-amber-400' },
+                  { factor: isEn ? 'Low absolute pressure' : 'Presión absoluta baja', gain: 3.9, barWidth: '33%', color: 'bg-purple-400' },
+                  { factor: isEn ? 'More rainfall' : 'Mayor precipitación', gain: 3.1, barWidth: '26%', color: 'bg-emerald-400' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-700 w-[55%] truncate font-medium">{item.factor}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                      <div className={`${item.color} h-full rounded-full`} style={{ width: item.barWidth }} />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-800 w-7 text-right">{item.gain}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[9px] text-slate-400 mt-2 italic">
+                {isEn ? 'Gain = relative contribution of each feature in predicting headache occurrence (p < 0.001).' : 'Gain = contribución relativa de cada factor en la predicción de cefaleas (p < 0,001).'}
+              </p>
+            </div>
 
-            <div className="pt-2">
+            {/* How we apply it */}
+            <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
+              <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <AlertTriangle size={13} className="text-amber-500" />
+                {isEn ? 'How We Apply This in Our Scoring' : 'Cómo Aplicamos Esto en Nuestra Puntuación'}
+              </h5>
+              <p className="text-[11px] text-slate-600 mb-2">
+                {isEn 
+                  ? 'The original study used a continuous AI regression model (R² = 53.7%). Our app translates those findings into a practical, threshold-based heuristic scoring system for consumer use:'
+                  : 'El estudio original utilizó un modelo de regresión de IA continuo (R² = 53,7%). Nuestra app traduce esas conclusiones en un sistema de puntuación heurístico basado en umbrales, práctico para uso personal:'}
+              </p>
+              <ul className="text-[10px] space-y-1.5 text-slate-600">
+                <li>
+                  <strong className="text-red-600">{isEn ? 'Pressure drop' : 'Caída de presión'} (ΔP):</strong> {isEn ? 'Weighted highest (+3 pts for ≤ −5 hPa, +1 for ≤ −3 hPa), reflecting the paper\'s top gain of 11.7. Our 24h window approximates the paper\'s 6h signal using daily mean comparison.' : 'Peso más alto (+3 pts para ≤ −5 hPa, +1 para ≤ −3 hPa), reflejando la ganancia máxima del paper (11,7). Nuestra ventana de 24h aproxima la señal de 6h del paper usando la media diaria.'}
+                </li>
+                <li>
+                  <strong className="text-sky-600">{isEn ? 'Humidity' : 'Humedad'} (&gt; 70%):</strong> {isEn ? '+1 pt. Reflects gain of 7.1. Threshold of 70% is a standard clinical convention for "high humidity".' : '+1 pt. Refleja ganancia de 7,1. El umbral de 70% es una convención clínica estándar para «humedad alta».'}
+                </li>
+                <li>
+                  <strong className="text-purple-600">{isEn ? 'Low pressure' : 'Presión baja'} (&lt; 1010 hPa):</strong> {isEn ? '+1 pt. Reflects gain of 3.9. NIH literature associates 1003–1007 hPa with peak migraine frequency.' : '+1 pt. Refleja ganancia de 3,9. La literatura NIH asocia 1003–1007 hPa con la máxima frecuencia de migrañas.'}
+                </li>
+                <li>
+                  <strong className="text-emerald-600">{isEn ? 'Precipitation' : 'Precipitación'} (&gt; 0 mm):</strong> {isEn ? '+1 pt. Reflects gain of 3.1. Any active rainfall counts as a trigger factor.' : '+1 pt. Refleja ganancia de 3,1. Cualquier lluvia activa se considera factor desencadenante.'}
+                </li>
+              </ul>
+              <p className="text-[10px] text-slate-500 mt-2.5 italic">
+                {isEn 
+                  ? 'The thresholds (−5 hPa, 1010 hPa, 70%) are calibrated from broader peer-reviewed literature (NIH, multiple clinical studies citing 5–6 hPa/24h drops and 6–10 hPa absolute deviations from 1013 hPa as significant). The algorithm requires convergence of multiple factors to avoid alert fatigue.'
+                  : 'Los umbrales (−5 hPa, 1010 hPa, 70%) están calibrados a partir de literatura clínica revisada por pares más amplia (NIH, múltiples estudios que citan caídas de 5–6 hPa/24h y desviaciones absolutas de 6–10 hPa respecto a 1013 hPa como significativas). El algoritmo exige convergencia de múltiples factores para evitar fatiga de alertas.'}
+              </p>
+            </div>
+
+            <div className="pt-1">
               <a 
                 href="https://doi.org/10.1111/head.14482" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-sm"
               >
-                <span>{isEn ? 'Access Scientific Paper' : 'Ver Artículo Científico'}</span>
+                <span>{isEn ? 'Access Full Paper (DOI)' : 'Ver Artículo Completo (DOI)'}</span>
                 <ExternalLink size={12} />
               </a>
             </div>

@@ -53,18 +53,21 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 
 ## 🔬 Scientific Validation (AI & Big Data)
 
-Our medical alert algorithms are rooted in recent peer-reviewed clinical research. Specifically, the compound **Migraine Risk Index** directly implements the findings from the empirical study:
-> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), published in *Headache Journal* (2023).
+Our medical alert algorithms are rooted in recent peer-reviewed clinical research. The compound **Migraine Risk Index** is based on the key risk factors identified by the large-scale empirical study:
+> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study"* — Katsuki et al. (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), published in *Headache: The Journal of Head and Face Pain* (2023).
 
-After analyzing more than 330,000 headache events using predictive machine learning models, the study proved that migraine occurrence rises sharply when multiple atmospheric indicators converge:
-1.  **Significant barometric pressure drops** (tracked in-app using the 24h *Delta P* calculation).
-2.  **Low absolute barometric pressure**.
-3.  **High relative humidity**.
-4.  **Active precipitation**.
+The study analyzed **336,951 hourly headache events** from **4,375 smartphone app users** using gradient-boosted tree models and deep learning (R² = 53.7%). The researchers identified these atmospheric variables as the strongest predictors of headache occurrence, ranked by feature importance ("gain"):
 
-The application evaluates these 4 parameters in real time to calculate a combined **Migraine Risk Index** (Minimal, Low, Moderate, High, Extreme). 
+| Factor | Gain | Our Weight |
+|---|---|---|
+| Barometric pressure drop (6h before event) | **11.7** | +3 pts (≤ −5 hPa) / +1 pt (≤ −3 hPa) |
+| Higher relative humidity | **7.1** | +1 pt (> 70%) |
+| Low absolute barometric pressure | **3.9** | +1 pt (< 1010 hPa) |
+| Active precipitation | **3.1** | +1 pt (> 0 mm) |
 
-The algorithm's sensitivity has been carefully calibrated to avoid alert fatigue, requiring the alignment of multiple severe climate indicators to issue high-level alert warnings.
+The application evaluates these 4 parameters in real time to calculate a combined **Migraine Risk Index** (Minimal, Low, Moderate, High, Extreme).
+
+> **Transparency note:** The original paper reports continuous feature importances from an AI regression model, not binary thresholds. Our threshold-based scoring system (−5 hPa, 1010 hPa, 70% humidity) is calibrated from broader peer-reviewed clinical literature (NIH studies citing 5–6 hPa/24h drops and 6–10 hPa absolute deviations from 1013 hPa as clinically significant). The algorithm requires convergence of multiple factors to avoid alert fatigue.
 
 ---
 
@@ -156,18 +159,21 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 
 ## 🔬 Validación Científica (IA y Big Data)
 
-Nuestros algoritmos de alerta médica se basan en evidencia clínica reciente. Específicamente, el sistema compuesto de **Riesgo de Migraña** implementa directamente las conclusiones del estudio empírico:
-> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), publicado en *Headache Journal* (2023).
+Nuestros algoritmos de alerta médica se basan en evidencia clínica reciente. El sistema compuesto de **Riesgo de Migraña** está basado en los factores de riesgo clave identificados por el estudio empírico a gran escala:
+> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study"* — Katsuki et al. (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), publicado en *Headache: The Journal of Head and Face Pain* (2023).
 
-Dicho estudio, tras analizar más de 330.000 eventos de dolor de cabeza con modelos predictivos, demostró que la incidencia de migrañas aumenta drásticamente cuando convergen de forma simultánea:
-1.  **Caídas significativas de presión barométrica** (evaluado en la app mediante el cálculo del *Delta P* en 24h).
-2.  **Presión barométrica absoluta baja**.
-3.  **Alta humedad relativa**.
-4.  **Incremento de precipitaciones**.
+El estudio analizó **336.951 eventos de dolor de cabeza por hora** de **4.375 usuarios de app móvil** mediante modelos de gradient boosting y deep learning (R² = 53,7%). Los investigadores identificaron estas variables atmosféricas como los predictores más fuertes de cefaleas, clasificados por importancia de ganancia ("gain"):
 
-La aplicación cruza estas 4 variables atmosféricas en tiempo real para emitir un **Índice de Riesgo de Migraña** compuesto (Mínimo, Bajo, Moderado, Alto, Extremo). 
+| Factor | Gain | Nuestro Peso |
+|---|---|---|
+| Caída de presión barométrica (6h antes del evento) | **11,7** | +3 pts (≤ −5 hPa) / +1 pt (≤ −3 hPa) |
+| Humedad relativa alta | **7,1** | +1 pt (> 70%) |
+| Presión barométrica absoluta baja | **3,9** | +1 pt (< 1010 hPa) |
+| Precipitación activa | **3,1** | +1 pt (> 0 mm) |
 
-La sensibilidad del algoritmo ha sido ajustada y calibrada de forma conservadora para evitar la fatiga de alertas. El sistema exige la alineación simultánea de múltiples factores climáticos severos para emitir niveles de alerta preocupantes, actuando de forma fiable.
+La aplicación cruza estos 4 parámetros en tiempo real para emitir un **Índice de Riesgo de Migraña** compuesto (Mínimo, Bajo, Moderado, Alto, Extremo).
+
+> **Nota de transparencia:** El paper original reporta importancias continuas de un modelo de regresión de IA, no umbrales binarios. Nuestro sistema de puntuación basado en umbrales (−5 hPa, 1010 hPa, 70% humedad) está calibrado a partir de literatura clínica revisada por pares más amplia (estudios NIH que citan caídas de 5–6 hPa/24h y desviaciones absolutas de 6–10 hPa respecto a 1013 hPa como clínicamente significativas). El algoritmo exige la convergencia de múltiples factores para evitar la fatiga de alertas.
 
 ---
 
