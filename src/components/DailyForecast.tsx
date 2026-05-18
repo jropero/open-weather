@@ -1,13 +1,14 @@
-
 import type { DailyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert } from '../utils/weatherCodes';
 import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis } from 'recharts';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DailyForecastProps {
   daily: DailyWeather[];
 }
 
 export function DailyForecast({ daily }: DailyForecastProps) {
+  const { language, t } = useLanguage();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -28,7 +29,9 @@ export function DailyForecast({ daily }: DailyForecastProps) {
     const isToday = actualIdx === todayIndex;
     
     return {
-      name: isToday ? 'HOY' : new Date(d.date).toLocaleDateString('es-ES', { weekday: 'short' }),
+      name: isToday 
+        ? (language === 'en' ? 'TODAY' : 'HOY') 
+        : new Date(d.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }),
       pressure: Math.round(d.meanPressure),
       temp: Math.round((d.maxTemp + d.minTemp) / 2),
       humidity: Math.round(d.humidity),
@@ -46,39 +49,42 @@ export function DailyForecast({ daily }: DailyForecastProps) {
   const maxTemp = Math.max(...chartData.map(d => d.temp)) + 5;
 
   return (
-    <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl p-3 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
-      <h3 className="text-sm uppercase tracking-wider mb-6 opacity-90 font-semibold px-1">Ventana de 7 Días (Evolución y Pronóstico)</h3>
+    <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl py-4 px-0.5 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
+      <h3 className="text-sm uppercase tracking-wider mb-6 opacity-90 font-semibold px-4">{t('title.daily_forecast')}</h3>
 
       {/* Top row: Icons and values */}
-      <div className="flex justify-between w-full px-2 mb-2">
+      <div className="flex justify-between w-full px-0 mb-2">
         {chartData.map((d, idx) => {
-          const { icon: Icon, label } = getWeatherInfo(d.weatherCode);
+          const { icon: Icon, label } = getWeatherInfo(d.weatherCode, language);
+          const thomIndex = getThomsDiscomfortIndex(d.temp, d.humidity, language);
+          const deltaAlert = getPressureDeltaAlert(d.deltaP, language);
+
           return (
-            <div key={idx} className="flex flex-col items-center flex-1">
+            <div key={idx} className="flex flex-col items-center flex-1 px-0.5">
               <div title={label}>
-              <Icon size={22} className="text-white drop-shadow-md mb-2" />
-            </div>
-              <span className="text-[10px] font-bold text-red-400 drop-shadow-md leading-tight" title="Presión (hPa)">{d.pressure} hPa</span>
-              <span className="text-[10px] font-bold text-amber-300 drop-shadow-md leading-tight" title="Temperatura (°C)">{d.temp}°C</span>
-              <span className="text-[10px] font-bold text-sky-300 drop-shadow-md leading-tight" title="Humedad (%)">{d.humidity}%</span>
-              <span className="text-[10px] font-bold text-teal-300 drop-shadow-md leading-tight" title="Viento (km/h)">{d.wind} km/h</span>
-              <span className="text-[10px] font-bold text-indigo-300 drop-shadow-md leading-tight" title="Precipitación (mm)">{d.precip} mm</span>
+                <Icon size={22} className="text-white drop-shadow-md mb-2" />
+              </div>
+              <span className="text-[10px] font-bold text-red-400 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.pressure')} (hPa)`}>{d.pressure} hPa</span>
+              <span className="text-[10px] font-bold text-amber-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.temp')} (°C)`}>{d.temp}°C</span>
+              <span className="text-[10px] font-bold text-sky-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.humidity')} (%)`}>{d.humidity}%</span>
+              <span className="text-[10px] font-bold text-teal-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.wind')} (km/h)`}>{d.wind} km/h</span>
+              <span className="text-[10px] font-bold text-indigo-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.rain')} (mm)`}>{d.precip} mm</span>
               
               {/* Índice de Incomodidad de Thom */}
               <div 
-                className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${getThomsDiscomfortIndex(d.temp, d.humidity).bgClass} ${getThomsDiscomfortIndex(d.temp, d.humidity).bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
-                title={`Estrés Térmico (Índice de Thom): ${getThomsDiscomfortIndex(d.temp, d.humidity).label}`}
+                className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
+                title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
               >
-                {getThomsDiscomfortIndex(d.temp, d.humidity).shortLabel}
+                {thomIndex.shortLabel}
               </div>
 
               {/* Alerta Delta P */}
               <div 
-                className={`mt-1 px-0.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${getPressureDeltaAlert(d.deltaP).bgClass} shadow-sm text-center leading-tight flex flex-col`}
-                title={`Variación de presión en 24h: ${getPressureDeltaAlert(d.deltaP).detail}`}
+                className={`mt-1 px-0.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm text-center leading-tight flex flex-col`}
+                title={`Variación de presión en 24h: ${deltaAlert.detail}`}
               >
-                <span>{getPressureDeltaAlert(d.deltaP).label}</span>
-                <span className="opacity-90">{getPressureDeltaAlert(d.deltaP).detail}</span>
+                <span>{deltaAlert.label}</span>
+                <span className="opacity-90">{deltaAlert.detail}</span>
               </div>
             </div>
           );
@@ -164,7 +170,7 @@ export function DailyForecast({ daily }: DailyForecastProps) {
       <div className="flex justify-between w-full px-2 mt-2">
         {chartData.map((d, idx) => (
           <div key={idx} className="flex-1 flex justify-center">
-            <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
+            <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' || d.name === 'TODAY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
               {d.name}
             </span>
           </div>
@@ -172,24 +178,24 @@ export function DailyForecast({ daily }: DailyForecastProps) {
       </div>
 
       {/* Guía de Lectura del Gráfico */}
-      <div className="mt-5 pt-4 border-t border-slate-700/50 text-[10px] sm:text-xs">
-        <h4 className="font-bold text-slate-400 mb-2 uppercase tracking-wider text-[9px]">Cómo interpretar este gráfico</h4>
+      <div className="mt-5 pt-4 px-4 border-t border-slate-700/50 text-[10px] sm:text-xs">
+        <h4 className="font-bold text-slate-400 mb-2 uppercase tracking-wider text-[9px]">{t('label.how_to_interpret')}</h4>
         <div className="flex flex-col gap-y-2 opacity-90">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-gradient-to-b from-[#ef4444]/40 to-transparent border-t-2 border-[#f87171] flex-shrink-0"></span>
-            <span><strong className="text-slate-200">Montaña Roja:</strong> Presión Atmosférica</span>
+            <span><strong className="text-slate-200">{t('label.mountain')}</strong> {t('label.pressure_desc')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-1 rounded-full bg-[#fcd34d] flex-shrink-0"></span>
-            <span><strong className="text-slate-200">Línea Amarilla:</strong> Temperatura</span>
+            <span><strong className="text-slate-200">{t('label.yellow_line')}</strong> {t('label.temperature')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-[#a5b4fc]/50 flex-shrink-0"></span>
-            <span><strong className="text-slate-200">Columnas Índigo:</strong> Volumen de Lluvia</span>
+            <span><strong className="text-slate-200">{t('label.indigo_cols')}</strong> {t('label.rain_vol')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7e22ce] flex-shrink-0"></span>
-            <span><strong className="text-slate-200">Fondo (Aurora):</strong> Riesgo Humedad Alta</span>
+            <span><strong className="text-slate-200">{t('label.bg_aurora')}</strong> {t('label.humidity_risk')}</span>
           </div>
         </div>
       </div>

@@ -1,12 +1,14 @@
 
 import type { DailyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FutureForecastProps {
   daily: DailyWeather[];
 }
 
 export function FutureForecast({ daily }: FutureForecastProps) {
+  const { language, t } = useLanguage();
   const today = new Date();
   today.setHours(0,0,0,0);
   
@@ -23,66 +25,92 @@ export function FutureForecast({ daily }: FutureForecastProps) {
 
   return (
     <section className="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-6 shadow-lg mt-4 text-slate-800">
-      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold px-1">Próximos 3 Días</h3>
+      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold px-1">{t('title.future_forecast')}</h3>
       
       <div className="flex flex-col gap-4">
         {futureDays.map((day, idx) => {
           const date = new Date(day.date);
-          const { icon: Icon, label } = getWeatherInfo(day.weatherCode);
+          const { icon: Icon, label, colorDark } = getWeatherInfo(day.weatherCode, language);
 
           const yesterday = daily[todayIndex + idx];
           const deltaP = yesterday ? Math.round(day.meanPressure - yesterday.meanPressure) : 0;
-          const deltaAlert = getPressureDeltaAlert(deltaP);
+          const deltaAlert = getPressureDeltaAlert(deltaP, language);
 
           const meanTemp = (day.maxTemp + day.minTemp) / 2;
-          const thomIndex = getThomsDiscomfortIndex(meanTemp, day.humidity);
-          const migraineRisk = getMigraineRisk(deltaP, day.meanPressure, day.humidity, day.precipitation);
+          const thomIndex = getThomsDiscomfortIndex(meanTemp, day.humidity, language);
+          const migraineRisk = getMigraineRisk(deltaP, day.meanPressure, day.humidity, day.precipitation, language);
 
           return (
-            <div key={idx} className="flex flex-col pb-4 border-b border-slate-200 last:border-0 last:pb-0">
-              {/* Fila Principal */}
+            <div key={idx} className="flex flex-col pb-4 border-b border-slate-200 last:border-0 last:pb-0 gap-2.5">
+              {/* Fila Principal: Día, Icono y Parámetros */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 w-[25%]">
-                  <Icon size={24} className="text-amber-500 drop-shadow-sm" aria-label={label} />
-                  <span className="font-bold capitalize">{date.toLocaleDateString('es-ES', { weekday: 'short' })}</span>
+                <div className="flex items-center gap-3">
+                  <Icon size={26} className={`${colorDark} drop-shadow-sm`} aria-label={label} />
+                  <span className="font-bold text-base capitalize">{date.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' })}</span>
                 </div>
                 
-                <div className="flex gap-1 w-[35%]">
-                   <div className={`px-1 py-1 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center flex-1 flex flex-col justify-center`} title={`Estrés Térmico: ${thomIndex.label}`}>
-                      <span className="opacity-80 text-[7px] leading-tight">Fatiga</span>
-                      <span className="leading-tight">{thomIndex.shortLabel}</span>
-                   </div>
-                   <div className={`px-1 py-1 rounded text-[8px] font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm text-center flex-1 flex flex-col justify-center`} title={`Variación de presión en 24h: ${deltaAlert.detail}`}>
-                      <span className="opacity-80 text-[7px] leading-tight">{deltaAlert.detail}</span>
-                      <span className="leading-tight">{deltaAlert.label}</span>
-                   </div>
-                   <div className={`px-1 py-1 rounded text-[8px] font-bold uppercase tracking-wider ${migraineRisk.bgClass} ${migraineRisk.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center flex-1 flex flex-col justify-center`} title={`Riesgo Migraña (DOI: 10.1111/head.14482): ${migraineRisk.detail}`}>
-                      <span className="opacity-80 text-[7px] leading-tight">Migraña</span>
-                      <span className="leading-tight">{migraineRisk.label} <span className="opacity-70">({migraineRisk.score})</span></span>
-                   </div>
-                </div>
-
-                <div className="flex-1 flex justify-end gap-3 text-right">
+                <div className="flex gap-4 text-right">
                   <div className="flex flex-col">
                     <span className="text-sm font-extrabold">{Math.round(day.maxTemp)}°/{Math.round(day.minTemp)}°</span>
-                    <span className="text-[10px] text-slate-500 font-semibold">Temp</span>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{t('label.temp')}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-extrabold">{Math.round(day.humidity)}%</span>
-                    <span className="text-[10px] text-slate-500 font-semibold">Hum</span>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{t('label.humidity').substring(0, 4)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Desglose Matemático */}
-              <div className="mt-3 bg-slate-100 rounded-lg p-2.5 text-[10px] border border-slate-200">
-                <ul className="list-disc list-inside space-y-0.5 ml-1">
-                  {migraineRisk.reasons.map((reason, rIdx) => (
-                    <li key={rIdx} className={reason.includes('+') ? 'text-slate-800 font-bold' : 'text-slate-500 font-medium'}>
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
+              {/* Fila de Chips: Grandes, con wrap en viewports pequeños */}
+              <div className="flex flex-wrap gap-2">
+                <div 
+                  className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm whitespace-nowrap flex items-center justify-center`}
+                  title={`Estrés Térmico (Índice de Thom): ${thomIndex.label}`}
+                >
+                  {t('label.fatigue')}: {thomIndex.shortLabel}
+                </div>
+                <div 
+                  className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm whitespace-nowrap flex items-center justify-center`}
+                  title={`Variación de presión en 24h: ${deltaAlert.detail}`}
+                >
+                  Δ P: {deltaAlert.label} ({deltaAlert.detail})
+                </div>
+                <div 
+                  className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${migraineRisk.bgClass} shadow-sm whitespace-nowrap flex items-center justify-center gap-1`}
+                  title={`Riesgo Migraña: ${migraineRisk.detail}`}
+                >
+                  <span>🧠</span> {t('label.migraine')}: {migraineRisk.label} ({migraineRisk.score} pts)
+                </div>
+              </div>
+
+              {/* Desglose Clínico y Matemático */}
+              <div className="mt-3 bg-slate-100 rounded-lg p-2.5 text-[10px] border border-slate-200 flex flex-col gap-2.5">
+                <div>
+                  <h5 className="font-bold text-slate-700 border-b border-slate-200 pb-0.5 mb-1.5 flex justify-between items-center">
+                    <span>{t('label.fatigue_calc')}</span>
+                    <span className="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-black">{thomIndex.value.toFixed(1)} DI</span>
+                  </h5>
+                  <ul className="list-disc list-inside space-y-0.5 ml-1">
+                    {thomIndex.reasons.map((reason, rIdx) => (
+                      <li key={rIdx} className="text-slate-600 font-medium">
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="font-bold text-slate-700 border-b border-slate-200 pb-0.5 mb-1.5 flex justify-between items-center">
+                    <span>{t('label.migraine_doi')}</span>
+                    <span className="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-black">{migraineRisk.score} / 6 pts</span>
+                  </h5>
+                  <ul className="list-disc list-inside space-y-0.5 ml-1">
+                    {migraineRisk.reasons.map((reason, rIdx) => (
+                      <li key={rIdx} className={reason.includes('+') ? 'text-slate-800 font-bold' : 'text-slate-500 font-medium'}>
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           );

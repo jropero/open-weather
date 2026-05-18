@@ -1,40 +1,155 @@
 # 🌤️ Open-Weather: Biometeorological Tracker
 
-[![Live Demo](https://img.shields.io/badge/Prueba%20la%20App%20en%20Vivo-ekult.co.uk%2Ft%2F-blue?style=for-the-badge&logo=vercel)](https://ekult.co.uk/t/)
+[![Live Demo](https://img.shields.io/badge/Try%20the%20Live%20App-ekult.co.uk%2Ft%2F-blue?style=for-the-badge&logo=vercel)](https://ekult.co.uk/t/)
+
+[🇪🇸 Leer en Español](#-open-weather-seguimiento-biometeorológico)
+
+A high-fidelity medical-weather application designed to monitor and predict the impact of atmospheric variables on human health, with a specific focus on **meteoropathy**, **migraines**, and **thermal fatigue**.
+
+---
+
+## 🎯 Project Goal
+
+The human brain and cardiovascular system are highly sensitive to sudden changes in atmospheric pressure and humidity. This project was built as a personal biometeorological dashboard to cross-reference empirical weather variables—such as barometric pressure, wind, precipitation, temperature, and humidity—with physical symptoms like muscle fatigue, tension headaches, and migraines.
+
+---
+
+## ✨ Core Features
+
+*   **🚨 Real-Time Biomedical Alerts**
+    *   **ΔP (24h Pressure Delta):** Instantly calculates sudden atmospheric pressure drops ($\le$ -3 hPa and $\le$ -5 hPa) relative to the previous day's average. It features a **visual gradient pressure gauge** that positions the current pressure in a realistic meteorological spectrum (980 hPa to 1050 hPa) for instant clinical context.
+    *   **Thom's Discomfort Index (Thermal Fatigue):** Evaluates thermal stress by combining ambient temperature with relative humidity to warn users about cardiovascular strain and fatigue levels ("muggy air").
+    *   **Bilingual Selector (ES / EN):** A glassmorphic top-right dropdown toggle that instantly translates the entire application's interface, metrics, graphs, and clinical breakdown texts in real-time.
+*   **📊 Pressure & Humidity Highlight Card**
+    *   **Double-Slider Interface:** A highly compact, high-density layout that presents both surface pressure and relative humidity side-by-side (e.g., `1013 hPa, 55% RH`).
+    *   **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
+    *   **Stacked Visual Range Bars:** Features two high-fidelity visual range sliders:
+        1.  **Pressure range** (980–1050 hPa) with a customized green-orange-red color gradient.
+        2.  **Relative humidity range** (0%–100%) with a dry-wet blue-green-orange gradient.
+*   **📈 7-Day Temporal Window (Evolution & Forecast)**
+    *   An immersive, borderless multi-layer chart mathematically centered on "**TODAY**", showing 3 days of historical records on the left and 3 days of forecast predictions on the right.
+    *   Overlaying essential variables cleanly: atmospheric pressure (represented by a red gradient area mountain), temperature (yellow line), and rain volume (indigo vertical bar charts with gap dividers).
+    *   **Optimized Layout Padding:** Spacing in the main grid has been mathematically reduced to ensure high-density biometric metrics fit perfectly on compact screens without overflow, while keeping a generous dedicated padding specifically around the bottom *"How to interpret this chart"* legend to maintain a pristine aesthetic.
+    *   **Aurora Heatmap background:** The chart's background uses a CSS parametric heatmap to seamlessly reflect high humidity risk (Yellow = Dry/Comfortable, Purple = Extreme humidity).
+*   **🔮 Clinical Diagnostic Breakdowns**
+    *   Beyond simple alert chips, the system provides a clear, mathematical breakdown detailing exactly which environmental factors (pressure drops, rainfall, absolute pressure, etc.) are contributing risk points to help users plan their week safely.
+*   **🌤️ Next 3 Days Section**
+    *   Displays forecast cards for upcoming days. Weather condition icons are unified to use the exact same color palette as the current weather card for visual consistency.
+*   **🕰️ Atmospheric Memory (Historical Archive)**
+    *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**.
+    *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
+
+---
+
+## 🔬 Scientific Validation (AI & Big Data)
+
+Our medical alert algorithms are rooted in recent peer-reviewed clinical research. Specifically, the compound **Migraine Risk Index** directly implements the findings from the empirical study:
+> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), published in *Headache Journal* (2023).
+
+After analyzing more than 330,000 headache events using predictive machine learning models, the study proved that migraine occurrence rises sharply when multiple atmospheric indicators converge:
+1.  **Significant barometric pressure drops** (tracked in-app using the 24h *Delta P* calculation).
+2.  **Low absolute barometric pressure**.
+3.  **High relative humidity**.
+4.  **Active precipitation**.
+
+The application evaluates these 4 parameters in real time to calculate a combined **Migraine Risk Index** (Minimal, Low, Moderate, High, Extreme). 
+
+The algorithm's sensitivity has been carefully calibrated to avoid alert fatigue, requiring the alignment of multiple severe climate indicators to issue high-level alert warnings.
+
+---
+
+## 🚀 Architecture and Technology Stack
+
+This application is built for high-performance network requests and an immersive user interface (*dark glassmorphism* and A11y high contrast), leveraging the latest tools in the React ecosystem:
+
+*   **Core:** React 19, TypeScript, Vite.
+*   **Styles:** Tailwind CSS v4, Lucide Icons.
+*   **Mobile-First Responsive Design:** Seamless layout scales and dynamic paddings to maximize tactile and visual space on smaller screens.
+*   **Charts:** Recharts.
+*   **Data API Source:** [Open-Meteo](https://open-meteo.com/).
+
+---
+
+## 🧠 Why Open-Meteo?
+
+Traditional commercial APIs (like OpenWeatherMap or WeatherAPI) were bypassed in favor of Open-Meteo for a critical scientific reason:
+The application requires bulk historical data (Atmospheric Memory) and precise interday pressure delta calculations. Open-Meteo provides free, unrestricted access to the **Copernicus ERA5** database (European Centre for Medium-Range Weather Forecasts). ERA5 uses global atmospheric models and supercomputers to reconstruct historical pressure and climate records at any coordinate since 1940. This provides the most scientific, reliable backing possible for tracking meteoropathic symptoms.
+
+---
+
+## 🛠️ Installation & Local Development
+
+1.  Clone the repository to your local machine.
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the ultra-fast Vite development server (HMR):
+    ```bash
+    npm run dev
+    ```
+4.  Open `http://localhost:5173/` in your browser.
+
+---
+---
+
+# 🌤️ Open-Weather: Seguimiento Biometeorológico
+
+[🇺🇸 Read in English](#🌤️-open-weather-biometeorological-tracker)
 
 Una aplicación meteorológica médica de alta fidelidad diseñada específicamente para registrar y predecir el impacto de las variables atmosféricas en la salud humana, enfocándose en la **meteoropatía**, las **migrañas** y la **fatiga térmica**.
+
+---
 
 ## 🎯 Objetivo del Proyecto
 
 El cerebro humano y el sistema cardiovascular son altamente sensibles a los cambios de presión atmosférica y humedad. Este proyecto fue concebido como un panel de control biometeorológico personal para cruzar datos empíricos de presión, viento, lluvia, temperatura y humedad con episodios físicos (cansancio, dolores de cabeza tensionales y migrañas).
 
+---
+
 ## ✨ Características Principales
 
 *   **🚨 Alertas Biomédicas en Tiempo Real**
-    *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (950 hPa a 1050 hPa) para dar contexto instantáneo.
+    *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -3 hPa y $\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (980 hPa a 1050 hPa) para dar contexto instantáneo.
     *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa para advertir sobre altos niveles de fatiga cardiovascular ("bochorno").
+    *   **Selector de Idioma Bilingüe (ES / EN):** Un control desplegable de estilo glassmorphic arriba a la derecha que traduce toda la interfaz, métricas, gráficas y desgloses de riesgo clínico en tiempo real.
+*   **📊 Tarjeta de Presión y Humedad Destacada**
+    *   **Interfaz de Doble Barra:** Sección compacta y de alta densidad que muestra la presión barométrica y la humedad relativa en la misma línea (ej. `1013 hPa, 55% HR`).
+    *   **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. *«presión normal y humedad confortable»*).
+    *   **Barras de Rango Apiladas:** Cuenta con dos barras de rango visual de alta fidelidad:
+        1.  **Rango de presión** (980–1050 hPa) con un degradado de color personalizado verde-naranja-rojo.
+        2.  **Rango de humedad** (0%–100%) con un degradado para niveles seco-húmedo.
 *   **📈 Ventana Temporal de 7 Días (Evolución y Pronóstico)**
     *   Gráfica multicapa con diseño inmersivo "sin ejes" (*borderless*). Se centra matemáticamente en el "**HOY**", mostrando 3 días de histórico empírico a la izquierda y 3 días de previsión a la derecha. 
     *   Superpone de forma limpia las variables climáticas fundamentales: la presión (montaña roja), la temperatura (línea amarilla) y la lluvia (histograma con brechas divisorias diarias).
-    *   **Fondo de Aurora (Heatmap):** El fondo del gráfico (CSS background paramétrico) actúa como un mapa de calor visual inmersivo que delata el nivel de humedad ambiental y su riesgo (Amarillo = Seco, Morado = Riesgo extremo de humedad).
+    *   **Padding Optimizado:** El espaciado de la cuadrícula principal ha sido reducido matemáticamente para que todos los datos biométricos quepan en pantallas pequeñas sin desbordamiento, mientras se mantiene un margen exclusivo y cómodo alrededor de la leyenda de lectura inferior (*«Cómo interpretar este gráfico»*).
+    *   **Fondo de Aurora (Heatmap):** El fondo del gráfico actúa como un mapa de calor visual inmersivo que delata el nivel de humedad ambiental y su riesgo (Amarillo = Seco, Morado = Riesgo extremo de humedad).
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
+*   **🌤️ Sección Próximos 3 Días**
+    *   Tarjetas con previsiones diarias detalladas. Los iconos del estado del clima han sido unificados para utilizar exactamente la misma paleta de colores vibrantes que la tarjeta de clima actual para mantener la consistencia visual.
 *   **🕰️ Memoria Atmosférica (Archivo Histórico)**
     *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
+    *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.
+
+---
 
 ## 🔬 Validación Científica (IA y Big Data)
 
-Nuestros algoritmos de alerta médica se basan en evidencia clínica reciente. Específicamente, el sistema compuesto de **Riesgo de Migraña** implementa directamente las conclusiones del estudio empírico *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), publicado en *Headache Journal* (2023).
+Nuestros algoritmos de alerta médica se basan en evidencia clínica reciente. Específicamente, el sistema compuesto de **Riesgo de Migraña** implementa directamente las conclusiones del estudio empírico:
+> *"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence"* (DOI: [10.1111/head.14482](https://doi.org/10.1111/head.14482)), publicado en *Headache Journal* (2023).
 
 Dicho estudio, tras analizar más de 330.000 eventos de dolor de cabeza con modelos predictivos, demostró que la incidencia de migrañas aumenta drásticamente cuando convergen de forma simultánea:
-1. **Caídas significativas de presión barométrica** (evaluado en la app mediante el cálculo del *Delta P* en 24h).
-2. **Presión barométrica absoluta baja**.
-3. **Alta humedad relativa**.
-4. **Incremento de precipitaciones**.
+1.  **Caídas significativas de presión barométrica** (evaluado en la app mediante el cálculo del *Delta P* en 24h).
+2.  **Presión barométrica absoluta baja**.
+3.  **Alta humedad relativa**.
+4.  **Incremento de precipitaciones**.
 
 La aplicación cruza estas 4 variables atmosféricas en tiempo real para emitir un **Índice de Riesgo de Migraña** compuesto (Mínimo, Bajo, Moderado, Alto, Extremo). 
 
 La sensibilidad del algoritmo ha sido ajustada y calibrada de forma conservadora para evitar la fatiga de alertas. El sistema exige la alineación simultánea de múltiples factores climáticos severos para emitir niveles de alerta preocupantes, actuando de forma fiable.
+
+---
 
 ## 🚀 Arquitectura y Tecnologías
 
@@ -46,20 +161,24 @@ Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (*Glas
 *   **Gráficos:** Recharts.
 *   **Fuente de Datos:** [Open-Meteo](https://open-meteo.com/). 
 
+---
+
 ## 🧠 ¿Por qué Open-Meteo?
 
 Se han descartado deliberadamente APIs comerciales tradicionales (OpenWeatherMap, WeatherAPI) a favor de Open-Meteo por una razón científica:
 La aplicación necesita extraer masivamente datos retrospectivos (Memoria Atmosférica) y calcular variaciones interdiarias precisas. Open-Meteo proporciona acceso instantáneo y gratuito a la base de datos **Copernicus ERA5** (European Centre for Medium-Range Weather Forecasts), que utiliza supercomputadoras para cruzar millones de registros históricos globales y calcular la presión atmosférica exacta en cualquier coordenada desde 1940. Es la arquitectura perfecta y más fiable para la meteoropatía.
 
+---
+
 ## 🛠️ Instalación y Desarrollo Local
 
-1. Clona el repositorio en tu máquina.
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-3. Arranca el servidor de desarrollo ultrarrápido (HMR):
-   ```bash
-   npm run dev
-   ```
-4. Abre `http://localhost:5173/` en tu navegador.
+1.  Clona el repositorio en tu máquina.
+2.  Instala las dependencias:
+    ```bash
+    npm install
+    ```
+3.  Arranca el servidor de desarrollo ultrarrápido (HMR):
+    ```bash
+    npm run dev
+    ```
+4.  Abre `http://localhost:5173/` en tu navegador.

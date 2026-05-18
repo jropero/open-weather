@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocationContext, PREDEFINED_LOCATIONS } from '../context/LocationContext';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { X, MapPin, Navigation } from 'lucide-react';
+import { useLanguage, type Language } from '../context/LanguageContext';
 
 interface LocationSelectorProps {
   isOpen: boolean;
@@ -11,9 +12,18 @@ interface LocationSelectorProps {
 export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
   const { currentLocation, setCurrentLocation } = useLocationContext();
   const { getCurrentPosition, loading: gpsLoading } = useGeolocation();
+  const { language, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!isOpen) return null;
+
+  const getTranslatedLocationName = (loc: typeof PREDEFINED_LOCATIONS[0], lang: Language) => {
+    if (loc.id === 'gps') return lang === 'en' ? 'Current (GPS)' : 'Actual (GPS)';
+    if (loc.id === 'basel') return lang === 'en' ? 'Basel' : 'Basilea';
+    if (loc.id === 'reykjavik') return lang === 'en' ? 'Reykjavik' : 'Reikiavik';
+    if (loc.id === 'taipei') return lang === 'en' ? 'Taipei' : 'Taipéi';
+    return loc.name;
+  };
 
   const handleGPSClick = async () => {
     try {
@@ -21,7 +31,7 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
       setCurrentLocation(position);
       onClose();
     } catch (e) {
-      alert('No se pudo obtener la ubicación GPS.');
+      alert(t('alert.gps_error'));
     }
   };
 
@@ -30,15 +40,19 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
     onClose();
   };
 
-  const filteredLocations = PREDEFINED_LOCATIONS.filter(l => 
-    !l.isGPS && l.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLocations = PREDEFINED_LOCATIONS.filter(l => {
+    if (l.isGPS) return false;
+    const translatedName = getTranslatedLocationName(l, language).toLowerCase();
+    const originalName = l.name.toLowerCase();
+    const query = searchTerm.toLowerCase();
+    return translatedName.includes(query) || originalName.includes(query);
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white text-gray-800 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Seleccionar Ubicación</h2>
+          <h2 className="text-xl font-bold">{t('title.select_location')}</h2>
           <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
             <X size={20} />
           </button>
@@ -48,7 +62,7 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="Buscar ciudad..." 
+            placeholder={t('placeholder.search_city')} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-100 pl-10 pr-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-400"
@@ -62,7 +76,7 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
         >
           <div className="flex items-center gap-3">
             <Navigation size={20} />
-            <span className="font-semibold">{gpsLoading ? 'Obteniendo GPS...' : 'Usar mi ubicación actual'}</span>
+            <span className="font-semibold">{gpsLoading ? t('btn.gps_active') : t('btn.gps_use')}</span>
           </div>
         </button>
 
@@ -73,7 +87,7 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
               onClick={() => handleLocationClick(loc)}
               className={`text-left p-4 rounded-xl transition-colors ${currentLocation.id === loc.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'}`}
             >
-              {loc.name}
+              {getTranslatedLocationName(loc, language)}
             </button>
           ))}
         </div>
