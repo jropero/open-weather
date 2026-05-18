@@ -1,7 +1,42 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-sun: sun-spin 24s linear infinite;
+  --animate-cloud: cloud-float 6s ease-in-out infinite;
+  --animate-rain: rain-drop 3s ease-in-out infinite;
+  --animate-storm: storm-shake 4s ease-in-out infinite;
+
+  @keyframes sun-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes cloud-float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.02); }
+  }
+
+  @keyframes rain-drop {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+
+  @keyframes storm-shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-2px) rotate(-2deg); }
+    20% { transform: translateX(2px) rotate(2deg); }
+    30% { transform: translateX(-2px) rotate(-2deg); }
+    40% { transform: translateX(2px) rotate(2deg); }
+    50% { transform: translateX(0); }
+  }
+}
+
 body {
   @apply antialiased text-white;
   background: linear-gradient(to bottom, #2563eb, #60a5fa);
   min-height: 100vh;
+}
+
+.icon-glow {
+  filter: drop-shadow(0 0 6px currentColor);
 }
