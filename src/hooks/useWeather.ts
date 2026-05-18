@@ -16,8 +16,8 @@ export function useWeather(location: Location) {
       setError(null);
 
       try {
-        // Current and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+        // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=pressure_msl&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -70,6 +70,28 @@ export function useWeather(location: Location) {
           };
         });
 
+        // Calculate Pressure Trend
+        let pressureTrend = null;
+        if (currentData.hourly?.time && currentData.hourly?.pressure_msl && currentData.current?.time) {
+          const currentTime = currentData.current.time;
+          // Find the index of the current hour (or closest matching hour string)
+          const currentIndex = currentData.hourly.time.findIndex((t: string) => t === currentTime || t.startsWith(currentTime.substring(0, 13)));
+          
+          if (currentIndex >= 6) {
+            const currentP = currentData.current.pressure_msl;
+            const p3h = currentData.hourly.pressure_msl[currentIndex - 3];
+            const p6h = currentData.hourly.pressure_msl[currentIndex - 6];
+            
+            if (p3h !== null && p6h !== null) {
+              pressureTrend = {
+                currentPressure: currentP,
+                delta3h: Math.round((currentP - p3h) * 10) / 10,
+                delta6h: Math.round((currentP - p6h) * 10) / 10
+              };
+            }
+          }
+        }
+
         setData({
           current: {
             temperature: currentData.current.temperature_2m,
@@ -80,7 +102,8 @@ export function useWeather(location: Location) {
             surfacePressure: currentData.current.pressure_msl,
           },
           daily: dailyWeather,
-          historical: historicalData
+          historical: historicalData,
+          pressureTrend
         });
       } catch (err: any) {
         if (isMounted) setError(err.message);
