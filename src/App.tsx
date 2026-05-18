@@ -2,17 +2,19 @@ import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from './utils/weatherCodes';
-import { MapPin, Search } from 'lucide-react';
+import { MapPin, Search, HelpCircle } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
 import { HistoricalPressure } from './components/HistoricalPressure';
 import { LocationSelector } from './components/LocationSelector';
 import { LanguageProvider, useLanguage, type Language } from './context/LanguageContext';
+import { HelpModal } from './components/HelpModal';
 
 function WeatherDashboard() {
   const { currentLocation } = useLocationContext();
   const { data, loading, error } = useWeather(currentLocation);
   const [isSelectorOpen, setIsSelectorOpen] = React.useState(false);
+  const [isHelpOpen, setIsHelpOpen] = React.useState(false);
   const { language, setLanguage, t } = useLanguage();
 
   if (loading) {
@@ -25,7 +27,7 @@ function WeatherDashboard() {
 
   if (!data) return null;
 
-  const { icon: WeatherIcon, label: weatherLabel, color: weatherColor, animation: weatherAnimation } = getWeatherInfo(data.current.weatherCode, language);
+  const { icon: WeatherIcon, label: weatherLabel, color: weatherColor, animation: weatherAnimation, bgClass: weatherBg } = getWeatherInfo(data.current.weatherCode, language);
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -72,7 +74,7 @@ function WeatherDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-400 to-blue-200 text-white p-2 sm:p-4 font-sans selection:bg-blue-300">
+    <div className={`min-h-screen bg-gradient-to-b ${weatherBg || 'from-blue-400 to-blue-200'} text-white p-2 sm:p-4 font-sans selection:bg-blue-300 transition-all duration-1000 ease-in-out`}>
       <header className="flex justify-between items-center mb-8 px-2 sm:px-0 mt-2 sm:mt-0">
         <button onClick={() => setIsSelectorOpen(true)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <MapPin className="text-white" />
@@ -88,6 +90,15 @@ function WeatherDashboard() {
             <option value="es" className="text-slate-800 font-semibold bg-white">ES</option>
             <option value="en" className="text-slate-800 font-semibold bg-white">EN</option>
           </select>
+
+          {/* Botón de ayuda */}
+          <button 
+            onClick={() => setIsHelpOpen(true)} 
+            className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
+            title={language === 'en' ? 'Help & Science' : 'Ayuda y Ciencia'}
+          >
+            <HelpCircle size={18} />
+          </button>
 
           <button onClick={() => setIsSelectorOpen(true)} className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
             <Search size={18} />
@@ -215,6 +226,7 @@ function WeatherDashboard() {
       </main>
 
       <LocationSelector isOpen={isSelectorOpen} onClose={() => setIsSelectorOpen(false)} />
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

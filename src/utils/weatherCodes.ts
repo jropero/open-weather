@@ -13,16 +13,16 @@ export function getWeatherInfo(code: number, lang: Language = 'es') {
   const isEn = lang === 'en';
   
   // WMO Weather interpretation codes
-  if (code === 0) return { label: isEn ? 'Clear' : 'Despejado', icon: Sun, color: 'text-amber-300 fill-amber-300', colorDark: 'text-amber-500 fill-amber-500', animation: 'animate-sun' };
-  if (code === 1 || code === 2 || code === 3) return { label: isEn ? 'Cloudy' : 'Nublado', icon: Cloud, color: 'text-slate-300 fill-slate-300 opacity-90', colorDark: 'text-slate-400 fill-slate-400', animation: 'animate-cloud' };
-  if (code === 45 || code === 48) return { label: isEn ? 'Fog' : 'Niebla', icon: CloudFog, color: 'text-zinc-300 fill-zinc-300 opacity-80', colorDark: 'text-zinc-400 fill-zinc-400', animation: 'animate-cloud' };
-  if (code === 51 || code === 53 || code === 55 || code === 56 || code === 57) return { label: isEn ? 'Drizzle' : 'Llovizna', icon: CloudDrizzle, color: 'text-sky-300 fill-sky-300', colorDark: 'text-sky-500 fill-sky-500', animation: 'animate-rain' };
-  if (code === 61 || code === 63 || code === 65 || code === 66 || code === 67) return { label: isEn ? 'Rain' : 'Lluvia', icon: CloudRain, color: 'text-blue-300 fill-blue-300', colorDark: 'text-blue-500 fill-blue-500', animation: 'animate-rain' };
-  if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) return { label: isEn ? 'Snow' : 'Nieve', icon: CloudSnow, color: 'text-cyan-100 fill-cyan-100', colorDark: 'text-cyan-600 fill-cyan-600', animation: 'animate-cloud' };
-  if (code === 80 || code === 81 || code === 82) return { label: isEn ? 'Rain Showers' : 'Chubascos', icon: CloudRain, color: 'text-blue-400 fill-blue-400', colorDark: 'text-blue-600 fill-blue-600', animation: 'animate-rain' };
-  if (code === 95 || code === 96 || code === 99) return { label: isEn ? 'Thunderstorm' : 'Tormenta', icon: CloudLightning, color: 'text-purple-300 fill-purple-300', colorDark: 'text-purple-500 fill-purple-500', animation: 'animate-storm' };
+  if (code === 0) return { label: isEn ? 'Clear' : 'Despejado', icon: Sun, color: 'text-amber-300 fill-amber-300', colorDark: 'text-amber-500 fill-amber-500', animation: 'animate-sun', bgClass: 'from-sky-500 via-sky-400 to-blue-300' };
+  if (code === 1 || code === 2 || code === 3) return { label: isEn ? 'Cloudy' : 'Nublado', icon: Cloud, color: 'text-slate-300 fill-slate-300 opacity-90', colorDark: 'text-slate-400 fill-slate-400', animation: 'animate-cloud', bgClass: 'from-slate-500 via-slate-400 to-zinc-400' };
+  if (code === 45 || code === 48) return { label: isEn ? 'Fog' : 'Niebla', icon: CloudFog, color: 'text-zinc-300 fill-zinc-300 opacity-80', colorDark: 'text-zinc-400 fill-zinc-400', animation: 'animate-cloud', bgClass: 'from-zinc-500 via-slate-400 to-slate-300' };
+  if (code === 51 || code === 53 || code === 55 || code === 56 || code === 57) return { label: isEn ? 'Drizzle' : 'Llovizna', icon: CloudDrizzle, color: 'text-sky-300 fill-sky-300', colorDark: 'text-sky-500 fill-sky-500', animation: 'animate-rain', bgClass: 'from-blue-600 via-sky-500 to-sky-300' };
+  if (code === 61 || code === 63 || code === 65 || code === 66 || code === 67) return { label: isEn ? 'Rain' : 'Lluvia', icon: CloudRain, color: 'text-blue-300 fill-blue-300', colorDark: 'text-blue-500 fill-blue-500', animation: 'animate-rain', bgClass: 'from-indigo-950 via-blue-900 to-slate-700' };
+  if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) return { label: isEn ? 'Snow' : 'Nieve', icon: CloudSnow, color: 'text-cyan-100 fill-cyan-100', colorDark: 'text-cyan-600 fill-cyan-600', animation: 'animate-cloud', bgClass: 'from-cyan-950 via-slate-800 to-slate-600' };
+  if (code === 80 || code === 81 || code === 82) return { label: isEn ? 'Rain Showers' : 'Chubascos', icon: CloudRain, color: 'text-blue-400 fill-blue-400', colorDark: 'text-blue-600 fill-blue-600', animation: 'animate-rain', bgClass: 'from-slate-900 via-slate-800 to-blue-900' };
+  if (code === 95 || code === 96 || code === 99) return { label: isEn ? 'Thunderstorm' : 'Tormenta', icon: CloudLightning, color: 'text-purple-300 fill-purple-300', colorDark: 'text-purple-500 fill-purple-500', animation: 'animate-storm', bgClass: 'from-slate-950 via-purple-950 to-slate-900' };
   
-  return { label: isEn ? 'Unknown' : 'Desconocido', icon: Sun, color: 'text-amber-300 fill-amber-300', colorDark: 'text-amber-500 fill-amber-500', animation: 'animate-sun' };
+  return { label: isEn ? 'Unknown' : 'Desconocido', icon: Sun, color: 'text-amber-300 fill-amber-300', colorDark: 'text-amber-500 fill-amber-500', animation: 'animate-sun', bgClass: 'from-sky-500 via-sky-400 to-blue-300' };
 }
 
 export function getPressureDescription(pressure: number, lang: Language = 'es') {

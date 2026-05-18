@@ -20,6 +20,16 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
     *   **ΔP (24h Pressure Delta):** Instantly calculates sudden atmospheric pressure drops ($\le$ -3 hPa and $\le$ -5 hPa) relative to the previous day's average. It features a **visual gradient pressure gauge** that positions the current pressure in a realistic meteorological spectrum (980 hPa to 1050 hPa) for instant clinical context.
     *   **Thom's Discomfort Index (Thermal Fatigue):** Evaluates thermal stress by combining ambient temperature with relative humidity to warn users about cardiovascular strain and fatigue levels ("muggy air").
     *   **Bilingual Selector (ES / EN):** A glassmorphic top-right dropdown toggle that instantly translates the entire application's interface, metrics, graphs, and clinical breakdown texts in real-time.
+*   **🎨 Dynamic Context-Aware Backgrounds [NEW]**
+    *   **Weather-Based Color Themes:** The background gradient adapts beautifully to the current weather condition (e.g. warm sunny skies for clear days, slate blue for light rain, dark slate/navy for showers to guarantee high-contrast icon visibility, and deep electric purple for thunderstorms).
+    *   **Smooth Cinematic Transitions:** Employs a smooth 1000ms CSS color transition when switching coordinates or loading a new city, providing a premium, highly responsive user experience.
+*   **📖 Interactive Help & Science Portal [NEW]**
+    *   **Clinical & Etymological Database:** Access a dedicated, glassmorphic modal detailing the Greek etymological origin of **Meteoropathy** (*meteoros* meaning "high in the sky" and *pathos* meaning "illness").
+    *   **Mathematical Formulas:** Explains mathematical derivations for Thom's Discomfort Index and 24h pressure delta thresholds.
+    *   **Clinical Paper Link:** Direct integration of the peer-reviewed Headache Journal research study, including an interactive link to the DOI paper.
+*   **💾 Location State Persistence [NEW]**
+    *   **Automatic Restores:** The app implements smart, lazy state initialization from the browser's `localStorage` (saved under `last_location`).
+    *   **Seamless Persistence:** Remembers and restores the exact last selected predefined city, custom search coordinates, or GPS location across page reloads.
 *   **📊 Pressure & Humidity Highlight Card**
     *   **Double-Slider Interface:** A highly compact, high-density layout that presents both surface pressure and relative humidity side-by-side (e.g., `1013 hPa, 55% RH`).
     *   **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
@@ -34,7 +44,7 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 *   **🔮 Clinical Diagnostic Breakdowns**
     *   Beyond simple alert chips, the system provides a clear, mathematical breakdown detailing exactly which environmental factors (pressure drops, rainfall, absolute pressure, etc.) are contributing risk points to help users plan their week safely.
 *   **🌤️ Next 3 Days Section**
-    *   Displays forecast cards for upcoming days. Weather condition icons are unified to use the exact same color palette as the current weather card for visual consistency.
+    *   Displays forecast cards for upcoming days. Weather condition icons are unified to use the exact same color palette as the current weather card for visual consistency. Includes pre-configured Spanish locations: **Torrevieja** and **Santiago de Compostela**.
 *   **🕰️ Atmospheric Memory (Historical Archive)**
     *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**.
     *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
@@ -113,6 +123,16 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
     *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -3 hPa y $\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (980 hPa a 1050 hPa) para dar contexto instantáneo.
     *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa para advertir sobre altos niveles de fatiga cardiovascular ("bochorno").
     *   **Selector de Idioma Bilingüe (ES / EN):** Un control desplegable de estilo glassmorphic arriba a la derecha que traduce toda la interfaz, métricas, gráficas y desgloses de riesgo clínico en tiempo real.
+*   **🎨 Fondos Dinámicos en Tiempo Real [NUEVO]**
+    *   **Colores Adaptados al Clima:** El gradiente de fondo de la app se adapta estéticamente al tiempo actual (ej. azul cielo radiante para despejado, gris/plomo para nublado, slate/azul oscuro para chubascos garantizando un contraste del 100% en los iconos, y púrpura tormenta para tempestades).
+    *   **Transiciones Cinematográficas:** Suave efecto de transición CSS de 1000ms al conmutar entre ubicaciones o cargar ciudades, proporcionando un aspecto vivo y premium.
+*   **📖 Portal de Ayuda y Ciencia Interactivo [NUEVO]**
+    *   **Base Médica y Etimológica:** Modal de documentación de estilo glassmorphic que detalla el origen griego de la palabra **Meteoropatía** (*meteoros* que significa "alto en el cielo" y *pathos* "enfermedad/sufrimiento").
+    *   **Fórmulas Clínicas:** Muestra el desglose matemático del Índice de Thom y la escala de variación de presión barométrica 24h.
+    *   **Enlace al Paper Científico:** Integración directa del estudio de la revista Headache Journal (2023), con botón directo para abrir el paper a través de su DOI oficial.
+*   **💾 Persistencia de Localización [NUEVO]**
+    *   **Restauración Automática:** Inicialización perezosa de estado mediante el almacenamiento del navegador `localStorage` (bajo la clave `last_location`).
+    *   **Experiencia Continua:** Recuerda y recupera al instante la última ciudad predefinida, coordenadas de búsqueda o localización GPS tras recargar la página.
 *   **📊 Tarjeta de Presión y Humedad Destacada**
     *   **Interfaz de Doble Barra:** Sección compacta y de alta densidad que muestra la presión barométrica y la humedad relativa en la misma línea (ej. `1013 hPa, 55% HR`).
     *   **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. *«presión normal y humedad confortable»*).
@@ -127,7 +147,7 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
 *   **🌤️ Sección Próximos 3 Días**
-    *   Tarjetas con previsiones diarias detalladas. Los iconos del estado del clima han sido unificados para utilizar exactamente la misma paleta de colores vibrantes que la tarjeta de clima actual para mantener la consistencia visual.
+    *   Tarjetas con previsiones diarias detalladas. Los iconos del estado del clima han sido unificados para utilizar exactamente la misma paleta de colores vibrantes que la tarjeta de clima actual para mantener la consistencia visual. Incluye las nuevas ciudades de **Torrevieja** y **Santiago de Compostela**.
 *   **🕰️ Memoria Atmosférica (Archivo Histórico)**
     *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
     *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.
