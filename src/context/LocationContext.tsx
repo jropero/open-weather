@@ -12,6 +12,8 @@ export const PREDEFINED_LOCATIONS: Location[] = [
   { id: 'santo_domingo', name: 'Santo Domingo', latitude: 18.4801874, longitude: -70.0292817 },
   { id: 'auckland', name: 'Auckland', latitude: -36.8318297, longitude: 174.3969279 },
   { id: 'taipei', name: 'Taipéi', latitude: 25.0174467, longitude: 121.3415663 },
+  { id: 'torrevieja', name: 'Torrevieja', latitude: 37.9787, longitude: -0.6822 },
+  { id: 'santiago', name: 'Santiago de Compostela', latitude: 42.8805, longitude: -8.5457 },
 ];
 
 interface LocationContextType {
@@ -22,7 +24,26 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 export function LocationProvider({ children }: { children: ReactNode }) {
-  const [currentLocation, setCurrentLocation] = useState<Location>(PREDEFINED_LOCATIONS[1]); // Default to Basel
+  const [currentLocation, setCurrentLocationState] = useState<Location>(() => {
+    try {
+      const stored = localStorage.getItem('last_location');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to parse stored location:', e);
+    }
+    return PREDEFINED_LOCATIONS[1]; // Default to Basel
+  });
+
+  const setCurrentLocation = (location: Location) => {
+    setCurrentLocationState(location);
+    try {
+      localStorage.setItem('last_location', JSON.stringify(location));
+    } catch (e) {
+      console.error('Failed to save location to localStorage:', e);
+    }
+  };
 
   return (
     <LocationContext.Provider value={{ currentLocation, setCurrentLocation }}>
