@@ -33,6 +33,7 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 *   **📊 Pressure & Humidity Highlight Card**
     *   **Double-Slider Interface:** A highly compact, high-density layout that presents both surface pressure and relative humidity side-by-side (e.g., `1013 hPa, 55% RH`).
     *   **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
+    *   **Hourly Pressure Velocity (3h & 6h Trends) [NEW]:** Shows real-time barometric rate of change. Delta 6h acts as a critical scientific trigger matching Katsuki et al. (2023)'s highest AI gain parameter (11.7), alerting users with a warning icon (⚡) during rapid pressure drops.
     *   **Stacked Visual Range Bars:** Features two high-fidelity visual range sliders:
         1.  **Pressure range** (980–1050 hPa) with a customized green-orange-red color gradient.
         2.  **Relative humidity range** (0%–100%) with a dry-wet blue-green-orange gradient.
@@ -139,6 +140,7 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 *   **📊 Tarjeta de Presión y Humedad Destacada**
     *   **Interfaz de Doble Barra:** Sección compacta y de alta densidad que muestra la presión barométrica y la humedad relativa en la misma línea (ej. `1013 hPa, 55% HR`).
     *   **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. *«presión normal y humedad confortable»*).
+    *   **Velocidad de Presión Horaria (Tendencias 3h y 6h) [NUEVO]:** Muestra el ritmo de cambio barométrico a corto plazo. El Delta 6h actúa como disparador de riesgo crítico, alineándose directamente con el parámetro de mayor ganancia de IA (11,7) del estudio de Katsuki et al. (2023), alertando con un icono de advertencia (⚡) en caídas rápidas.
     *   **Barras de Rango Apiladas:** Cuenta con dos barras de rango visual de alta fidelidad:
         1.  **Rango de presión** (980–1050 hPa) con un degradado de color personalizado verde-naranja-rojo.
         2.  **Rango de humedad** (0%–100%) con un degradado para niveles seco-húmedo.

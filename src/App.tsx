@@ -172,9 +172,27 @@ function WeatherDashboard() {
             <span className="text-3xl font-extrabold text-slate-900">{Math.round(data.current.humidity)}% {isEn ? 'RH' : 'HR'}</span>
           </div>
 
-          <p className="mt-1 text-sm font-bold text-slate-600 mb-4 capitalize">
+          <p className="mt-1 text-sm font-bold text-slate-600 mb-2 capitalize">
             {pressureHumDesc}
           </p>
+
+          {data.pressureTrend && (
+            <div className="flex gap-2 mb-4">
+              <div className="bg-slate-100 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-600 border border-slate-200/60 flex items-center gap-1.5 shadow-sm">
+                <span className="text-slate-400 uppercase tracking-wider text-[10px]">3h</span>
+                <span className={data.pressureTrend.delta3h <= -2 ? 'text-amber-600' : data.pressureTrend.delta3h > 2 ? 'text-blue-600' : ''}>
+                  {data.pressureTrend.delta3h > 0 ? '+' : ''}{data.pressureTrend.delta3h} hPa
+                </span>
+              </div>
+              <div className={`rounded-lg py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-sm ${data.pressureTrend.delta6h <= -5 ? 'bg-red-50 border-red-200 text-red-700' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 border-slate-200/60 text-slate-600'}`}>
+                <span className={`uppercase tracking-wider text-[10px] ${data.pressureTrend.delta6h <= -3 ? 'opacity-80' : 'text-slate-400'}`}>6h</span>
+                <span>
+                  {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
+                </span>
+                {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
+              </div>
+            </div>
+          )}
 
           {/* Dos líneas de rango visual apiladas */}
           <div className="flex flex-col gap-3">

@@ -110,6 +110,27 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </ul>
               </div>
 
+              {/* Hourly Pressure Velocity */}
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2 sm:col-span-2">
+                <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                  <Activity size={14} className="text-purple-500" />
+                  {isEn ? "Hourly Pressure Velocity (3h & 6h Trend)" : "Tendencia Horaria de Presión (Intervalos de 3h y 6h)"}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {isEn 
+                    ? "In addition to the 24-hour interday change, we track the short-term rate of barometric change. The 6-hour pressure drop is highlighted in Katsuki et al. (2023) as the single strongest predictor of headache onset."
+                    : 'Además de la variación de 24h, registramos la tasa de cambio a corto plazo. La caída de presión en un intervalo de 6 horas fue identificada por Katsuki et al. (2023) como el factor predictivo individual más potente para el inicio de cefaleas.'}
+                </p>
+                <ul className="text-[10px] space-y-1.5 text-slate-600 mt-1">
+                  <li>
+                    <strong>{isEn ? "3h Delta:" : "Delta 3h:"}</strong> {isEn ? "Short-term indicator. Drop ≤ -2 hPa shows immediate, rapid barometric changes." : "Indicador a muy corto plazo. Caídas ≤ -2 hPa indican cambios barométricos inmediatos y rápidos."}
+                  </li>
+                  <li>
+                    <strong className="text-amber-600">{isEn ? "6h Delta (⚡ Critical):" : "Delta 6h (⚡ Crítico):"}</strong> {isEn ? "The premium paper trigger. Drops ≤ -3 hPa trigger the warning (⚡), and drops ≤ -5 hPa signal severe barometric collapse (red alert) correlating directly with acute neural/migraine risk." : "El disparador clave del paper. Caídas ≤ -3 hPa activan la alerta (⚡), y caídas ≤ -5 hPa indican un colapso barométrico severo (alerta roja) correlacionado directamente con riesgo migrañoso agudo."}
+                  </li>
+                </ul>
+              </div>
+
             </div>
           </section>
 

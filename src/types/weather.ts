@@ -31,8 +31,15 @@ export interface HistoricalWeather {
   data: DailyWeather;
 }
 
+export interface PressureTrend {
+  delta3h: number;
+  delta6h: number;
+  currentPressure: number;
+}
+
 export interface WeatherData {
   current: CurrentWeather;
   daily: DailyWeather[];
   historical: HistoricalWeather[];
+  pressureTrend: PressureTrend | null;
 }
