@@ -1,14 +1,17 @@
-import type { DailyWeather } from '../types/weather';
+import { useState } from 'react';
+import type { DailyWeather, HourlyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert } from '../utils/weatherCodes';
-import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis } from 'recharts';
+import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 import { useLanguage } from '../context/LanguageContext';
 
 interface DailyForecastProps {
   daily: DailyWeather[];
+  hourly: HourlyWeather[];
 }
 
-export function DailyForecast({ daily }: DailyForecastProps) {
+export function DailyForecast({ daily, hourly }: DailyForecastProps) {
   const { language, t } = useLanguage();
+  const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('daily');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -21,11 +24,11 @@ export function DailyForecast({ daily }: DailyForecastProps) {
   const startIndex = Math.max(0, todayIndex - 3);
   const targetDays = daily.slice(startIndex, startIndex + 7);
 
-  const chartData = targetDays.map(d => {
+  // Daily Chart Data
+  const dailyChartData = targetDays.map(d => {
     const actualIdx = daily.findIndex(x => x.date === d.date);
     const yesterday = actualIdx > 0 ? daily[actualIdx - 1] : d;
     const deltaP = Math.round(d.meanPressure - yesterday.meanPressure);
-
     const isToday = actualIdx === todayIndex;
     
     return {
@@ -43,57 +46,134 @@ export function DailyForecast({ daily }: DailyForecastProps) {
     };
   });
 
+  // Hourly Chart Data
+  const hourlyChartData = hourly.map(h => {
+    const timeDate = new Date(h.time);
+    const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return {
+      name: hourStr,
+      pressure: Math.round(h.pressure),
+      temp: Math.round(h.temperature),
+      humidity: Math.round(h.humidity),
+      wind: 0,
+      precip: h.precipitation,
+      weatherCode: h.weatherCode,
+      deltaP: 0,
+      bgValue: 100
+    };
+  });
+
+  const chartData = viewMode === 'daily' ? dailyChartData : hourlyChartData;
+
   const minPressure = Math.min(...chartData.map(d => d.pressure)) - 5;
   const maxPressure = Math.max(...chartData.map(d => d.pressure)) + 5;
   const minTemp = Math.min(...chartData.map(d => d.temp)) - 5;
   const maxTemp = Math.max(...chartData.map(d => d.temp)) + 5;
 
+  const isEn = language === 'en';
+
   return (
-    <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl py-4 px-0.5 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
-      <h3 className="text-sm uppercase tracking-wider mb-6 opacity-90 font-semibold px-4">{t('title.daily_forecast')}</h3>
-
-      {/* Top row: Icons and values */}
-      <div className="flex justify-between w-full px-0 mb-2">
-        {chartData.map((d, idx) => {
-          const { icon: Icon, label } = getWeatherInfo(d.weatherCode, language);
-          const thomIndex = getThomsDiscomfortIndex(d.temp, d.humidity, language);
-          const deltaAlert = getPressureDeltaAlert(d.deltaP, language);
-
-          return (
-            <div key={idx} className="flex flex-col items-center flex-1 px-0.5">
-              <div title={label}>
-                <Icon size={22} className="text-white drop-shadow-md mb-2" />
-              </div>
-              <span className="text-[10px] font-bold text-red-400 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.pressure')} (hPa)`}>{d.pressure} hPa</span>
-              <span className="text-[10px] font-bold text-amber-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.temp')} (°C)`}>{d.temp}°C</span>
-              <span className="text-[10px] font-bold text-sky-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.humidity')} (%)`}>{d.humidity}%</span>
-              <span className="text-[10px] font-bold text-teal-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.wind')} (km/h)`}>{d.wind} km/h</span>
-              <span className="text-[10px] font-bold text-indigo-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.rain')} (mm)`}>{d.precip} mm</span>
-              
-              {/* Índice de Incomodidad de Thom */}
-              <div 
-                className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
-                title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
-              >
-                {thomIndex.shortLabel}
-              </div>
-
-              {/* Alerta Delta P */}
-              <div 
-                className={`mt-1 px-0.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm text-center leading-tight flex flex-col`}
-                title={`Variación de presión en 24h: ${deltaAlert.detail}`}
-              >
-                <span>{deltaAlert.label}</span>
-                <span className="opacity-90">{deltaAlert.detail}</span>
-              </div>
-            </div>
-          );
-        })}
+    <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl py-5 px-0.5 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
+      {/* Title & View Switcher */}
+      <div className="flex justify-between items-center mb-6 px-4">
+        <h3 className="text-sm uppercase tracking-wider opacity-90 font-semibold">
+          {viewMode === 'daily' ? t('title.daily_forecast') : (isEn ? '24-Hour Forecast' : 'Pronóstico por Horas')}
+        </h3>
+        
+        <div className="bg-white/10 p-0.5 rounded-full flex gap-1 border border-white/5 backdrop-blur-md">
+          <button 
+            onClick={() => setViewMode('daily')}
+            className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all duration-300 ${viewMode === 'daily' ? 'bg-white text-slate-900 shadow-md' : 'text-white hover:bg-white/5'}`}
+          >
+            {isEn ? 'Daily' : 'Diario'}
+          </button>
+          <button 
+            onClick={() => setViewMode('hourly')}
+            className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all duration-300 ${viewMode === 'hourly' ? 'bg-white text-slate-900 shadow-md' : 'text-white hover:bg-white/5'}`}
+          >
+            {isEn ? 'Hourly' : 'Por Horas'}
+          </button>
+        </div>
       </div>
 
-      {/* Multi-Line Chart */}
-      <div className="h-40 w-full -ml-2 mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-        <ResponsiveContainer width="105%" height="100%">
+      {/* Top row: Daily (Columns) vs Hourly (Scrollable list) */}
+      {viewMode === 'daily' ? (
+        <div className="flex justify-between w-full px-0 mb-2">
+          {chartData.map((d, idx) => {
+            const { icon: Icon, label } = getWeatherInfo(d.weatherCode, language);
+            const thomIndex = getThomsDiscomfortIndex(d.temp, d.humidity, language);
+            const deltaAlert = getPressureDeltaAlert(d.deltaP, language);
+
+            return (
+              <div key={idx} className="flex flex-col items-center flex-1 px-0.5">
+                <div title={label}>
+                  <Icon size={22} className="text-white drop-shadow-md mb-2" />
+                </div>
+                <span className="text-[10px] font-bold text-red-400 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.pressure')} (hPa)`}>{d.pressure} hPa</span>
+                <span className="text-[10px] font-bold text-amber-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.temp')} (°C)`}>{d.temp}°C</span>
+                <span className="text-[10px] font-bold text-sky-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.humidity')} (%)`}>{d.humidity}%</span>
+                <span className="text-[10px] font-bold text-teal-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.wind')} (km/h)`}>{d.wind} km/h</span>
+                <span className="text-[10px] font-bold text-indigo-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.rain')} (mm)`}>{d.precip} mm</span>
+                
+                {/* Índice de Incomodidad de Thom */}
+                <div 
+                  className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
+                  title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
+                >
+                  {thomIndex.shortLabel}
+                </div>
+
+                {/* Alerta Delta P */}
+                <div 
+                  className={`mt-1 px-0.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm text-center leading-tight flex flex-col`}
+                  title={`Variación de presión en 24h: ${deltaAlert.detail}`}
+                >
+                  <span>{deltaAlert.label}</span>
+                  <span className="opacity-90">{deltaAlert.detail}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex overflow-x-auto gap-3 pb-3 pt-1 px-4 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent select-none scroll-smooth">
+          {hourly.map((h, idx) => {
+            const timeDate = new Date(h.time);
+            const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: 'numeric', hour12: true }).toUpperCase();
+            const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language);
+            const thomIndex = getThomsDiscomfortIndex(h.temperature, h.humidity, language);
+            
+            return (
+              <div 
+                key={idx} 
+                className="flex flex-col items-center min-w-[72px] bg-white/5 border border-white/5 rounded-2xl p-2.5 shadow-md hover:bg-white/10 transition-all duration-300"
+                title={label}
+              >
+                <span className="text-[10px] font-bold opacity-75 mb-1.5">{hourStr}</span>
+                <Icon size={24} className="text-white drop-shadow-sm mb-2" />
+                <span className="text-sm font-black text-amber-300 mb-0.5">{Math.round(h.temperature)}°</span>
+                <span className="text-[9px] font-bold text-sky-300">{Math.round(h.humidity)}%</span>
+                {h.precipitation > 0 ? (
+                  <span className="text-[9px] font-bold text-indigo-300 mt-0.5">{h.precipitation.toFixed(1)}mm</span>
+                ) : (
+                  <span className="text-[9px] font-bold opacity-0 mt-0.5">-</span>
+                )}
+                
+                <div 
+                  className={`mt-2 px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} scale-95 shadow-sm text-center leading-none`}
+                  title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
+                >
+                  {thomIndex.shortLabel}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Multi-Line Composed Chart */}
+      <div className={`w-full mt-4 -ml-1 ${viewMode === 'daily' ? 'h-40 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]' : 'h-40 overflow-hidden px-3 sm:px-4'}`}>
+        <ResponsiveContainer width={viewMode === 'daily' ? "105%" : "100%"} height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
             <defs>
               <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
@@ -114,10 +194,53 @@ export function DailyForecast({ daily }: DailyForecastProps) {
             <XAxis dataKey="name" hide />
 
             <YAxis yAxisId="pressure" hide domain={[minPressure, maxPressure]} />
-            <YAxis yAxisId="temp" hide domain={[minTemp, maxTemp]} />
+            <YAxis 
+              yAxisId="temp" 
+              hide={viewMode !== 'hourly'} 
+              orientation="left"
+              domain={[minTemp, maxTemp]} 
+              tick={{ fill: '#fcd34d', fontSize: 9, fontWeight: 'bold' }}
+              tickLine={false} 
+              axisLine={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1 }}
+              tickFormatter={(v) => `${v}°`}
+              width={24}
+            />
             <YAxis yAxisId="humidity" hide domain={[0, 100]} />
             <YAxis yAxisId="precip" hide domain={[0, 'dataMax + 15']} />
             <YAxis yAxisId="bg" hide domain={[0, 100]} />
+
+            {/* Interactive Tooltip */}
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-2.5 rounded-xl text-[10px] sm:text-xs shadow-xl flex flex-col gap-1 text-white">
+                      <p className="font-extrabold text-slate-300 border-b border-slate-700/50 pb-1 mb-1">{data.name}</p>
+                      <p className="flex justify-between gap-4">
+                        <span className="text-red-400 font-bold">{t('label.pressure')}:</span>
+                        <span className="font-black">{data.pressure} hPa</span>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span className="text-amber-300 font-bold">{t('label.temp')}:</span>
+                        <span className="font-black">{data.temp}°C</span>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span className="text-sky-300 font-bold">{t('label.humidity')}:</span>
+                        <span className="font-black">{data.humidity}%</span>
+                      </p>
+                      {data.precip > 0 && (
+                        <p className="flex justify-between gap-4">
+                          <span className="text-indigo-300 font-bold">{t('label.rain')}:</span>
+                          <span className="font-black">{data.precip} mm</span>
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
 
             {/* Fondo Dinámico de Humedad (Aurora) */}
             <Area
@@ -161,21 +284,28 @@ export function DailyForecast({ daily }: DailyForecastProps) {
               strokeWidth={2}
               dot={{ r: 2, fill: "#fcd34d", strokeWidth: 1, stroke: "#1e293b" }}
             />
-
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Bottom row: Day names */}
-      <div className="flex justify-between w-full px-2 mt-2">
-        {chartData.map((d, idx) => (
-          <div key={idx} className="flex-1 flex justify-center">
-            <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' || d.name === 'TODAY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
-              {d.name}
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* Bottom row: Day/Time names */}
+      {viewMode === 'daily' ? (
+        <div className="flex justify-between w-full px-2 mt-2">
+          {chartData.map((d, idx) => (
+            <div key={idx} className="flex-1 flex justify-center">
+              <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' || d.name === 'TODAY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
+                {d.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex justify-between w-full px-4 mt-2 text-[8px] sm:text-[10px] text-slate-400 font-medium">
+          <span>{chartData[0]?.name}</span>
+          <span>{chartData[Math.floor(chartData.length / 2)]?.name}</span>
+          <span>{chartData[chartData.length - 1]?.name}</span>
+        </div>
+      )}
 
       {/* Guía de Lectura del Gráfico */}
       <div className="mt-5 pt-4 px-4 border-t border-slate-700/50 text-[10px] sm:text-xs">

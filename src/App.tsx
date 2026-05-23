@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from './utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk } from './utils/weatherCodes';
 import { MapPin, Search, HelpCircle } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -41,7 +41,6 @@ function WeatherDashboard() {
   const currentDeltaP = yesterday ? Math.round(data.current.surfacePressure - yesterday.meanPressure) : 0;
 
   const currentThom = getThomsDiscomfortIndex(data.current.temperature, data.current.humidity, language);
-  const currentDeltaAlert = getPressureDeltaAlert(currentDeltaP, language);
   const currentMigraineRisk = getMigraineRisk(
     currentDeltaP,
     data.current.surfacePressure,
@@ -109,57 +108,69 @@ function WeatherDashboard() {
       <main className="flex flex-col gap-6">
         <section className="text-center my-4">
           <div className="flex justify-center mb-4 drop-shadow-xl">
-            <WeatherIcon size={120} className={`${weatherColor} ${weatherAnimation}`} strokeWidth={1} />
+            <div className="relative">
+              <WeatherIcon size={120} className={`${weatherColor} ${weatherAnimation}`} strokeWidth={1} />
+            </div>
           </div>
-          <h2 className="text-6xl font-light mb-2">{Math.round(data.current.temperature)}°</h2>
+
+          <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
+            {/* Left Progress Bar: Migraine Risk */}
+            <div className="flex flex-col items-center gap-1" title={`${t('label.migraine')}: ${currentMigraineRisk.score}/6 pts`}>
+              <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">MIGR.</span>
+              <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
+                <div 
+                  className={`w-full rounded-full transition-all duration-1000 ease-out ${
+                    currentMigraineRisk.score >= 6 ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]' :
+                    currentMigraineRisk.score >= 4 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                    currentMigraineRisk.score >= 3 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                    currentMigraineRisk.score >= 2 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                  }`}
+                  style={{ height: `${(currentMigraineRisk.score / 6) * 100}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-black">{currentMigraineRisk.score}</span>
+            </div>
+
+            {/* Temperature Display */}
+            <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
+
+            {/* Right Progress Bar: Fatigue Level */}
+            <div className="flex flex-col items-center gap-1" title={`${t('label.fatigue')}: ${currentThom.value.toFixed(1)} DI`}>
+              <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">FAT.</span>
+              <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
+                <div 
+                  className={`w-full rounded-full transition-all duration-1000 ease-out ${
+                    currentThom.value >= 27 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                    currentThom.value >= 24 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                    currentThom.value >= 21 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                  }`}
+                  style={{ height: `${Math.max(10, Math.min(100, ((currentThom.value - 15) / 15) * 100))}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-black">{Math.round(currentThom.value)}</span>
+            </div>
+          </div>
+
           <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
-          <p className="text-sm font-medium opacity-80 mb-6">{t('label.humidity')}: {Math.round(data.current.humidity)}%</p>
+          <p className="text-sm font-medium opacity-80 mb-4">{t('label.humidity')}: {Math.round(data.current.humidity)}%</p>
 
-          {/* Alertas Biometeorológicas Actuales */}
-          <div className="flex justify-center items-center gap-3 flex-wrap">
-            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentThom.bgClass} ${currentThom.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-md`} title={`Estrés Térmico: ${currentThom.label}`}>
-              {t('label.fatigue')}: {currentThom.shortLabel}
+          {data.pressureTrend && (
+            <div className="flex gap-2 justify-center mt-2">
+              <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3.5 text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
+                <span className="text-white/60 uppercase tracking-wider text-[10px]">3h</span>
+                <span className={data.pressureTrend.delta3h <= -2 ? 'text-orange-200' : data.pressureTrend.delta3h > 2 ? 'text-blue-200' : ''}>
+                  {data.pressureTrend.delta3h > 0 ? '+' : ''}{data.pressureTrend.delta3h} hPa
+                </span>
+              </div>
+              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${data.pressureTrend.delta6h <= -5 ? 'bg-red-500/30 border-red-400/40 text-white' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-white/20 border-white/10 text-white'}`}>
+                <span className={`uppercase tracking-wider text-[10px] ${data.pressureTrend.delta6h <= -3 ? 'opacity-90' : 'text-white/60'}`}>6h</span>
+                <span>
+                  {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
+                </span>
+                {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
+              </div>
             </div>
-
-            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentDeltaAlert.bgClass} shadow-md`} title={`Variación de presión respecto a ayer: ${currentDeltaAlert.detail}`}>
-              Δ P: {currentDeltaAlert.label} {currentDeltaAlert.detail}
-            </div>
-
-            <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${currentMigraineRisk.bgClass} shadow-md flex items-center gap-2`} title={`Riesgo de Migraña basado en IA (DOI: 10.1111/head.14482): ${currentMigraineRisk.detail}`}>
-              <span className="text-sm">🧠</span> {t('label.migraine')}: {currentMigraineRisk.label}
-            </div>
-          </div>
-
-          {/* Desgloses Clínicos y Matemáticos */}
-          <div className="mt-5 mx-auto max-w-sm text-left bg-white/10 backdrop-blur-md rounded-xl p-4 text-xs shadow-inner border border-white/10 flex flex-col gap-4">
-            <div>
-              <h4 className="font-bold opacity-90 mb-2 border-b border-white/20 pb-1.5 flex justify-between items-center">
-                <span>{t('label.fatigue_calc')}</span>
-                <span className="bg-black/20 px-2 py-0.5 rounded-full">{currentThom.value.toFixed(1)} DI</span>
-              </h4>
-              <ul className="list-disc list-inside opacity-90 space-y-1.5 font-medium ml-1">
-                {currentThom.reasons.map((reason, idx) => (
-                  <li key={idx} className="text-slate-200">
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold opacity-90 mb-2 border-b border-white/20 pb-1.5 flex justify-between items-center">
-                <span>{t('label.migraine_doi')}</span>
-                <span className="bg-black/20 px-2 py-0.5 rounded-full">{currentMigraineRisk.score} / 6 pts</span>
-              </h4>
-              <ul className="list-disc list-inside opacity-90 space-y-1.5 font-medium ml-1">
-                {currentMigraineRisk.reasons.map((reason, idx) => (
-                  <li key={idx} className={reason.includes('+') ? 'text-white' : 'text-slate-300'}>
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Pressure and Humidity Highlight Card */}
@@ -176,23 +187,9 @@ function WeatherDashboard() {
             {pressureHumDesc}
           </p>
 
-          {data.pressureTrend && (
-            <div className="flex gap-2 mb-4">
-              <div className="bg-slate-100 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-600 border border-slate-200/60 flex items-center gap-1.5 shadow-sm">
-                <span className="text-slate-400 uppercase tracking-wider text-[10px]">3h</span>
-                <span className={data.pressureTrend.delta3h <= -2 ? 'text-amber-600' : data.pressureTrend.delta3h > 2 ? 'text-blue-600' : ''}>
-                  {data.pressureTrend.delta3h > 0 ? '+' : ''}{data.pressureTrend.delta3h} hPa
-                </span>
-              </div>
-              <div className={`rounded-lg py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-sm ${data.pressureTrend.delta6h <= -5 ? 'bg-red-50 border-red-200 text-red-700' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 border-slate-200/60 text-slate-600'}`}>
-                <span className={`uppercase tracking-wider text-[10px] ${data.pressureTrend.delta6h <= -3 ? 'opacity-80' : 'text-slate-400'}`}>6h</span>
-                <span>
-                  {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
-                </span>
-                {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
-              </div>
-            </div>
-          )}
+
+
+
 
           {/* Dos líneas de rango visual apiladas */}
           <div className="flex flex-col gap-3">
@@ -229,7 +226,7 @@ function WeatherDashboard() {
         </section>
 
         {/* Daily Forecast and Chart */}
-        <DailyForecast daily={data.daily} />
+        <DailyForecast daily={data.daily} hourly={data.hourly} />
 
         {/* Future Forecast */}
         <FutureForecast daily={data.daily} />

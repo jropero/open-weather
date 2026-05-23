@@ -38,9 +38,19 @@ export interface PressureTrend {
   currentPressure: number;
 }
 
+export interface HourlyWeather {
+  time: string;
+  temperature: number;
+  humidity: number;
+  pressure: number;
+  precipitation: number;
+  weatherCode: number;
+}
+
 export interface WeatherData {
   current: CurrentWeather;
   daily: DailyWeather[];
+  hourly: HourlyWeather[];
   historical: HistoricalWeather[];
   pressureTrend: PressureTrend | null;
 }

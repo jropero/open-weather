@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Location, WeatherData, DailyWeather } from '../types/weather';
+import type { Location, WeatherData, DailyWeather, HourlyWeather } from '../types/weather';
 
 export function useWeather(location: Location) {
   const [data, setData] = useState<WeatherData | null>(null);
@@ -17,7 +17,7 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=pressure_msl&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -111,6 +111,25 @@ export function useWeather(location: Location) {
           }
         }
 
+        // Parse Hourly Weather (next 24 hours starting from the current hour)
+        const hourlyWeather: HourlyWeather[] = [];
+        if (currentData.hourly?.time && currentData.current?.time) {
+          const currentTime = currentData.current.time;
+          const currentIndex = currentData.hourly.time.findIndex((t: string) => t === currentTime || t.startsWith(currentTime.substring(0, 13)));
+          const startIndex = currentIndex >= 0 ? currentIndex : 0;
+
+          for (let i = startIndex; i < Math.min(currentData.hourly.time.length, startIndex + 24); i++) {
+            hourlyWeather.push({
+              time: currentData.hourly.time[i],
+              temperature: currentData.hourly.temperature_2m[i],
+              humidity: currentData.hourly.relative_humidity_2m[i],
+              pressure: currentData.hourly.pressure_msl[i],
+              precipitation: currentData.hourly.precipitation?.[i] || 0,
+              weatherCode: currentData.hourly.weather_code?.[i] || 0,
+            });
+          }
+        }
+
         setData({
           current: {
             temperature: currentData.current.temperature_2m,
@@ -121,6 +140,7 @@ export function useWeather(location: Location) {
             surfacePressure: currentData.current.pressure_msl,
           },
           daily: dailyWeather,
+          hourly: hourlyWeather,
           historical: historicalData,
           pressureTrend
         });
