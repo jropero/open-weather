@@ -17,6 +17,13 @@ function WeatherDashboard() {
   const [isSelectorOpen, setIsSelectorOpen] = React.useState(false);
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
   const { language, setLanguage, t } = useLanguage();
+  const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
+
+  React.useEffect(() => {
+    const handleClose = () => setActivePopover(null);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, []);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-200 text-white font-sans">{language === 'en' ? 'Loading weather data...' : 'Cargando datos del clima...'}</div>;
@@ -116,9 +123,20 @@ function WeatherDashboard() {
 
           <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
             {/* Left Progress Bar: Migraine Risk */}
-            <div className="relative group flex flex-col items-center gap-1 cursor-pointer">
+            <div 
+              className="relative flex flex-col items-center gap-1 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePopover(activePopover === 'migraine' ? null : 'migraine');
+              }}
+            >
               {/* Custom Popover */}
-              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left pointer-events-none transition-all duration-200">
+              <div 
+                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${
+                  activePopover === 'migraine' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-purple-300 flex items-center justify-between">
                   <span>{language === 'en' ? 'Migraine Risk Score' : 'Riesgo de Migraña'}</span>
                   <span>{currentMigraineRisk.score}/6 pts</span>
@@ -157,9 +175,20 @@ function WeatherDashboard() {
             <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
 
             {/* Right Progress Bar: Fatigue Level */}
-            <div className="relative group flex flex-col items-center gap-1 cursor-pointer">
+            <div 
+              className="relative flex flex-col items-center gap-1 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePopover(activePopover === 'fatigue' ? null : 'fatigue');
+              }}
+            >
               {/* Custom Popover */}
-              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left pointer-events-none transition-all duration-200">
+              <div 
+                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${
+                  activePopover === 'fatigue' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-indigo-300 flex items-center justify-between">
                   <span>{language === 'en' ? 'Discomfort Index' : 'Índice de Incomodidad'}</span>
                   <span>{currentThom.value.toFixed(1)} DI</span>
