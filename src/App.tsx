@@ -9,6 +9,7 @@ import { HistoricalPressure } from './components/HistoricalPressure';
 import { LocationSelector } from './components/LocationSelector';
 import { LanguageProvider, useLanguage, type Language } from './context/LanguageContext';
 import { HelpModal } from './components/HelpModal';
+import { WormholeSection } from './components/WormholeSection';
 
 function WeatherDashboard() {
   const { currentLocation } = useLocationContext();
@@ -115,7 +116,28 @@ function WeatherDashboard() {
 
           <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
             {/* Left Progress Bar: Migraine Risk */}
-            <div className="flex flex-col items-center gap-1" title={`${t('label.migraine')}: ${currentMigraineRisk.score}/6 pts`}>
+            <div className="relative group flex flex-col items-center gap-1 cursor-pointer">
+              {/* Custom Popover */}
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left pointer-events-none transition-all duration-200">
+                <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-purple-300 flex items-center justify-between">
+                  <span>{language === 'en' ? 'Migraine Risk Score' : 'Riesgo de Migraña'}</span>
+                  <span>{currentMigraineRisk.score}/6 pts</span>
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  {currentMigraineRisk.reasons.map((reason, idx) => (
+                    <div key={idx} className="flex items-start gap-1">
+                      <span className="text-purple-400">•</span>
+                      <span>{reason}</span>
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                  {language === 'en' 
+                    ? 'Based on pressure changes, absolute pressure, humidity, and rain.' 
+                    : 'Basado en cambios de presión, presión absoluta, humedad y lluvia.'}
+                </span>
+              </div>
+
               <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">MIGR.</span>
               <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
                 <div 
@@ -135,7 +157,28 @@ function WeatherDashboard() {
             <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
 
             {/* Right Progress Bar: Fatigue Level */}
-            <div className="flex flex-col items-center gap-1" title={`${t('label.fatigue')}: ${currentThom.value.toFixed(1)} DI`}>
+            <div className="relative group flex flex-col items-center gap-1 cursor-pointer">
+              {/* Custom Popover */}
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left pointer-events-none transition-all duration-200">
+                <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-indigo-300 flex items-center justify-between">
+                  <span>{language === 'en' ? 'Discomfort Index' : 'Índice de Incomodidad'}</span>
+                  <span>{currentThom.value.toFixed(1)} DI</span>
+                </span>
+                <div className="flex flex-col gap-1.5 font-mono text-[10px]">
+                  {currentThom.reasons.map((reason, idx) => (
+                    <div key={idx} className="flex items-start gap-1">
+                      <span className="text-indigo-400">•</span>
+                      <span>{reason}</span>
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                  {language === 'en'
+                    ? "Thom's Index tracks biological stress combined from heat & humidity."
+                    : 'El Índice de Thom mide el estrés biológico del calor y la humedad combinados.'}
+                </span>
+              </div>
+
               <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">FAT.</span>
               <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
                 <div 
@@ -237,6 +280,16 @@ function WeatherDashboard() {
           currentWeatherCode={data.current.weatherCode}
           currentTemp={data.current.temperature}
           currentHumidity={data.current.humidity}
+        />
+
+        {/* Wormhole Wind Speeds */}
+        <WormholeSection 
+          currentLocation={currentLocation} 
+          currentWeatherData={{
+            temperature: data.current.temperature,
+            surfacePressure: data.current.surfacePressure,
+            elevation: data.current.elevation || 0,
+          }} 
         />
       </main>
 
