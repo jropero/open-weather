@@ -44,7 +44,8 @@ const translations: Record<Language, Record<string, string>> = {
     'placeholder.search_city': 'Buscar ciudad...',
     'btn.gps_active': 'Obteniendo GPS...',
     'btn.gps_use': 'Usar mi ubicación actual',
-    'alert.gps_error': 'No se pudo obtener la ubicación GPS.'
+    'alert.gps_error': 'No se pudo obtener la ubicación GPS.',
+    'label.info_unavailable': 'Información no disponible'
   },
   en: {
     'title.pressure_humidity': 'Pressure & Humidity',
@@ -79,7 +80,8 @@ const translations: Record<Language, Record<string, string>> = {
     'placeholder.search_city': 'Search city...',
     'btn.gps_active': 'Getting GPS...',
     'btn.gps_use': 'Use my current location',
-    'alert.gps_error': 'Could not obtain GPS location.'
+    'alert.gps_error': 'Could not obtain GPS location.',
+    'label.info_unavailable': 'Information unavailable'
   }
 };
 
