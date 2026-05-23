@@ -13,6 +13,7 @@ export interface CurrentWeather {
   windSpeed: number;
   windDirection: number;
   surfacePressure: number;
+  elevation: number;
 }
 
 export interface DailyWeather {

@@ -32,7 +32,14 @@ export function HistoricalPressure({ historical, currentWeatherCode, currentTemp
           </div>
         </div>
 
-        {historical.some((h) => h.error || !h.data) ? (
+        {historical.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+            <p className="text-sm font-semibold text-slate-500">
+              {language === 'en' ? 'Loading historical comparison...' : 'Cargando comparación histórica...'}
+            </p>
+          </div>
+        ) : historical.some((h) => h.error || !h.data) ? (
           <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
             <span className="text-2xl">⚠️</span>
             <p className="text-sm font-semibold text-slate-500">{t('label.info_unavailable')}</p>
