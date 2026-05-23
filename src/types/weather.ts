@@ -28,7 +28,8 @@ export interface DailyWeather {
 
 export interface HistoricalWeather {
   year: number;
-  data: DailyWeather;
+  data: DailyWeather | null;
+  error?: boolean;
 }
 
 export interface PressureTrend {

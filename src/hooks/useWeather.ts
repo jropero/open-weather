@@ -30,10 +30,21 @@ export function useWeather(location: Location) {
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
 
-        const historicalPromises = years.map(year => {
+        const historicalPromises = years.map(async (year) => {
           const dateStr = `${year}-${month}-${day}`;
           const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_mean,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum&timezone=auto`;
-          return fetch(histUrl).then(res => res.json());
+          try {
+            const res = await fetch(histUrl);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+              throw new Error('Invalid historical data format');
+            }
+            return { year, data, error: false };
+          } catch (err) {
+            console.error(`Error fetching historical weather for ${year}:`, err);
+            return { year, data: null, error: true };
+          }
         });
 
         const historicalResults = await Promise.all(historicalPromises);
@@ -53,10 +64,18 @@ export function useWeather(location: Location) {
         }));
 
         // Parse Historical Weather
-        const historicalData = years.map((year, index) => {
-          const histYearData = historicalResults[index];
+        const historicalData = historicalResults.map((result) => {
+          if (result.error || !result.data) {
+            return {
+              year: result.year,
+              data: null,
+              error: true
+            };
+          }
+          const histYearData = result.data;
           return {
-            year,
+            year: result.year,
+            error: false,
             data: {
               date: histYearData.daily.time[0],
               weatherCode: histYearData.daily.weather_code[0],
