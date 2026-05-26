@@ -36,7 +36,7 @@ function WeatherDashboard() {
   if (!data) return null;
 
   const { icon: WeatherIcon, label: weatherLabel, color: weatherColor, animation: weatherAnimation, bgClass: weatherBg } = getWeatherInfo(data.current.weatherCode, language);
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayIndex = data.daily.findIndex(d => {
@@ -58,18 +58,18 @@ function WeatherDashboard() {
   );
 
   const isEn = language === 'en';
-  const pressureText = data.current.surfacePressure > 1022 
-    ? (isEn ? 'high pressure' : 'presión alta') 
-    : data.current.surfacePressure < 1000 
-      ? (isEn ? 'low pressure' : 'presión baja') 
+  const pressureText = data.current.surfacePressure > 1022
+    ? (isEn ? 'high pressure' : 'presión alta')
+    : data.current.surfacePressure < 1000
+      ? (isEn ? 'low pressure' : 'presión baja')
       : (isEn ? 'normal pressure' : 'presión normal');
-  const humidityText = data.current.humidity >= 70 
-    ? (isEn ? 'high humidity' : 'humedad alta') 
-    : data.current.humidity >= 40 
-      ? (isEn ? 'comfortable humidity' : 'humedad confortable') 
+  const humidityText = data.current.humidity >= 70
+    ? (isEn ? 'high humidity' : 'humedad alta')
+    : data.current.humidity >= 40
+      ? (isEn ? 'comfortable humidity' : 'humedad confortable')
       : (isEn ? 'low humidity' : 'humedad baja');
-  const pressureHumDesc = isEn 
-    ? `${pressureText} and ${humidityText}` 
+  const pressureHumDesc = isEn
+    ? `${pressureText} and ${humidityText}`
     : `${pressureText} y ${humidityText}`;
 
   const getTranslatedLocationName = (name: string, lang: Language) => {
@@ -89,8 +89,8 @@ function WeatherDashboard() {
         </button>
         <div className="flex items-center gap-2">
           {/* Selector de idioma */}
-          <select 
-            value={language} 
+          <select
+            value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
             className="bg-white/25 border-0 text-white rounded-full py-1.5 px-3.5 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all uppercase tracking-wider"
           >
@@ -99,8 +99,8 @@ function WeatherDashboard() {
           </select>
 
           {/* Botón de ayuda */}
-          <button 
-            onClick={() => setIsHelpOpen(true)} 
+          <button
+            onClick={() => setIsHelpOpen(true)}
             className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
             title={language === 'en' ? 'Help & Science' : 'Ayuda y Ciencia'}
           >
@@ -123,7 +123,7 @@ function WeatherDashboard() {
 
           <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
             {/* Left Progress Bar: Migraine Risk */}
-            <div 
+            <div
               className="relative flex flex-col items-center gap-1 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
@@ -131,10 +131,9 @@ function WeatherDashboard() {
               }}
             >
               {/* Custom Popover */}
-              <div 
-                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${
-                  activePopover === 'migraine' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
-                }`}
+              <div
+                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${activePopover === 'migraine' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
+                  }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-purple-300 flex items-center justify-between">
@@ -150,21 +149,20 @@ function WeatherDashboard() {
                   ))}
                 </div>
                 <span className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                  {language === 'en' 
-                    ? 'Based on pressure changes, absolute pressure, humidity, and rain.' 
+                  {language === 'en'
+                    ? 'Based on pressure changes, absolute pressure, humidity, and rain.'
                     : 'Basado en cambios de presión, presión absoluta, humedad y lluvia.'}
                 </span>
               </div>
 
               <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">MIGR.</span>
               <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
-                <div 
-                  className={`w-full rounded-full transition-all duration-1000 ease-out ${
-                    currentMigraineRisk.score >= 6 ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]' :
-                    currentMigraineRisk.score >= 4 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                    currentMigraineRisk.score >= 3 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
-                    currentMigraineRisk.score >= 2 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                  }`}
+                <div
+                  className={`w-full rounded-full transition-all duration-1000 ease-out ${currentMigraineRisk.score >= 6 ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]' :
+                      currentMigraineRisk.score >= 4 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                        currentMigraineRisk.score >= 3 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                          currentMigraineRisk.score >= 2 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                    }`}
                   style={{ height: `${(currentMigraineRisk.score / 6) * 100}%` }}
                 />
               </div>
@@ -175,7 +173,7 @@ function WeatherDashboard() {
             <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
 
             {/* Right Progress Bar: Fatigue Level */}
-            <div 
+            <div
               className="relative flex flex-col items-center gap-1 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
@@ -183,10 +181,9 @@ function WeatherDashboard() {
               }}
             >
               {/* Custom Popover */}
-              <div 
-                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${
-                  activePopover === 'fatigue' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
-                }`}
+              <div
+                className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom ${activePopover === 'fatigue' ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
+                  }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-indigo-300 flex items-center justify-between">
@@ -210,17 +207,44 @@ function WeatherDashboard() {
 
               <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">FAT.</span>
               <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
-                <div 
-                  className={`w-full rounded-full transition-all duration-1000 ease-out ${
-                    currentThom.value >= 27 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                    currentThom.value >= 24 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
-                    currentThom.value >= 21 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                  }`}
+                <div
+                  className={`w-full rounded-full transition-all duration-1000 ease-out ${currentThom.value >= 27 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                      currentThom.value >= 24 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                        currentThom.value >= 21 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                    }`}
                   style={{ height: `${Math.max(10, Math.min(100, ((currentThom.value - 15) / 15) * 100))}%` }}
                 />
               </div>
               <span className="text-[11px] font-black">{Math.round(currentThom.value)}</span>
             </div>
+
+            {/* Shrimps Column 
+            {(() => {
+              const getShrimpCount = (val: number) => {
+                if (val < 21) return 0;
+                if (val < 24) return 1;
+                if (val < 27) return 2;
+                return 3;
+              };
+              const shrimpCount = getShrimpCount(currentThom.value);
+              return (
+                <div className="flex flex-col items-center gap-1 select-none">
+                  <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">{language === 'en' ? 'SHRIMP' : 'GAMBAS'}</span>
+                  <div className="flex flex-col-reverse justify-center items-center h-16 w-7 border border-white/10 bg-white/10 rounded-lg p-0.5 shadow-inner gap-1">
+                    {Array.from({ length: shrimpCount }).map((_, idx) => (
+                      <span 
+                        key={idx} 
+                        className="text-lg sm:text-xl filter drop-shadow-sm leading-none transform hover:scale-125 transition-transform" 
+                        title={`${idx + 1} 🦐`}
+                      >
+                        🦐
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-black">{shrimpCount}</span>
+                </div>
+              );
+            })()}*/}
           </div>
 
           <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
@@ -248,7 +272,7 @@ function WeatherDashboard() {
         {/* Pressure and Humidity Highlight Card */}
         <section className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-lg text-slate-800">
           <h3 className="text-sm uppercase tracking-wider mb-2 opacity-70 font-semibold">{t('title.pressure_humidity')}</h3>
-          
+
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-extrabold text-slate-900">{Math.round(data.current.surfacePressure)} hPa</span>
             <span className="text-2xl font-light text-slate-400">,</span>
@@ -303,22 +327,22 @@ function WeatherDashboard() {
         {/* Future Forecast */}
         <FutureForecast daily={data.daily} />
 
+        {/* Wormhole Wind Speeds */}
+        <WormholeSection
+          currentLocation={currentLocation}
+          currentWeatherData={{
+            temperature: data.current.temperature,
+            surfacePressure: data.current.surfacePressure,
+            elevation: data.current.elevation || 0,
+          }}
+        />
+
         {/* Historical Weather Comparison */}
         <HistoricalPressure
           historical={data.historical}
           currentWeatherCode={data.current.weatherCode}
           currentTemp={data.current.temperature}
           currentHumidity={data.current.humidity}
-        />
-
-        {/* Wormhole Wind Speeds */}
-        <WormholeSection 
-          currentLocation={currentLocation} 
-          currentWeatherData={{
-            temperature: data.current.temperature,
-            surfacePressure: data.current.surfacePressure,
-            elevation: data.current.elevation || 0,
-          }} 
         />
       </main>
 
