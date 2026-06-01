@@ -218,33 +218,6 @@ function WeatherDashboard() {
               <span className="text-[11px] font-black">{Math.round(currentThom.value)}</span>
             </div>
 
-            {/* Shrimps Column 
-            {(() => {
-              const getShrimpCount = (val: number) => {
-                if (val < 21) return 0;
-                if (val < 24) return 1;
-                if (val < 27) return 2;
-                return 3;
-              };
-              const shrimpCount = getShrimpCount(currentThom.value);
-              return (
-                <div className="flex flex-col items-center gap-1 select-none">
-                  <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">{language === 'en' ? 'SHRIMP' : 'GAMBAS'}</span>
-                  <div className="flex flex-col-reverse justify-center items-center h-16 w-7 border border-white/10 bg-white/10 rounded-lg p-0.5 shadow-inner gap-1">
-                    {Array.from({ length: shrimpCount }).map((_, idx) => (
-                      <span 
-                        key={idx} 
-                        className="text-lg sm:text-xl filter drop-shadow-sm leading-none transform hover:scale-125 transition-transform" 
-                        title={`${idx + 1} 🦐`}
-                      >
-                        🦐
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-[11px] font-black">{shrimpCount}</span>
-                </div>
-              );
-            })()}*/}
           </div>
 
           <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
@@ -264,6 +237,23 @@ function WeatherDashboard() {
                   {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
                 </span>
                 {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Shrimp Progress Bar */}
+          {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (
+            <div className="flex flex-col items-center gap-1 mt-6">
+              <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">{language === 'en' ? 'Shrimp Fatigue' : 'Índice Gamba'}</span>
+              <div className="flex justify-center items-center h-12 gap-1 p-3 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`text-5xl transition-all duration-300 ${idx < Math.min(4, Math.floor(Math.max(0, currentThom.value - 15) / 3)) ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
+                    >
+                    🦐
+                  </span>
+                ))}
               </div>
             </div>
           )}
