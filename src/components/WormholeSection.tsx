@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PREDEFINED_LOCATIONS } from '../context/LocationContext';
+import { PREDEFINED_LOCATIONS, useLocationContext } from '../context/LocationContext';
 import type { Location } from '../types/weather';
 import { calculateWormholeWindSpeed, generateWormholeExplanation } from '../utils/wormhole';
 //import type { LocationData } from '../utils/wormhole';
@@ -47,6 +47,7 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
   const [otherLocationsData, setOtherLocationsData] = useState<OtherLocationData[]>([]);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguage();
+  const { setCurrentLocation } = useLocationContext();
 
   // Keep references to wormhole helper functions to prevent compilation/lint errors while commented out
   if (false as boolean) {
@@ -192,7 +193,11 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
           const thom = getThomsDiscomfortIndex(weather.temperature, weather.humidity, language);
 
           return (
-            <div key={location.id} className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+            <div 
+              key={location.id} 
+              className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+              onClick={() => setCurrentLocation(location)}
+            >
               {/* Line 1: Location details & Current conditions */}
               <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
                 <div className="flex items-center gap-2">
