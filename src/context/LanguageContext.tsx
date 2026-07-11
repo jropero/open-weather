@@ -45,7 +45,15 @@ const translations: Record<Language, Record<string, string>> = {
     'btn.gps_active': 'Obteniendo GPS...',
     'btn.gps_use': 'Usar mi ubicación actual',
     'alert.gps_error': 'No se pudo obtener la ubicación GPS.',
-    'label.info_unavailable': 'Información no disponible'
+    'label.info_unavailable': 'Información no disponible',
+    'label.wind_heat_relief': 'El viento alivia el calor',
+    'label.wind_calm': 'Calma',
+    'label.night_tropical': 'Noche Tropical',
+    'label.night_tropical_desc': 'Mínima no bajará de 20°C',
+    'label.night_torrida': 'Noche Tórrida',
+    'label.night_torrida_desc': 'Mínima de hasta 25°C',
+    'label.night_ecuatorial': 'Noche Ecuatorial',
+    'label.night_ecuatorial_desc': 'Mínima superior a 25°C'
   },
   en: {
     'title.pressure_humidity': 'Pressure & Humidity',
@@ -81,7 +89,15 @@ const translations: Record<Language, Record<string, string>> = {
     'btn.gps_active': 'Getting GPS...',
     'btn.gps_use': 'Use my current location',
     'alert.gps_error': 'Could not obtain GPS location.',
-    'label.info_unavailable': 'Information unavailable'
+    'label.info_unavailable': 'Information unavailable',
+    'label.wind_heat_relief': 'Wind relieves heat',
+    'label.wind_calm': 'Calm',
+    'label.night_tropical': 'Tropical Night',
+    'label.night_tropical_desc': 'Min temp won\'t drop below 20°C',
+    'label.night_torrida': 'Torrid Night',
+    'label.night_torrida_desc': 'Min temp up to 25°C',
+    'label.night_ecuatorial': 'Equatorial Night',
+    'label.night_ecuatorial_desc': 'Min temp exceeds 25°C'
   }
 };
 

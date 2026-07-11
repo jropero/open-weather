@@ -69,6 +69,14 @@ export function getPressureDeltaAlert(deltaP: number, lang: Language = 'es') {
   return { label: isEn ? 'STABLE' : 'ESTABLE', detail: `${sign}${deltaP} hPa`, bgClass: 'bg-slate-700 text-slate-300' };
 }
 
+export function getWindDirection(degrees: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  const dirs = isEn
+    ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    : ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+  return dirs[Math.round(degrees / 45) % 8];
+}
+
 export function getMigraineRisk(deltaP: number, pressure: number, humidity: number, precip: number, lang: Language = 'es') {
   let riskScore = 0;
   const reasons: string[] = [];

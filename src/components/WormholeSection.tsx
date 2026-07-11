@@ -233,9 +233,14 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
                     <Droplets size={12} className="text-sky-400" />
                     <span className="font-bold text-slate-600">{Math.round(weather.humidity)}%</span>
                   </div>
-                  <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full ${thom.bgClass} ${thom.bgClass.includes('text-white') ? '' : 'text-slate-800'} shadow-sm border border-black/5`} title={`${language === 'en' ? 'Thom Discomfort/Fatigue Level' : 'Nivel de Fatiga/Incomodidad'}: ${thom.label}`}>
-                    {thom.shortLabel}
-                  </span>
+                  <div className="flex items-center gap-0.5" title={language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom'}>
+                    <span className="text-sm font-bold text-slate-600 mr-1">{thom.value.toFixed(1)}</span>
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                      <span key={idx} className={`text-xs leading-none transition-all duration-300 ${idx < Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3)) ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}>
+                        🦐
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
