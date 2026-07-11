@@ -38,6 +38,7 @@ export function FutureForecast({ daily }: FutureForecastProps) {
 
           const meanTemp = (day.maxTemp + day.minTemp) / 2;
           const thomIndex = getThomsDiscomfortIndex(meanTemp, day.humidity, language);
+          const shrimpCount = Math.min(4, Math.floor(Math.max(0, thomIndex.value - 15) / 3));
           const migraineRisk = getMigraineRisk(deltaP, day.meanPressure, day.humidity, day.precipitation, language);
 
           return (
@@ -69,6 +70,13 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                 >
                   {t('label.fatigue')}: {thomIndex.shortLabel}
                 </div>
+                {shrimpCount > 0 && (
+                  <div className="px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs shadow-sm flex items-center gap-1" title={`${language === 'en' ? 'Max shrimp fatigue' : 'Máxima fatiga gamba'}`}>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <span key={i} className={`text-sm leading-none ${i < shrimpCount ? 'opacity-100' : 'opacity-20'}`}>🦐</span>
+                    ))}
+                  </div>
+                )}
                 <div 
                   className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${deltaAlert.bgClass} shadow-sm whitespace-nowrap flex items-center justify-center`}
                   title={`Variación de presión en 24h: ${deltaAlert.detail}`}

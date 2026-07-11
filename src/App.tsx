@@ -1,8 +1,8 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk } from './utils/weatherCodes';
-import { MapPin, Search, HelpCircle } from 'lucide-react';
+import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection } from './utils/weatherCodes';
+import { MapPin, Search, HelpCircle, Wind } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
 import { HistoricalPressure } from './components/HistoricalPressure';
@@ -24,6 +24,23 @@ function WeatherDashboard() {
     window.addEventListener('click', handleClose);
     return () => window.removeEventListener('click', handleClose);
   }, []);
+
+  const tempDelta3h = data?.hourly[3] ? Math.round((data.hourly[3].temperature - data.current.temperature) * 10) / 10 : null;
+  const tempDelta6h = data?.hourly[6] ? Math.round((data.hourly[6].temperature - data.current.temperature) * 10) / 10 : null;
+
+  const nightType = React.useMemo<'ecuatorial' | 'torrida' | 'tropical' | null>(() => {
+    if (!data?.hourly.length) return null;
+    const tonight = data.hourly.filter(h => {
+      const hour = new Date(h.time).getHours();
+      return hour >= 20 || hour <= 6;
+    });
+    if (!tonight.length) return null;
+    const minTonight = Math.min(...tonight.map(h => h.temperature));
+    if (minTonight > 25) return 'ecuatorial';
+    if (minTonight >= 25) return 'torrida';
+    if (minTonight >= 20) return 'tropical';
+    return null;
+  }, [data]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-200 text-white font-sans">{language === 'en' ? 'Loading weather data...' : 'Cargando datos del clima...'}</div>;
@@ -221,7 +238,20 @@ function WeatherDashboard() {
           </div>
 
           <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
-          <p className="text-sm font-medium opacity-80 mb-4">{t('label.humidity')}: {Math.round(data.current.humidity)}%</p>
+
+          <div className="flex items-center justify-center gap-4 text-sm font-medium opacity-80 mb-4">
+            <span>{t('label.humidity')}: {Math.round(data.current.humidity)}%</span>
+            <span className="w-px h-4 bg-white/30" />
+            <span className="flex items-center gap-1">
+              <Wind size={14} />
+              {data.current.windSpeed > 0
+                ? `${Math.round(data.current.windSpeed)} km/h ${getWindDirection(data.current.windDirection, language)}`
+                : t('label.wind_calm')}
+              {data.current.windSpeed > 5 && (
+                <span className="text-emerald-300 text-[10px] ml-1">({t('label.wind_heat_relief')})</span>
+              )}
+            </span>
+          </div>
 
           {data.pressureTrend && (
             <div className="flex gap-2 justify-center mt-2">
@@ -241,6 +271,40 @@ function WeatherDashboard() {
             </div>
           )}
 
+          {tempDelta3h !== null && tempDelta6h !== null && (
+            <div className="flex gap-2 justify-center mt-2">
+              <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3.5 text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
+                <span className="text-white/60 uppercase tracking-wider text-[10px]">3h</span>
+                <span className={tempDelta3h > 0 ? 'text-red-300' : tempDelta3h < 0 ? 'text-blue-300' : ''}>
+                  {tempDelta3h > 0 ? '+' : ''}{tempDelta3h}°C
+                </span>
+              </div>
+              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${tempDelta6h >= 3 ? 'bg-red-500/30 border-red-400/40 text-white' : tempDelta6h > 0 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-white/20 border-white/10 text-white'}`}>
+                <span className={`uppercase tracking-wider text-[10px] ${tempDelta6h > 0 ? 'opacity-90' : 'text-white/60'}`}>6h</span>
+                <span>
+                  {tempDelta6h > 0 ? '+' : ''}{tempDelta6h}°C
+                </span>
+                {tempDelta6h >= 3 && <span title={isEn ? "Sharp temperature rise in 6h" : "Subida fuerte de temperatura en 6h"}>🔥</span>}
+              </div>
+            </div>
+          )}
+
+          {nightType && (
+            <div className={`mt-4 flex items-center justify-center gap-2 backdrop-blur-md rounded-full py-2 px-4 text-sm font-bold border shadow-md mx-auto w-fit ${
+              nightType === 'ecuatorial'
+                ? 'bg-purple-500/30 border-purple-400/40 text-white'
+                : nightType === 'torrida'
+                  ? 'bg-red-500/30 border-red-400/40 text-white'
+                  : 'bg-amber-500/20 border-amber-400/30 text-white'
+            }`}>
+              <span className="text-lg">
+                {nightType === 'ecuatorial' ? '🌊' : nightType === 'torrida' ? '🔥' : '🌙'}
+              </span>
+              <span>{t(`label.night_${nightType}`)}</span>
+              <span className="text-[10px] opacity-80 font-normal">— {t(`label.night_${nightType}_desc`)}</span>
+            </div>
+          )}
+
           {/* Shrimp Progress Bar */}
           {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (
             <div className="flex flex-col items-center gap-1 mt-6">
@@ -255,6 +319,9 @@ function WeatherDashboard() {
                   </span>
                 ))}
               </div>
+              <span className="text-[10px] font-mono font-bold text-white/70">
+                Thom: {currentThom.value.toFixed(1)} DI
+              </span>
             </div>
           )}
         </section>

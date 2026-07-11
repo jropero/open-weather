@@ -5,6 +5,7 @@ export const PREDEFINED_LOCATIONS: Location[] = [
   { id: 'gps', name: 'Actual (GPS)', latitude: 0, longitude: 0, isGPS: true },
   { id: 'basel', name: 'Basilea', latitude: 47.5546368, longitude: 7.5532081 },
   { id: 'parla', name: 'Parla', latitude: 40.2348316, longitude: -3.7876793 },
+  { id: 'madrid', name: 'Madrid', latitude: 40.4168, longitude: -3.7038 },
   { id: 'barcelona', name: 'Barcelona', latitude: 41.385063, longitude: 2.173404 },
   { id: 'lagartera', name: 'Lagartera', latitude: 39.9071497, longitude: -5.2106728 },
   { id: 'corral', name: 'Corral de Almaguer', latitude: 39.7608446, longitude: -3.1667764 },
