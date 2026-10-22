@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { DailyWeather, HourlyWeather } from '../types/weather';
+
 import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getWindChillIndex } from '../utils/weatherCodes';
 import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 import { useLanguage } from '../context/LanguageContext';
@@ -48,7 +49,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
 
   // Hourly Chart Data
   const hourlyChartData = hourly.map(h => {
-    const timeDate = new Date(h.time);
+    const timeDate = new Date(h.time + 'Z');
     const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     return {
       name: hourStr,
@@ -140,8 +141,8 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
       ) : (
         <div className="flex overflow-x-auto gap-3 pb-3 pt-1 px-4 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent select-none scroll-smooth">
           {hourly.map((h, idx) => {
-            const timeDate = new Date(h.time);
-            const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: 'numeric', hour12: true }).toUpperCase();
+            const timeDate = new Date(h.time + 'Z');
+            const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
             const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language);
             const comfort = h.temperature < 10
               ? getWindChillIndex(h.temperature, h.windSpeed, language)
@@ -157,6 +158,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
                 <Icon size={24} className="text-white drop-shadow-sm mb-2" />
                 <span className="text-sm font-black text-amber-300 mb-0.5">{Math.round(h.temperature)}°</span>
                 <span className="text-[9px] font-bold text-sky-300">{Math.round(h.humidity)}%</span>
+                <span className="text-[9px] font-bold text-teal-300">{Math.round(h.windSpeed)} km/h</span>
                 {h.snowfall > 0 ? (
                   <span className="text-[9px] font-bold text-cyan-200 mt-0.5">❄️ {h.snowfall.toFixed(1)}mm</span>
                 ) : h.precipitation > 0 ? (
