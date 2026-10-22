@@ -58,6 +58,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
       humidity: Math.round(h.humidity),
       wind: Math.round(h.windSpeed),
       precip: h.precipitation,
+      precipProb: h.precipProbability,
       weatherCode: h.weatherCode,
       deltaP: 0,
       bgValue: 100
@@ -156,13 +157,18 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
               >
                 <span className="text-[10px] font-bold opacity-75 mb-1.5">{hourStr}</span>
                 <Icon size={24} className="text-white drop-shadow-sm mb-2" />
-                <span className="text-sm font-black text-amber-300 mb-0.5">{Math.round(h.temperature)}°</span>
-                <span className="text-[9px] font-bold text-sky-300">{Math.round(h.humidity)}%</span>
+                <span className="text-sm font-black text-amber-300 leading-none mb-0.5 whitespace-nowrap">
+                  {Math.round(h.temperature)}°
+                  {Math.abs(h.apparentTemperature - h.temperature) >= 1 && (
+                    <span className="text-[10px] font-semibold text-amber-200/60 ml-0.5">({Math.round(h.apparentTemperature)}°)</span>
+                  )}
+                </span>
+                <span className="text-[9px] font-bold text-sky-300 mt-0.5">{Math.round(h.humidity)}%</span>
                 <span className="text-[9px] font-bold text-teal-300">{Math.round(h.windSpeed)} km/h</span>
                 {h.snowfall > 0 ? (
                   <span className="text-[9px] font-bold text-cyan-200 mt-0.5">❄️ {h.snowfall.toFixed(1)}mm</span>
-                ) : h.precipitation > 0 ? (
-                  <span className="text-[9px] font-bold text-indigo-300 mt-0.5">{h.precipitation.toFixed(1)}mm</span>
+                ) : h.precipProbability > 0 ? (
+                  <span className="text-[9px] font-bold text-violet-300 mt-0.5">{h.precipProbability}%</span>
                 ) : (
                   <span className="text-[9px] font-bold opacity-0 mt-0.5">-</span>
                 )}
@@ -232,6 +238,12 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
                         <p className="flex justify-between gap-4">
                           <span className="text-sky-300 font-bold">{t('label.wind')}:</span>
                           <span className="font-black">{data.wind} km/h</span>
+                        </p>
+                      )}
+                      {data.precipProb > 0 && (
+                        <p className="flex justify-between gap-4">
+                          <span className="text-violet-300 font-bold">{isEn ? 'Prob.:' : 'Prob.:'}</span>
+                          <span className="font-black">{data.precipProb}%</span>
                         </p>
                       )}
                       {data.precip > 0 && (

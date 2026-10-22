@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Location, WeatherData, DailyWeather, HourlyWeather } from '../types/weather';
+import type { Location, WeatherData, DailyWeather, HourlyWeather, AirQualityData } from '../types/weather';
 
 export function useWeather(location: Location) {
   const [data, setData] = useState<WeatherData | null>(null);
@@ -17,7 +17,7 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code,wind_speed_10m,dew_point_2m,snowfall&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=UTC`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=UTC`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -71,10 +71,13 @@ export function useWeather(location: Location) {
               humidity: currentData.hourly.relative_humidity_2m[i],
               pressure: currentData.hourly.pressure_msl[i],
               precipitation: currentData.hourly.precipitation?.[i] || 0,
+              precipProbability: currentData.hourly.precipitation_probability?.[i] ?? 0,
+              apparentTemperature: currentData.hourly.apparent_temperature?.[i] ?? currentData.hourly.temperature_2m[i],
               weatherCode: currentData.hourly.weather_code?.[i] || 0,
               windSpeed: currentData.hourly.wind_speed_10m?.[i] ?? 0,
               dewPoint: currentData.hourly.dew_point_2m?.[i] ?? 0,
               snowfall: currentData.hourly.snowfall?.[i] ?? 0,
+              cape: currentData.hourly.cape?.[i] ?? 0,
             });
           }
         }
@@ -95,7 +98,8 @@ export function useWeather(location: Location) {
           daily: dailyWeather,
           hourly: hourlyWeather,
           historical: [], // starts empty and loads asynchronously
-          pressureTrend
+          pressureTrend,
+          airQuality: null, // starts null and loads asynchronously
         });
         setLoading(false);
 
@@ -160,6 +164,38 @@ export function useWeather(location: Location) {
           });
         }).catch((err) => {
           console.error("Failed to fetch historical weather data:", err);
+        });
+
+        // Fetch Air Quality data asynchronously (Europe only for pollen)
+        const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.latitude}&longitude=${location.longitude}&hourly=european_aqi,pm2_5,pm10,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=UTC&forecast_days=1`;
+        fetch(aqUrl).then(async (res) => {
+          if (!res.ok || !isMounted) return;
+          const aqData = await res.json();
+          if (!aqData?.hourly?.time) return;
+
+          // Find current hour index
+          const nowHour = new Date().toISOString().substring(0, 13);
+          const idx = aqData.hourly.time.findIndex((t: string) => t.startsWith(nowHour));
+          const i = idx >= 0 ? idx : 0;
+
+          const airQuality: AirQualityData = {
+            currentAqi: aqData.hourly.european_aqi?.[i] ?? null,
+            currentPm25: aqData.hourly.pm2_5?.[i] ?? null,
+            currentPm10: aqData.hourly.pm10?.[i] ?? null,
+            grassPollen: aqData.hourly.grass_pollen?.[i] ?? null,
+            birchPollen: aqData.hourly.birch_pollen?.[i] ?? null,
+            alderPollen: aqData.hourly.alder_pollen?.[i] ?? null,
+            mugwortPollen: aqData.hourly.mugwort_pollen?.[i] ?? null,
+            olivePollen: aqData.hourly.olive_pollen?.[i] ?? null,
+            ragweedPollen: aqData.hourly.ragweed_pollen?.[i] ?? null,
+          };
+
+          setData(prev => {
+            if (!prev) return null;
+            return { ...prev, airQuality };
+          });
+        }).catch((err) => {
+          console.error("Failed to fetch air quality data:", err);
         });
       } catch (err: any) {
         if (isMounted) setError(err.message);

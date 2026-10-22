@@ -45,10 +45,25 @@ export interface HourlyWeather {
   humidity: number;
   pressure: number;
   precipitation: number;
+  precipProbability: number;
   weatherCode: number;
   windSpeed: number;
   dewPoint: number;
   snowfall: number;
+  apparentTemperature: number;
+  cape: number;
+}
+
+export interface AirQualityData {
+  currentAqi: number | null;
+  currentPm25: number | null;
+  currentPm10: number | null;
+  grassPollen: number | null;
+  birchPollen: number | null;
+  alderPollen: number | null;
+  mugwortPollen: number | null;
+  olivePollen: number | null;
+  ragweedPollen: number | null;
 }
 
 export interface WeatherData {
@@ -57,4 +72,5 @@ export interface WeatherData {
   hourly: HourlyWeather[];
   historical: HistoricalWeather[];
   pressureTrend: PressureTrend | null;
+  airQuality: AirQualityData | null;
 }
