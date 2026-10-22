@@ -104,11 +104,11 @@ export function getWindChillIndex(temp: number, windSpeed: number, lang: Languag
   return { value: wci, shortLabel: 'EXT', label: isEn ? 'Extreme Cold' : 'Extremo', bgClass: 'bg-slate-900 text-white', reasons };
 }
 
-export function getMigraineRisk(deltaP: number, pressure: number, humidity: number, precip: number, lang: Language = 'es') {
+export function getMigraineRisk(deltaP: number, pressure: number, humidity: number, precip: number, lang: Language = 'es', cape?: number) {
   let riskScore = 0;
   const reasons: string[] = [];
   const isEn = lang === 'en';
-  
+
   // 1. Barometric pressure changes (significant decrease)
   if (deltaP <= -5) {
     riskScore += 3;
@@ -136,6 +136,14 @@ export function getMigraineRisk(deltaP: number, pressure: number, humidity: numb
     reasons.push(isEn ? `Active precipitation (${precip} mm) [+1 pt]` : `Precipitaciones activas (${precip} mm) [+1 pt]`);
   }
 
+  // 5. Convective instability (CAPE) — storm systems amplify migraine triggers
+  if (cape !== undefined && cape > 1000) {
+    riskScore += 1;
+    reasons.push(isEn ? `High storm potential (CAPE ${Math.round(cape)} J/kg) [+1 pt]` : `Alta inestabilidad convectiva (CAPE ${Math.round(cape)} J/kg) [+1 pt]`);
+  }
+
+  riskScore = Math.min(6, riskScore);
+
   if (reasons.length === 0) {
     reasons.push(isEn ? `Total atmospheric stability [0 pts]` : `Estabilidad atmosférica total [0 pts]`);
   }
@@ -145,4 +153,32 @@ export function getMigraineRisk(deltaP: number, pressure: number, humidity: numb
   if (riskScore >= 3) return { label: isEn ? 'MOD' : 'MOD', detail: isEn ? 'Moderate risk' : 'Riesgo moderado', bgClass: 'bg-orange-500 text-white', reasons, score: riskScore };
   if (riskScore >= 2) return { label: isEn ? 'LOW' : 'BAJO', detail: isEn ? 'Mild risk' : 'Riesgo leve', bgClass: 'bg-yellow-400 text-slate-900', reasons, score: riskScore };
   return { label: isEn ? 'MINIMAL' : 'MÍNIMO', detail: isEn ? 'Stable weather (No risk)' : 'Clima estable (Sin riesgo)', bgClass: 'bg-emerald-500 text-slate-900', reasons, score: riskScore };
+}
+
+export function getStormPotential(cape: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  if (cape > 2500) return { level: 'extreme' as const, label: isEn ? 'EXTREME' : 'EXTREMO', bgClass: 'bg-red-600 text-white', cape };
+  if (cape > 1000) return { level: 'strong' as const, label: isEn ? 'STRONG' : 'FUERTE', bgClass: 'bg-orange-500 text-white', cape };
+  if (cape > 300) return { level: 'moderate' as const, label: isEn ? 'MOD' : 'MOD', bgClass: 'bg-yellow-400 text-slate-900', cape };
+  if (cape > 50) return { level: 'slight' as const, label: isEn ? 'SLIGHT' : 'LEVE', bgClass: 'bg-sky-400 text-white', cape };
+  return { level: 'none' as const, label: isEn ? 'NONE' : 'NINGUNO', bgClass: 'bg-slate-700 text-slate-300', cape };
+}
+
+export function getAqiInfo(aqi: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  if (aqi <= 20) return { label: isEn ? 'Good' : 'Bueno', bgClass: 'bg-emerald-500 text-white' };
+  if (aqi <= 40) return { label: isEn ? 'Fair' : 'Aceptable', bgClass: 'bg-yellow-400 text-slate-900' };
+  if (aqi <= 60) return { label: isEn ? 'Moderate' : 'Moderado', bgClass: 'bg-orange-400 text-white' };
+  if (aqi <= 80) return { label: isEn ? 'Poor' : 'Malo', bgClass: 'bg-red-500 text-white' };
+  if (aqi <= 100) return { label: isEn ? 'V.Poor' : 'Muy Malo', bgClass: 'bg-purple-600 text-white' };
+  return { label: isEn ? 'Extreme' : 'Extremo', bgClass: 'bg-rose-900 text-red-200' };
+}
+
+export function getPollenLevel(value: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  if (value <= 0) return null;
+  if (value <= 10) return { label: isEn ? 'Low' : 'Bajo', bgClass: 'bg-emerald-500/80 text-white' };
+  if (value <= 50) return { label: isEn ? 'Mod' : 'Mod', bgClass: 'bg-yellow-400 text-slate-900' };
+  if (value <= 200) return { label: isEn ? 'High' : 'Alto', bgClass: 'bg-orange-500 text-white' };
+  return { label: isEn ? 'V.High' : 'M.Alto', bgClass: 'bg-red-600 text-white' };
 }

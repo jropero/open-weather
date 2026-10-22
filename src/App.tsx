@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection, getWindChillIndex } from './utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection, getWindChillIndex, getStormPotential, getAqiInfo, getPollenLevel } from './utils/weatherCodes';
 import { MapPin, Search, HelpCircle, Wind } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -74,6 +74,13 @@ function WeatherDashboard() {
     return getWindChillIndex(data.current.temperature, data.current.windSpeed, language);
   }, [data, language]);
 
+  const stormPotential = React.useMemo(() => {
+    if (!data?.hourly.length) return null;
+    const cape = data.hourly[0]?.cape ?? 0;
+    const result = getStormPotential(cape, language);
+    return result.level !== 'none' ? result : null;
+  }, [data, language]);
+
   const frostType = React.useMemo<'ice' | 'frost' | null>(() => {
     if (!data?.hourly.length) return null;
     const overnight = data.hourly.filter(h => {
@@ -134,7 +141,8 @@ function WeatherDashboard() {
     data.current.surfacePressure,
     data.current.humidity,
     data.daily.find(d => new Date(d.date).setHours(0, 0, 0, 0) === today.getTime())?.precipitation || 0,
-    language
+    language,
+    data.hourly[0]?.cape
   );
 
   const isEn = language === 'en';
@@ -438,6 +446,19 @@ function WeatherDashboard() {
             </div>
           )}
 
+          {stormPotential && (
+            <div className={`mt-4 flex items-center justify-center gap-2 backdrop-blur-md rounded-full py-2 px-4 text-sm font-bold border shadow-md mx-auto w-fit ${
+              stormPotential.level === 'extreme' ? 'bg-red-600/30 border-red-400/40 text-white' :
+              stormPotential.level === 'strong' ? 'bg-orange-500/30 border-orange-400/40 text-white' :
+              stormPotential.level === 'moderate' ? 'bg-yellow-400/20 border-yellow-400/40 text-white' :
+              'bg-sky-400/20 border-sky-400/30 text-white'
+            }`}>
+              <span className="text-lg">⛈️</span>
+              <span>{isEn ? 'Storm Potential' : 'Potencial Tormenta'}: {stormPotential.label}</span>
+              <span className="text-[10px] opacity-80 font-normal">— CAPE {Math.round(stormPotential.cape)} J/kg</span>
+            </div>
+          )}
+
           {/* Shrimp Progress Bar */}
           {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (
             <div className="flex flex-col items-center gap-1 mt-6">
@@ -534,6 +555,68 @@ function WeatherDashboard() {
             </div>
           </div>
         </section>
+
+        {/* Air Quality Card */}
+        {data.airQuality && data.airQuality.currentAqi !== null && (() => {
+          const aq = data.airQuality!;
+          const aqiInfo = getAqiInfo(aq.currentAqi!, language);
+          const pollens: { emoji: string; name: string; value: number | null }[] = [
+            { emoji: '🌿', name: isEn ? 'Grass' : 'Gramín.', value: aq.grassPollen },
+            { emoji: '🌳', name: isEn ? 'Birch' : 'Abedul', value: aq.birchPollen },
+            { emoji: '🌸', name: isEn ? 'Alder' : 'Aliso', value: aq.alderPollen },
+            { emoji: '🌾', name: isEn ? 'Mugwort' : 'Artemisa', value: aq.mugwortPollen },
+            { emoji: '🫒', name: isEn ? 'Olive' : 'Olivo', value: aq.olivePollen },
+            { emoji: '🌻', name: isEn ? 'Ragweed' : 'Ambrosía', value: aq.ragweedPollen },
+          ].filter(p => p.value !== null && p.value > 0);
+
+          return (
+            <section className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-lg text-slate-800">
+              <h3 className="text-sm uppercase tracking-wider mb-2 opacity-70 font-semibold">{isEn ? 'Air Quality' : 'Calidad del Aire'}</h3>
+
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl font-extrabold text-slate-900">{Math.round(aq.currentAqi!)} AQI</span>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${aqiInfo.bgClass}`}>{aqiInfo.label}</span>
+              </div>
+
+              {(aq.currentPm25 !== null || aq.currentPm10 !== null) && (
+                <p className="text-xs text-slate-500 font-medium mb-3">
+                  {aq.currentPm25 !== null && `PM2.5: ${aq.currentPm25.toFixed(1)} μg/m³`}
+                  {aq.currentPm25 !== null && aq.currentPm10 !== null && '  ·  '}
+                  {aq.currentPm10 !== null && `PM10: ${aq.currentPm10.toFixed(1)} μg/m³`}
+                </p>
+              )}
+
+              {/* AQI range bar */}
+              <div className="mb-3">
+                <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-purple-600 opacity-80"></div>
+                  <div
+                    className="absolute top-0 h-full w-1.5 bg-slate-900 rounded-full border border-white shadow-sm transition-all duration-1000 ease-out"
+                    style={{ left: `calc(${Math.max(0, Math.min(100, (aq.currentAqi! / 100) * 100))}% - 3px)` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">
+                  <span>{isEn ? 'Good (0)' : 'Bueno (0)'}</span>
+                  <span>(100+) {isEn ? 'Extreme' : 'Extremo'}</span>
+                </div>
+              </div>
+
+              {pollens.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
+                  {pollens.map(p => {
+                    const level = getPollenLevel(p.value!, language);
+                    if (!level) return null;
+                    return (
+                      <span key={p.name} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${level.bgClass}`}>
+                        {p.emoji} {p.name}: {level.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* Daily Forecast and Chart */}
         <DailyForecast daily={data.daily} hourly={data.hourly} />
