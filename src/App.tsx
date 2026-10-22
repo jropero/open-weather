@@ -2,6 +2,9 @@ import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection, getWindChillIndex, getStormPotential, getAqiInfo, getPollenLevel } from './utils/weatherCodes';
+import WeatherSvgEffects, { wmoToCondition } from './components/WeatherSvgEffects';
+import { RAIN_INTENSITY, generateWeatherParticles } from './utils/weatherParticles';
+import AuroraSvg from './components/AuroraSvg';
 import { MapPin, Search, HelpCircle, Wind } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -18,6 +21,7 @@ function WeatherDashboard() {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
   const { language, setLanguage, t } = useLanguage();
   const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
+  const [previewCondition, setPreviewCondition] = React.useState<string>('auto');
 
   React.useEffect(() => {
     const handleClose = () => setActivePopover(null);
@@ -112,6 +116,10 @@ function WeatherDashboard() {
     return null;
   }, [data]);
 
+  // Must be before early returns (Rules of Hooks)
+  const rainIntensity = RAIN_INTENSITY[data?.current.weatherCode ?? -1] ?? 0;
+  const weatherParticles = React.useMemo(() => generateWeatherParticles(rainIntensity), [rainIntensity]);
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-200 text-white font-sans">{language === 'en' ? 'Loading weather data...' : 'Cargando datos del clima...'}</div>;
   }
@@ -123,6 +131,10 @@ function WeatherDashboard() {
   if (!data) return null;
 
   const { icon: WeatherIcon, label: weatherLabel, color: weatherColor, animation: weatherAnimation, bgClass: weatherBg } = getWeatherInfo(data.current.weatherCode, language);
+
+  const wmoCondition = previewCondition === 'auto'
+    ? wmoToCondition(data.current.weatherCode)
+    : previewCondition as ReturnType<typeof wmoToCondition>;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -176,11 +188,30 @@ function WeatherDashboard() {
           <h1 className="text-xl font-semibold">{getTranslatedLocationName(currentLocation.name, language)}</h1>
         </button>
         <div className="flex items-center gap-2">
+          {/* Preview weather condition (dev) */}
+          <select
+            value={previewCondition}
+            onChange={(e) => setPreviewCondition(e.target.value)}
+            className="appearance-none bg-white/25 border-0 text-white rounded-full py-1.5 pl-3.5 pr-7 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center' }}
+          >
+            <option value="auto" className="text-slate-800 bg-white">auto</option>
+            <option value="clear" className="text-slate-800 bg-white">☀️ clear</option>
+            <option value="partly-cloudy" className="text-slate-800 bg-white">⛅ partly</option>
+            <option value="cloudy" className="text-slate-800 bg-white">☁️ cloudy</option>
+            <option value="rain" className="text-slate-800 bg-white">🌧️ rain</option>
+            <option value="storm" className="text-slate-800 bg-white">⛈️ storm</option>
+            <option value="snow" className="text-slate-800 bg-white">❄️ snow</option>
+            <option value="fog" className="text-slate-800 bg-white">🌫️ fog</option>
+            <option value="aurora" className="text-slate-800 bg-white">🌌 aurora</option>
+          </select>
+
           {/* Selector de idioma */}
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
-            className="bg-white/25 border-0 text-white rounded-full py-1.5 px-3.5 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all uppercase tracking-wider"
+            className="appearance-none bg-white/25 border-0 text-white rounded-full py-1.5 pl-3.5 pr-7 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all uppercase tracking-wider"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center' }}
           >
             <option value="es" className="text-slate-800 font-semibold bg-white">ES</option>
             <option value="en" className="text-slate-800 font-semibold bg-white">EN</option>
@@ -202,7 +233,26 @@ function WeatherDashboard() {
       </header>
 
       <main className="flex flex-col gap-6">
-        <section className="text-center my-4">
+        {/* Hero with animated weather background */}
+        <div className="relative my-4 rounded-2xl">
+          {/* SVG atmospheric effects layer */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <svg viewBox="0 0 300 200" className="w-full h-full" preserveAspectRatio="xMidYMin slice" overflow="hidden">
+              {previewCondition === 'aurora'
+                ? <AuroraSvg />
+                : <WeatherSvgEffects
+                    condition={wmoCondition}
+                    weatherParticles={weatherParticles}
+                    fogGradientId="hero-fog"
+                    rainIntensity={rainIntensity}
+                  />
+              }
+            </svg>
+            {wmoCondition === 'storm' && previewCondition !== 'aurora' && (
+              <div className="absolute inset-0 bg-white opacity-0 anim-lightning" />
+            )}
+          </div>
+          <section className="text-center">
           <div className="flex justify-center mb-4 drop-shadow-xl">
             <div className="relative">
               <WeatherIcon size={120} className={`${weatherColor} ${weatherAnimation}`} strokeWidth={1} />
@@ -392,6 +442,14 @@ function WeatherDashboard() {
                 <span className="uppercase tracking-wider text-[10px] text-white/70">
                   {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
                 </span>
+                {precipOnset.type === 'rain' && (() => {
+                  const mmh = rainNext3h / 3;
+                  const label = mmh >= 10 ? (isEn ? 'violent' : 'torrencial')
+                    : mmh >= 2.5 ? (isEn ? 'heavy' : 'fuerte')
+                    : mmh >= 0.5 ? (isEn ? 'moderate' : 'moderada')
+                    : (isEn ? 'light' : 'leve');
+                  return <span className="text-white/50 text-[10px] font-normal">· {label}</span>;
+                })()}
                 <span className="font-black">
                   {precipOnset.minutesFromNow <= 0
                     ? (isEn ? 'now' : 'ahora')
@@ -503,6 +561,7 @@ function WeatherDashboard() {
             </div>
           )}
         </section>
+        </div>
 
         {/* Pressure and Humidity Highlight Card */}
         <section className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-lg text-slate-800">
