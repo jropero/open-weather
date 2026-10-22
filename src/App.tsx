@@ -9,7 +9,7 @@ import { HistoricalPressure } from './components/HistoricalPressure';
 import { LocationSelector } from './components/LocationSelector';
 import { LanguageProvider, useLanguage, type Language } from './context/LanguageContext';
 import { HelpModal } from './components/HelpModal';
-import { WormholeSection } from './components/WormholeSection';
+import { OtherLocations } from './components/OtherLocations';
 
 function WeatherDashboard() {
   const { currentLocation } = useLocationContext();
@@ -89,14 +89,17 @@ function WeatherDashboard() {
     return null;
   }, [data]);
 
-  const precipOnset = React.useMemo<{ hoursFromNow: number; type: 'rain' | 'snow' | 'freezing' } | null>(() => {
+  const precipOnset = React.useMemo<{ minutesFromNow: number; type: 'rain' | 'snow' | 'freezing' } | null>(() => {
     if (!data?.hourly.length) return null;
+    const now = Date.now();
     for (let i = 0; i < data.hourly.length; i++) {
       const h = data.hourly[i];
-      if (h.precipitation > 0.1) {
+      if (h.precipitation >= 0.1) {
+        const onsetTime = new Date(h.time).getTime();
+        const minutesFromNow = Math.max(0, Math.round((onsetTime - now) / 60000));
         const isSnow = (h.snowfall ?? 0) > 0 || (h.weatherCode >= 71 && h.weatherCode <= 77) || h.weatherCode === 85 || h.weatherCode === 86;
         const isFreezing = h.weatherCode === 56 || h.weatherCode === 57 || h.weatherCode === 66 || h.weatherCode === 67;
-        return { hoursFromNow: i, type: isSnow ? 'snow' : isFreezing ? 'freezing' : 'rain' };
+        return { minutesFromNow, type: isSnow ? 'snow' : isFreezing ? 'freezing' : 'rain' };
       }
     }
     return null;
@@ -352,36 +355,40 @@ function WeatherDashboard() {
             </div>
           )}
 
-          {(precipOnset || rainNext3h > 0 || rainNext6h > 0) && (
-            <div className="flex gap-2 justify-center mt-2 flex-wrap">
-              {precipOnset && (
-                <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                  precipOnset.type === 'snow' ? 'bg-cyan-500/30 border-cyan-400/40' :
-                  precipOnset.type === 'freezing' ? 'bg-indigo-500/30 border-indigo-400/40' :
-                  'bg-blue-500/30 border-blue-400/40'
-                } text-white`}>
-                  <span>{precipOnset.type === 'snow' ? '❄️' : precipOnset.type === 'freezing' ? '🌨️' : '🌧️'}</span>
-                  <span className="uppercase tracking-wider text-[10px] text-white/70">
-                    {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
-                  </span>
-                  <span className="font-black">
-                    {precipOnset.hoursFromNow === 0 ? (isEn ? 'now' : 'ahora') : `${isEn ? 'in' : 'en'} ${precipOnset.hoursFromNow}h`}
-                  </span>
-                </div>
-              )}
-              {(rainNext3h > 0 || rainNext6h > 0) && (
-                <div className="rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md bg-blue-500/30 border-blue-400/40 text-white">
-                  <span>🌧️</span>
-                  <span className="uppercase tracking-wider text-[10px] text-white/70">
-                    {isEn ? 'Rain' : 'Lluvia'}
-                  </span>
-                  <span className="font-black">
-                    {rainNext3h > 0 && `3h:${rainNext3h}mm/3h`}
-                    {rainNext3h > 0 && rainNext6h > rainNext3h ? ' • ' : ''}
-                    {rainNext6h > rainNext3h && `${rainNext6h}mm/6h`}
-                  </span>
-                </div>
-              )}
+          {precipOnset && (
+            <div className="flex flex-col items-center gap-1.5 mt-2">
+              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
+                precipOnset.type === 'snow' ? 'bg-cyan-500/30 border-cyan-400/40' :
+                precipOnset.type === 'freezing' ? 'bg-indigo-500/30 border-indigo-400/40' :
+                'bg-blue-500/30 border-blue-400/40'
+              } text-white`}>
+                <span>{precipOnset.type === 'snow' ? '❄️' : precipOnset.type === 'freezing' ? '🌨️' : '🌧️'}</span>
+                <span className="uppercase tracking-wider text-[10px] text-white/70">
+                  {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
+                </span>
+                <span className="font-black">
+                  {precipOnset.minutesFromNow <= 0
+                    ? (isEn ? 'now' : 'ahora')
+                    : precipOnset.minutesFromNow < 60
+                      ? `${isEn ? 'in' : 'en'} ${precipOnset.minutesFromNow}min`
+                      : `${isEn ? 'in' : 'en'} ${Math.floor(precipOnset.minutesFromNow / 60)}h${precipOnset.minutesFromNow % 60 >= 15 ? `${precipOnset.minutesFromNow % 60}min` : ''}`
+                  }
+                </span>
+              </div>
+              <div className="flex gap-1.5 justify-center">
+                {([{ label: '3h', value: rainNext3h }, { label: '6h', value: rainNext6h }, { label: '12h', value: rainNext12h }] as const).map(({ label, value }) => (
+                  <div key={label} className={`rounded-full py-1 px-2.5 text-[10px] font-bold border flex items-center gap-1 backdrop-blur-md ${
+                    value > 0
+                      ? precipOnset.type === 'snow' ? 'bg-cyan-500/20 border-cyan-400/30 text-cyan-200' :
+                        precipOnset.type === 'freezing' ? 'bg-indigo-500/20 border-indigo-400/30 text-indigo-200' :
+                        'bg-blue-500/20 border-blue-400/30 text-blue-200'
+                      : 'bg-white/5 border-white/10 text-white/30'
+                  }`}>
+                    <span className="opacity-60">{label}</span>
+                    <span className="font-black">{value > 0 ? `${value}mm` : '—'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -516,8 +523,8 @@ function WeatherDashboard() {
         {/* Future Forecast */}
         <FutureForecast daily={data.daily} />
 
-        {/* Wormhole Wind Speeds */}
-        <WormholeSection
+        {/* Other Locations */}
+        <OtherLocations
           currentLocation={currentLocation}
           currentWeatherData={{
             temperature: data.current.temperature,

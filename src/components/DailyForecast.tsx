@@ -11,7 +11,7 @@ interface DailyForecastProps {
 
 export function DailyForecast({ daily, hourly }: DailyForecastProps) {
   const { language, t } = useLanguage();
-  const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('daily');
+  const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('hourly');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
