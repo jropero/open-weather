@@ -280,8 +280,11 @@ function WeatherDashboard() {
               {data.current.windSpeed > 0
                 ? `${Math.round(data.current.windSpeed)} km/h ${getWindDirection(data.current.windDirection, language)}`
                 : t('label.wind_calm')}
-              {data.current.windSpeed > 5 && (
+              {data.current.windSpeed > 5 && data.current.temperature >= 15 && (
                 <span className="text-emerald-300 text-[10px] ml-1">({t('label.wind_heat_relief')})</span>
+              )}
+              {data.current.windSpeed > 5 && data.current.temperature < 10 && (
+                <span className="text-blue-200 text-[10px] ml-1">({t('label.wind_chill_warning')})</span>
               )}
             </span>
           </div>
