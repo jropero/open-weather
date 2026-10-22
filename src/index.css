@@ -48,3 +48,67 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Weather SVG animation classes (hardware accelerated) */
+.anim-cloud-fast {
+  animation: driftFast 18s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-cloud-slow {
+  animation: driftSlow 24s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-lightning {
+  animation: lightningFlash 7s infinite;
+}
+.anim-fall {
+  animation: fallDown var(--dur) linear infinite;
+}
+
+@keyframes driftFast {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(80px); }
+}
+@keyframes driftSlow {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-70px); }
+}
+@keyframes lightningFlash {
+  0%, 40%, 46%, 50%, 100% { opacity: 0; }
+  42%, 48% { opacity: 0.8; }
+  44% { opacity: 0.3; }
+}
+@keyframes fallDown {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(var(--drift), 800px); }
+}
+
+/* Register --drift as a typed length so GPU can animate it on the compositor thread */
+@property --drift {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Aurora borealis curtain sway — per-curtain --dur, --ax, --sk set inline */
+.anim-aurora-drift {
+  animation: auroraDrift var(--dur, 15s) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+}
+@keyframes auroraDrift {
+  0%, 100% { transform: translateX(0) skewX(0deg); opacity: 1; }
+  30%       { transform: translateX(var(--ax)) skewX(var(--sk)); opacity: 0.78; }
+  65%       { transform: translateX(calc(var(--ax) * -0.7)) skewX(calc(var(--sk) * -0.6)); opacity: 0.95; }
+}
+.aurora-fade-in  { animation: auroraFadeIn  1.5s ease-out both; }
+.aurora-fade-out { animation: auroraFadeOut 1.5s ease-in  both; }
+@keyframes auroraFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes auroraFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-cloud-fast, .anim-cloud-slow, .anim-lightning, .anim-fall, .anim-aurora-drift {
+    animation: none;
+  }
+}
