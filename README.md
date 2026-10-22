@@ -18,7 +18,11 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 
 *   **🚨 Real-Time Biomedical Alerts**
     *   **ΔP (24h Pressure Delta):** Instantly calculates sudden atmospheric pressure drops ($\le$ -3 hPa and $\le$ -5 hPa) relative to the previous day's average. It features a **visual gradient pressure gauge** that positions the current pressure in a realistic meteorological spectrum (980 hPa to 1050 hPa) for instant clinical context.
-    *   **Thom's Discomfort Index (Thermal Fatigue):** Evaluates thermal stress by combining ambient temperature with relative humidity to warn users about cardiovascular strain and fatigue levels ("muggy air").
+    *   **Seasonal Index Bar:** The right-hand hero bar adapts to the season. Above 10 °C it shows **FAT.** (Thom's Discomfort Index) with a warm colour scale. Below 10 °C it switches to **POLAR / WCI** (Wind Chill Index), filling upward as the felt temperature drops, colour-coded emerald → sky → blue → purple. [NEW]
+    *   **Thom's Discomfort Index (Thermal Fatigue):** Evaluates thermal stress by combining ambient temperature with relative humidity to warn users about cardiovascular strain and fatigue levels ("muggy air"). When discomfort is high, a **Shrimp Fatigue bar** (🦐 × 1–4) appears below the hero. [NEW]
+    *   **Wind Chill Index (Índice Polar):** In winter (< 10 °C), a standalone **penguin section** (🐧 × 1–4) shows the calculated felt temperature and severity level. [NEW]
+    *   **Frost & Ice Risk:** Overnight minimum temperature and dew point are monitored; alerts surface when frost (≤ 2 °C) or ice (≤ 0 °C) conditions are expected. [NEW]
+    *   **Tropical Night Alerts:** If overnight minimums exceed 20 °C (tropical), 25 °C (torrida), or 25 °C+ (ecuatorial), a contextual badge is displayed. [NEW]
     *   **Bilingual Selector (ES / EN):** A glassmorphic top-right dropdown toggle that instantly translates the entire application's interface, metrics, graphs, and clinical breakdown texts in real-time.
 *   **🎨 Dynamic Context-Aware Backgrounds [NEW]**
     *   **Weather-Based Color Themes:** The background gradient adapts beautifully to the current weather condition (e.g. warm sunny skies for clear days, slate blue for light rain, dark slate/navy for showers to guarantee high-contrast icon visibility, and deep electric purple for thunderstorms).
@@ -34,18 +38,21 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
     *   **Double-Slider Interface:** A highly compact, high-density layout that presents both surface pressure and relative humidity side-by-side (e.g., `1013 hPa, 55% RH`).
     *   **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
     *   **Hourly Pressure Velocity (3h & 6h Trends) [NEW]:** Shows real-time barometric rate of change. Delta 6h acts as a critical scientific trigger matching Katsuki et al. (2023)'s highest AI gain parameter (11.7), alerting users with a warning icon (⚡) during rapid pressure drops.
+    *   **Temperature Velocity (3h & 6h Trends) [NEW]:** Paired badges show short-term temperature change alongside the pressure trend, flagging sharp rises (🔥) that compound heat stress.
+    *   **Precipitation Onset Badge [NEW]:** Detects the next rain, snow, or freezing-rain event within the 25-hour hourly window and shows a live countdown ("in 10 min", "in 2h") plus 3h / 6h / 12h accumulated rain totals.
     *   **Stacked Visual Range Bars:** Features two high-fidelity visual range sliders:
         1.  **Pressure range** (980–1050 hPa) with a customized green-orange-red color gradient.
         2.  **Relative humidity range** (0%–100%) with a dry-wet blue-green-orange gradient.
-*   **📈 7-Day Temporal Window (Evolution & Forecast)**
-    *   An immersive, borderless multi-layer chart mathematically centered on "**TODAY**", showing 3 days of historical records on the left and 3 days of forecast predictions on the right.
-    *   Overlaying essential variables cleanly: atmospheric pressure (represented by a red gradient area mountain), temperature (yellow line), and rain volume (indigo vertical bar charts with gap dividers).
-    *   **Optimized Layout Padding:** Spacing in the main grid has been mathematically reduced to ensure high-density biometric metrics fit perfectly on compact screens without overflow, while keeping a generous dedicated padding specifically around the bottom *"How to interpret this chart"* legend to maintain a pristine aesthetic.
-    *   **Aurora Heatmap background:** The chart's background uses a CSS parametric heatmap to seamlessly reflect high humidity risk (Yellow = Dry/Comfortable, Purple = Extreme humidity).
+*   **📈 Forecast Chart — Daily & Hourly Modes [NEW]**
+    *   A toggle switches between a **7-day daily** view (centred on TODAY, 3 days past + 3 days ahead) and a **25-hour hourly** view of the next day.
+    *   The **hourly scrollable card row** shows per-hour: local time (DST-safe UTC parsing), weather icon, temperature, humidity, **wind speed** (teal), and precipitation / snowfall.
+    *   The multi-layer chart overlays: atmospheric pressure (red gradient area), temperature (yellow line), **wind speed (dashed blue line)** [NEW], and rain volume (indigo bars).
+    *   **Aurora Heatmap background:** The chart background reflects humidity risk as a horizontal gradient (yellow = dry, purple = extreme humidity).
+    *   **DST-safe timestamps [NEW]:** The API is queried with `timezone=UTC`; times are parsed with a `+Z` suffix so the autumn clock-change hour (e.g. two consecutive 02:00 cards) displays correctly.
 *   **🔮 Clinical Diagnostic Breakdowns**
     *   Beyond simple alert chips, the system provides a clear, mathematical breakdown detailing exactly which environmental factors (pressure drops, rainfall, absolute pressure, etc.) are contributing risk points to help users plan their week safely.
-*   **🌤️ Next 3 Days Section**
-    *   Displays forecast cards for upcoming days. Weather condition icons are unified to use the exact same color palette as the current weather card for visual consistency. Includes pre-configured Spanish locations: **Torrevieja** and **Santiago de Compostela**.
+*   **🌍 Other Locations Panel [NEW]**
+    *   A live comparison panel fetches current temperature and pressure for a set of predefined global cities: **Torrevieja**, **Santiago de Compostela**, **Basel**, **Reykjavik**, and **Taipei**. Cards highlight the currently selected location.
 *   **🕰️ Atmospheric Memory (Historical Archive)**
     *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**.
     *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
@@ -125,7 +132,11 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 
 *   **🚨 Alertas Biomédicas en Tiempo Real**
     *   **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -3 hPa y $\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (980 hPa a 1050 hPa) para dar contexto instantáneo.
-    *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa para advertir sobre altos niveles de fatiga cardiovascular ("bochorno").
+    *   **Barra de Índice Estacional:** La barra derecha del héroe se adapta a la estación. Por encima de 10 °C muestra **FAT.** (Índice de Incomodidad de Thom). Por debajo de 10 °C cambia a **POLAR / WCI** (Índice de Sensación Térmica), cuyo relleno sube cuanto más baja la sensación, con escala de color esmeralda → azul cielo → azul → morado. [NUEVO]
+    *   **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa. Cuando la incomodidad es alta aparece el **Índice Gamba** (🦐 × 1–4) bajo el héroe. [NUEVO]
+    *   **Índice Polar (Sensación Térmica por Viento):** En invierno (< 10 °C), una sección independiente de **pingüinos** (🐧 × 1–4) muestra la temperatura sentida y el nivel de frío. [NUEVO]
+    *   **Alerta de Helada y Hielo:** Se monitoriza la temperatura mínima nocturna y el punto de rocío; se activan alertas cuando se prevé helada (≤ 2 °C) o hielo (≤ 0 °C). [NUEVO]
+    *   **Noches Tropicales:** Si las mínimas nocturnas superan 20 °C (tropical), 25 °C (tórrida) o más (ecuatorial), se muestra una insignia contextual. [NUEVO]
     *   **Selector de Idioma Bilingüe (ES / EN):** Un control desplegable de estilo glassmorphic arriba a la derecha que traduce toda la interfaz, métricas, gráficas y desgloses de riesgo clínico en tiempo real.
 *   **🎨 Fondos Dinámicos en Tiempo Real [NUEVO]**
     *   **Colores Adaptados al Clima:** El gradiente de fondo de la app se adapta estéticamente al tiempo actual (ej. azul cielo radiante para despejado, gris/plomo para nublado, slate/azul oscuro para chubascos garantizando un contraste del 100% en los iconos, y púrpura tormenta para tempestades).
@@ -141,18 +152,21 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
     *   **Interfaz de Doble Barra:** Sección compacta y de alta densidad que muestra la presión barométrica y la humedad relativa en la misma línea (ej. `1013 hPa, 55% HR`).
     *   **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. *«presión normal y humedad confortable»*).
     *   **Velocidad de Presión Horaria (Tendencias 3h y 6h) [NUEVO]:** Muestra el ritmo de cambio barométrico a corto plazo. El Delta 6h actúa como disparador de riesgo crítico, alineándose directamente con el parámetro de mayor ganancia de IA (11,7) del estudio de Katsuki et al. (2023), alertando con un icono de advertencia (⚡) en caídas rápidas.
+    *   **Velocidad de Temperatura (3h y 6h) [NUEVO]:** Insignias gemelas muestran la variación de temperatura a corto plazo junto a la tendencia de presión, marcando subidas bruscas (🔥) que agravan el estrés térmico.
+    *   **Insignia de Inicio de Precipitación [NUEVO]:** Detecta el próximo evento de lluvia, nieve o lluvia helada en la ventana de 25 horas y muestra una cuenta atrás en vivo ("en 10 min", "en 2h") más los totales acumulados a 3h / 6h / 12h.
     *   **Barras de Rango Apiladas:** Cuenta con dos barras de rango visual de alta fidelidad:
         1.  **Rango de presión** (980–1050 hPa) con un degradado de color personalizado verde-naranja-rojo.
         2.  **Rango de humedad** (0%–100%) con un degradado para niveles seco-húmedo.
-*   **📈 Ventana Temporal de 7 Días (Evolución y Pronóstico)**
-    *   Gráfica multicapa con diseño inmersivo "sin ejes" (*borderless*). Se centra matemáticamente en el "**HOY**", mostrando 3 días de histórico empírico a la izquierda y 3 días de previsión a la derecha. 
-    *   Superpone de forma limpia las variables climáticas fundamentales: la presión (montaña roja), la temperatura (línea amarilla) y la lluvia (histograma con brechas divisorias diarias).
-    *   **Padding Optimizado:** El espaciado de la cuadrícula principal ha sido reducido matemáticamente para que todos los datos biométricos quepan en pantallas pequeñas sin desbordamiento, mientras se mantiene un margen exclusivo y cómodo alrededor de la leyenda de lectura inferior (*«Cómo interpretar este gráfico»*).
-    *   **Fondo de Aurora (Heatmap):** El fondo del gráfico actúa como un mapa de calor visual inmersivo que delata el nivel de humedad ambiental y su riesgo (Amarillo = Seco, Morado = Riesgo extremo de humedad).
+*   **📈 Gráfico de Pronóstico — Modos Diario y Por Horas [NUEVO]**
+    *   Un selector alterna entre la vista **diaria de 7 días** (centrada en HOY, 3 días pasados + 3 futuros) y la vista **horaria de 25 horas**.
+    *   La **fila desplazable de tarjetas horarias** muestra por hora: hora local (parseada como UTC para compatibilidad con el cambio horario), icono del tiempo, temperatura, humedad, **velocidad del viento** (turquesa) [NUEVO] y precipitación / nieve.
+    *   La gráfica multicapa superpone: presión (área roja), temperatura (línea amarilla), **velocidad del viento (línea azul discontinua)** [NUEVO] y lluvia (barras índigo).
+    *   **Fondo de Aurora (Heatmap):** El fondo refleja el nivel de humedad como degradado horizontal (amarillo = seco, morado = humedad extrema).
+    *   **Timestamps compatibles con el cambio horario [NUEVO]:** La API se consulta con `timezone=UTC` y los tiempos se parsean con el sufijo `+Z` para mostrar correctamente la hora repetida en el cambio de horario de otoño.
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
-*   **🌤️ Sección Próximos 3 Días**
-    *   Tarjetas con previsiones diarias detalladas. Los iconos del estado del clima han sido unificados para utilizar exactamente la misma paleta de colores vibrantes que la tarjeta de clima actual para mantener la consistencia visual. Incluye las nuevas ciudades de **Torrevieja** y **Santiago de Compostela**.
+*   **🌍 Panel de Otras Ubicaciones [NUEVO]**
+    *   Panel de comparativa en tiempo real que obtiene la temperatura y la presión actuales de un conjunto de ciudades predefinidas: **Torrevieja**, **Santiago de Compostela**, **Basilea**, **Reikiavik** y **Taipéi**. La tarjeta de la ciudad seleccionada actualmente aparece destacada.
 *   **🕰️ Memoria Atmosférica (Archivo Histórico)**
     *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
     *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.

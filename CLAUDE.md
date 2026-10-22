@@ -12,6 +12,7 @@ The architecture is driven by sophisticated data presentation and scientific val
 
 1.  **Data Ingestion Layer:**
     *   **Source:** Primary data source is **Open-Meteo**, which provides access to the **Copernicus ERA5** database. This choice is critical as it enables the retrieval of extensive historical data (e.g., 1949, 1973, 2003 records) and accurate interday pressure delta calculations, necessary for scientific rigor (Atmospheric Memory module).
+    *   **Timezone handling:** The forecast API is called with `timezone=UTC`. Hourly timestamps are stored as UTC strings (e.g. `"2026-10-25T01:00"`) and must be parsed with a `+Z` suffix (`new Date(h.time + 'Z')`) to avoid ambiguity. The hourly window is **25 entries** (not 24) to correctly cover DST fallback days where a local day has 25 hours.
 2.  **State Management & Persistence:**
     *   The application utilizes the browser's `localStorage` for persistent state, specifically for the last known location coordinates or selected city, ensuring a seamless user experience across sessions.
 3.  **Core Logic & Components:**
@@ -35,8 +36,9 @@ The project uses a standard Vite/React/TypeScript setup. All development actions
 *   **Single Test:** Run a specific test file or component test using the configured testing runner command (e.g., `npm run test -- <path/to/test-file>`).
 
 ## ✨ Key Features & Areas of Focus
-*   **Data Visualization:** Expect advanced, multi-layered charts (Recharts) that display historical and forecasted weather data in a single, dense view. The `SevenDayChart` component is particularly complex.
-*   **Scientific Alerting:** Alerting logic is based on multiple, converging variables (e.g., pressure drop *AND* humidity threshold). Any change to this scientific model requires coordination between the *data layer* and the *UI component* responsible for rendering the alerts.
+*   **Data Visualization:** Expect advanced, multi-layered charts (Recharts) that display historical and forecasted weather data in a single, dense view. `DailyForecast` has a Daily/Hourly toggle; the hourly scrollable row shows per-card: time (UTC→local), weather icon, temperature, humidity, **wind speed**, precipitation/snow, and a comfort badge.
+*   **Seasonal index bar (right side of hero):** Above 10 °C shows the **FAT.** bar (Thom's Discomfort Index, 15–30 DI scale). Below 10 °C it switches to **POLAR/WCI** (Wind Chill Index), bar height mapped from +15 °C felt (floor) to −15 °C felt (ceiling), color-coded emerald→sky→blue→purple. The standalone penguin section below the hero is separate and always shown in winter.
+*   **Scientific Alerting:** Alerting logic is based on multiple, converging variables (e.g., pressure drop *AND* humidity threshold). Any change to this scientific model requires coordination between the *data layer* and the *UI component* responsible for rendering the alerts. Active alert types: migraine risk (0–6 pts), frost/ice overnight, tropical/torrida/ecuatorial night, precipitation onset.
 *   **Performance:** The UI is optimized for high performance, minimal transitions, and mobile-first design, requiring careful handling of component rendering and CSS performance.
 
 ## 🧠 Dependencies and Utilities
