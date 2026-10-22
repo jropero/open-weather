@@ -77,6 +77,33 @@ export function getWindDirection(degrees: number, lang: Language = 'es') {
   return dirs[Math.round(degrees / 45) % 8];
 }
 
+export function getWindChillIndex(temp: number, windSpeed: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  let wci: number;
+  if (temp <= 10 && windSpeed > 4.8) {
+    wci = 13.12 + 0.6215 * temp - 11.37 * Math.pow(windSpeed, 0.16) + 0.3965 * temp * Math.pow(windSpeed, 0.16);
+    wci = Math.round(wci * 10) / 10;
+  } else {
+    wci = Math.round(temp * 10) / 10;
+  }
+
+  const reasons = isEn ? [
+    `Formula: 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16`,
+    `Values: T = ${Math.round(temp)}°C, V = ${Math.round(windSpeed)} km/h`,
+    `Feels like: ${wci.toFixed(1)}°C`,
+  ] : [
+    `Fórmula: 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16`,
+    `Valores: T = ${Math.round(temp)}°C, V = ${Math.round(windSpeed)} km/h`,
+    `Sensación: ${wci.toFixed(1)}°C`,
+  ];
+
+  if (wci > 0) return { value: wci, shortLabel: isEn ? 'COOL' : 'FRESC', label: isEn ? 'Cool' : 'Fresco', bgClass: 'bg-sky-400', reasons };
+  if (wci > -10) return { value: wci, shortLabel: isEn ? 'COLD' : 'FRÍO', label: isEn ? 'Cold' : 'Frío', bgClass: 'bg-blue-500', reasons };
+  if (wci > -25) return { value: wci, shortLabel: isEn ? 'V.CLD' : 'MUY', label: isEn ? 'Very Cold' : 'Muy Frío', bgClass: 'bg-indigo-600 text-white', reasons };
+  if (wci > -40) return { value: wci, shortLabel: isEn ? 'SEV' : 'SEV', label: isEn ? 'Severe Cold' : 'Frío Severo', bgClass: 'bg-purple-700 text-white', reasons };
+  return { value: wci, shortLabel: 'EXT', label: isEn ? 'Extreme Cold' : 'Extremo', bgClass: 'bg-slate-900 text-white', reasons };
+}
+
 export function getMigraineRisk(deltaP: number, pressure: number, humidity: number, precip: number, lang: Language = 'es') {
   let riskScore = 0;
   const reasons: string[] = [];

@@ -17,7 +17,7 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code,wind_speed_10m,dew_point_2m,snowfall&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -72,6 +72,9 @@ export function useWeather(location: Location) {
               pressure: currentData.hourly.pressure_msl[i],
               precipitation: currentData.hourly.precipitation?.[i] || 0,
               weatherCode: currentData.hourly.weather_code?.[i] || 0,
+              windSpeed: currentData.hourly.wind_speed_10m?.[i] ?? 0,
+              dewPoint: currentData.hourly.dew_point_2m?.[i] ?? 0,
+              snowfall: currentData.hourly.snowfall?.[i] ?? 0,
             });
           }
         }

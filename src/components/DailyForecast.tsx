@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { DailyWeather, HourlyWeather } from '../types/weather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert } from '../utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getWindChillIndex } from '../utils/weatherCodes';
 import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -101,7 +101,9 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
         <div className="flex justify-between w-full px-0 mb-2">
           {chartData.map((d, idx) => {
             const { icon: Icon, label } = getWeatherInfo(d.weatherCode, language);
-            const thomIndex = getThomsDiscomfortIndex(d.temp, d.humidity, language);
+            const comfort = d.temp < 10
+              ? getWindChillIndex(d.temp, d.wind, language)
+              : getThomsDiscomfortIndex(d.temp, d.humidity, language);
             const deltaAlert = getPressureDeltaAlert(d.deltaP, language);
 
             return (
@@ -115,12 +117,12 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
                 <span className="text-[10px] font-bold text-teal-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.wind')} (km/h)`}>{d.wind} km/h</span>
                 <span className="text-[10px] font-bold text-indigo-300 drop-shadow-md leading-tight whitespace-nowrap" title={`${t('label.rain')} (mm)`}>{d.precip} mm</span>
                 
-                {/* Índice de Incomodidad de Thom */}
-                <div 
-                  className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
-                  title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
+                {/* Índice de Incomodidad de Thom / Wind Chill */}
+                <div
+                  className={`mt-1.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${comfort.bgClass} ${comfort.bgClass.includes('text-white') ? '' : 'text-slate-900'} shadow-sm text-center leading-none`}
+                  title={`${t('label.fatigue_calc')}: ${comfort.label}`}
                 >
-                  {thomIndex.shortLabel}
+                  {comfort.shortLabel}
                 </div>
 
                 {/* Alerta Delta P */}
@@ -141,11 +143,13 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
             const timeDate = new Date(h.time);
             const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: 'numeric', hour12: true }).toUpperCase();
             const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language);
-            const thomIndex = getThomsDiscomfortIndex(h.temperature, h.humidity, language);
-            
+            const comfort = h.temperature < 10
+              ? getWindChillIndex(h.temperature, h.windSpeed, language)
+              : getThomsDiscomfortIndex(h.temperature, h.humidity, language);
+
             return (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="flex flex-col items-center min-w-[72px] bg-white/5 border border-white/5 rounded-2xl p-2.5 shadow-md hover:bg-white/10 transition-all duration-300"
                 title={label}
               >
@@ -153,17 +157,19 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
                 <Icon size={24} className="text-white drop-shadow-sm mb-2" />
                 <span className="text-sm font-black text-amber-300 mb-0.5">{Math.round(h.temperature)}°</span>
                 <span className="text-[9px] font-bold text-sky-300">{Math.round(h.humidity)}%</span>
-                {h.precipitation > 0 ? (
+                {h.snowfall > 0 ? (
+                  <span className="text-[9px] font-bold text-cyan-200 mt-0.5">❄️ {h.snowfall.toFixed(1)}mm</span>
+                ) : h.precipitation > 0 ? (
                   <span className="text-[9px] font-bold text-indigo-300 mt-0.5">{h.precipitation.toFixed(1)}mm</span>
                 ) : (
                   <span className="text-[9px] font-bold opacity-0 mt-0.5">-</span>
                 )}
-                
-                <div 
-                  className={`mt-2 px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'} scale-95 shadow-sm text-center leading-none`}
-                  title={`${t('label.fatigue_calc')}: ${thomIndex.label}`}
+
+                <div
+                  className={`mt-2 px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${comfort.bgClass} ${comfort.bgClass.includes('text-white') ? '' : 'text-slate-900'} scale-95 shadow-sm text-center leading-none`}
+                  title={`${t('label.fatigue_calc')}: ${comfort.label}`}
                 >
-                  {thomIndex.shortLabel}
+                  {comfort.shortLabel}
                 </div>
               </div>
             );
