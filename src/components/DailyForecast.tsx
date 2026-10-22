@@ -179,7 +179,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
 
       {/* Multi-Line Composed Chart */}
       <div className={`w-full mt-4 -ml-1 ${viewMode === 'daily' ? 'h-40 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]' : 'h-40 overflow-hidden px-3 sm:px-4'}`}>
-        <ResponsiveContainer width={viewMode === 'daily' ? "105%" : "100%"} height="100%">
+        <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
             <defs>
               <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
@@ -200,9 +200,8 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
             <XAxis dataKey="name" hide />
 
             <YAxis yAxisId="pressure" hide domain={[minPressure, maxPressure]} />
-            <YAxis 
-              yAxisId="temp" 
-              hide={viewMode !== 'hourly'} 
+            <YAxis
+              yAxisId="temp"
               orientation="left"
               domain={[minTemp, maxTemp]} 
               tick={{ fill: '#fcd34d', fontSize: 9, fontWeight: 'bold' }}
@@ -216,7 +215,6 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
             <YAxis yAxisId="bg" hide domain={[0, 100]} />
             <YAxis
               yAxisId="wind"
-              hide={viewMode !== 'hourly'}
               orientation="right"
               domain={[0, 'dataMax + 10']}
               tick={{ fill: '#38bdf8', fontSize: 9, fontWeight: 'bold' }}
