@@ -285,17 +285,35 @@ function WeatherDashboard() {
                 </span>
               </div>
 
-              <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">FAT.</span>
-              <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
-                <div
-                  className={`w-full rounded-full transition-all duration-1000 ease-out ${currentThom.value >= 27 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                      currentThom.value >= 24 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
-                        currentThom.value >= 21 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                    }`}
-                  style={{ height: `${Math.max(10, Math.min(100, ((currentThom.value - 15) / 15) * 100))}%` }}
-                />
-              </div>
-              <span className="text-[11px] font-black">{Math.round(currentThom.value)}</span>
+              {data.current.temperature < 10 && currentWindChill ? (
+                <>
+                  <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">{isEn ? 'WCI' : 'POLAR'}</span>
+                  <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
+                    <div
+                      className={`w-full rounded-full transition-all duration-1000 ease-out ${currentWindChill.value <= -25 ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]' :
+                          currentWindChill.value <= -10 ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' :
+                            currentWindChill.value <= 0 ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                        }`}
+                      style={{ height: `${Math.max(10, Math.min(100, ((15 - currentWindChill.value) / 30) * 100))}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-black">{Math.round(currentWindChill.value)}°</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">FAT.</span>
+                  <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
+                    <div
+                      className={`w-full rounded-full transition-all duration-1000 ease-out ${currentThom.value >= 27 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                          currentThom.value >= 24 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                            currentThom.value >= 21 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                        }`}
+                      style={{ height: `${Math.max(10, Math.min(100, ((currentThom.value - 15) / 15) * 100))}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-black">{Math.round(currentThom.value)}</span>
+                </>
+              )}
             </div>
 
           </div>

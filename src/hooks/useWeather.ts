@@ -17,7 +17,7 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code,wind_speed_10m,dew_point_2m,snowfall&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,weather_code,wind_speed_10m,dew_point_2m,snowfall&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=UTC`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -64,7 +64,7 @@ export function useWeather(location: Location) {
           const currentIndex = currentData.hourly.time.findIndex((t: string) => t === currentTime || t.startsWith(currentTime.substring(0, 13)));
           const startIndex = currentIndex >= 0 ? currentIndex : 0;
 
-          for (let i = startIndex; i < Math.min(currentData.hourly.time.length, startIndex + 24); i++) {
+          for (let i = startIndex; i < Math.min(currentData.hourly.time.length, startIndex + 25); i++) {
             hourlyWeather.push({
               time: currentData.hourly.time[i],
               temperature: currentData.hourly.temperature_2m[i],
