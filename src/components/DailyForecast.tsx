@@ -200,29 +200,11 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
             <XAxis dataKey="name" hide />
 
             <YAxis yAxisId="pressure" hide domain={[minPressure, maxPressure]} />
-            <YAxis
-              yAxisId="temp"
-              orientation="left"
-              domain={[minTemp, maxTemp]} 
-              tick={{ fill: '#fcd34d', fontSize: 9, fontWeight: 'bold' }}
-              tickLine={false} 
-              axisLine={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1 }}
-              tickFormatter={(v) => `${v}°`}
-              width={24}
-            />
+            <YAxis yAxisId="temp" hide domain={[minTemp, maxTemp]} />
             <YAxis yAxisId="humidity" hide domain={[0, 100]} />
             <YAxis yAxisId="precip" hide domain={[0, 'dataMax + 15']} />
             <YAxis yAxisId="bg" hide domain={[0, 100]} />
-            <YAxis
-              yAxisId="wind"
-              orientation="right"
-              domain={[0, 'dataMax + 10']}
-              tick={{ fill: '#38bdf8', fontSize: 9, fontWeight: 'bold' }}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1 }}
-              tickFormatter={(v) => `${v}`}
-              width={22}
-            />
+            <YAxis yAxisId="wind" hide domain={[0, 'dataMax + 10']} />
 
             {/* Interactive Tooltip */}
             <Tooltip

@@ -28,6 +28,33 @@ function WeatherDashboard() {
   const tempDelta3h = data?.hourly[3] ? Math.round((data.hourly[3].temperature - data.current.temperature) * 10) / 10 : null;
   const tempDelta6h = data?.hourly[6] ? Math.round((data.hourly[6].temperature - data.current.temperature) * 10) / 10 : null;
 
+  const rainNext3h = React.useMemo(() => {
+    if (!data?.hourly.length) return 0;
+    let sum = 0;
+    for (let i = 0; i < Math.min(3, data.hourly.length); i++) {
+      sum += data.hourly[i].precipitation || 0;
+    }
+    return Math.round(sum * 10) / 10;
+  }, [data]);
+
+  const rainNext6h = React.useMemo(() => {
+    if (!data?.hourly.length) return 0;
+    let sum = 0;
+    for (let i = 0; i < Math.min(6, data.hourly.length); i++) {
+      sum += data.hourly[i].precipitation || 0;
+    }
+    return Math.round(sum * 10) / 10;
+  }, [data]);
+
+  const rainNext12h = React.useMemo(() => {
+    if (!data?.hourly.length) return 0;
+    let sum = 0;
+    for (let i = 0; i < Math.min(12, data.hourly.length); i++) {
+      sum += data.hourly[i].precipitation || 0;
+    }
+    return Math.round(sum * 10) / 10;
+  }, [data]);
+
   const nightType = React.useMemo<'ecuatorial' | 'torrida' | 'tropical' | null>(() => {
     if (!data?.hourly.length) return null;
     const tonight = data.hourly.filter(h => {
@@ -325,21 +352,36 @@ function WeatherDashboard() {
             </div>
           )}
 
-          {precipOnset && (
-            <div className="flex gap-2 justify-center mt-2">
-              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                precipOnset.type === 'snow' ? 'bg-cyan-500/30 border-cyan-400/40' :
-                precipOnset.type === 'freezing' ? 'bg-indigo-500/30 border-indigo-400/40' :
-                'bg-blue-500/30 border-blue-400/40'
-              } text-white`}>
-                <span>{precipOnset.type === 'snow' ? '❄️' : precipOnset.type === 'freezing' ? '🌨️' : '🌧️'}</span>
-                <span className="uppercase tracking-wider text-[10px] text-white/70">
-                  {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
-                </span>
-                <span className="font-black">
-                  {precipOnset.hoursFromNow === 0 ? (isEn ? 'now' : 'ahora') : `${isEn ? 'in' : 'en'} ${precipOnset.hoursFromNow}h`}
-                </span>
-              </div>
+          {(precipOnset || rainNext3h > 0 || rainNext6h > 0) && (
+            <div className="flex gap-2 justify-center mt-2 flex-wrap">
+              {precipOnset && (
+                <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
+                  precipOnset.type === 'snow' ? 'bg-cyan-500/30 border-cyan-400/40' :
+                  precipOnset.type === 'freezing' ? 'bg-indigo-500/30 border-indigo-400/40' :
+                  'bg-blue-500/30 border-blue-400/40'
+                } text-white`}>
+                  <span>{precipOnset.type === 'snow' ? '❄️' : precipOnset.type === 'freezing' ? '🌨️' : '🌧️'}</span>
+                  <span className="uppercase tracking-wider text-[10px] text-white/70">
+                    {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
+                  </span>
+                  <span className="font-black">
+                    {precipOnset.hoursFromNow === 0 ? (isEn ? 'now' : 'ahora') : `${isEn ? 'in' : 'en'} ${precipOnset.hoursFromNow}h`}
+                  </span>
+                </div>
+              )}
+              {(rainNext3h > 0 || rainNext6h > 0) && (
+                <div className="rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md bg-blue-500/30 border-blue-400/40 text-white">
+                  <span>🌧️</span>
+                  <span className="uppercase tracking-wider text-[10px] text-white/70">
+                    {isEn ? 'Rain' : 'Lluvia'}
+                  </span>
+                  <span className="font-black">
+                    {rainNext3h > 0 && `3h:${rainNext3h}mm/3h`}
+                    {rainNext3h > 0 && rainNext6h > rainNext3h ? ' • ' : ''}
+                    {rainNext6h > rainNext3h && `${rainNext6h}mm/6h`}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
