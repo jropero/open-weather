@@ -46,10 +46,10 @@ function WeatherDashboard() {
     return Math.round(sum * 10) / 10;
   }, [data]);
 
-  const rainNext12h = React.useMemo(() => {
+  const rainNext24h = React.useMemo(() => {
     if (!data?.hourly.length) return 0;
     let sum = 0;
-    for (let i = 0; i < Math.min(12, data.hourly.length); i++) {
+    for (let i = 0; i < data.hourly.length; i++) {
       sum += data.hourly[i].precipitation || 0;
     }
     return Math.round(sum * 10) / 10;
@@ -58,7 +58,7 @@ function WeatherDashboard() {
   const nightType = React.useMemo<'ecuatorial' | 'torrida' | 'tropical' | null>(() => {
     if (!data?.hourly.length) return null;
     const tonight = data.hourly.filter(h => {
-      const hour = new Date(h.time).getHours();
+      const hour = new Date(h.time + 'Z').getHours();
       return hour >= 20 || hour <= 6;
     });
     if (!tonight.length) return null;
@@ -77,7 +77,7 @@ function WeatherDashboard() {
   const frostType = React.useMemo<'ice' | 'frost' | null>(() => {
     if (!data?.hourly.length) return null;
     const overnight = data.hourly.filter(h => {
-      const hour = new Date(h.time).getHours();
+      const hour = new Date(h.time + 'Z').getHours();
       return hour >= 20 || hour <= 8;
     });
     if (!overnight.length) return null;
@@ -95,7 +95,7 @@ function WeatherDashboard() {
     for (let i = 0; i < data.hourly.length; i++) {
       const h = data.hourly[i];
       if (h.precipitation >= 0.1) {
-        const onsetTime = new Date(h.time).getTime();
+        const onsetTime = new Date(h.time + 'Z').getTime();
         const minutesFromNow = Math.max(0, Math.round((onsetTime - now) / 60000));
         const isSnow = (h.snowfall ?? 0) > 0 || (h.weatherCode >= 71 && h.weatherCode <= 77) || h.weatherCode === 85 || h.weatherCode === 86;
         const isFreezing = h.weatherCode === 56 || h.weatherCode === 57 || h.weatherCode === 66 || h.weatherCode === 67;
@@ -394,7 +394,7 @@ function WeatherDashboard() {
                 </span>
               </div>
               <div className="flex gap-1.5 justify-center">
-                {([{ label: '3h', value: rainNext3h }, { label: '6h', value: rainNext6h }, { label: '12h', value: rainNext12h }] as const).map(({ label, value }) => (
+                {([{ label: '3h', value: rainNext3h }, { label: '6h', value: rainNext6h }, { label: '24h', value: rainNext24h }] as const).map(({ label, value }) => (
                   <div key={label} className={`rounded-full py-1 px-2.5 text-[10px] font-bold border flex items-center gap-1 backdrop-blur-md ${
                     value > 0
                       ? precipOnset.type === 'snow' ? 'bg-cyan-500/20 border-cyan-400/30 text-cyan-200' :
