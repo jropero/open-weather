@@ -55,7 +55,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
       pressure: Math.round(h.pressure),
       temp: Math.round(h.temperature),
       humidity: Math.round(h.humidity),
-      wind: 0,
+      wind: Math.round(h.windSpeed),
       precip: h.precipitation,
       weatherCode: h.weatherCode,
       deltaP: 0,
@@ -214,6 +214,17 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
             <YAxis yAxisId="humidity" hide domain={[0, 100]} />
             <YAxis yAxisId="precip" hide domain={[0, 'dataMax + 15']} />
             <YAxis yAxisId="bg" hide domain={[0, 100]} />
+            <YAxis
+              yAxisId="wind"
+              hide={viewMode !== 'hourly'}
+              orientation="right"
+              domain={[0, 'dataMax + 10']}
+              tick={{ fill: '#38bdf8', fontSize: 9, fontWeight: 'bold' }}
+              tickLine={false}
+              axisLine={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1 }}
+              tickFormatter={(v) => `${v}`}
+              width={22}
+            />
 
             {/* Interactive Tooltip */}
             <Tooltip
@@ -235,6 +246,12 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
                         <span className="text-sky-300 font-bold">{t('label.humidity')}:</span>
                         <span className="font-black">{data.humidity}%</span>
                       </p>
+                      {data.wind > 0 && (
+                        <p className="flex justify-between gap-4">
+                          <span className="text-sky-300 font-bold">{t('label.wind')}:</span>
+                          <span className="font-black">{data.wind} km/h</span>
+                        </p>
+                      )}
                       {data.precip > 0 && (
                         <p className="flex justify-between gap-4">
                           <span className="text-indigo-300 font-bold">{t('label.rain')}:</span>
@@ -290,6 +307,16 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
               strokeWidth={2}
               dot={{ r: 2, fill: "#fcd34d", strokeWidth: 1, stroke: "#1e293b" }}
             />
+            {/* Viento: Línea Azul */}
+            <Line
+              yAxisId="wind"
+              type="monotone"
+              dataKey="wind"
+              stroke="#38bdf8"
+              strokeWidth={1.5}
+              strokeDasharray="5 3"
+              dot={false}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -332,6 +359,10 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7e22ce] flex-shrink-0"></span>
             <span><strong className="text-slate-200">{t('label.bg_aurora')}</strong> {t('label.humidity_risk')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-px border-t-2 border-dashed border-[#38bdf8] flex-shrink-0"></span>
+            <span><strong className="text-slate-200">{isEn ? 'Blue dashed:' : 'Línea azul:'}</strong> {isEn ? 'Wind speed (km/h)' : 'Velocidad del viento (km/h)'}</span>
           </div>
         </div>
       </div>
