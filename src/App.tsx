@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationProvider, useLocationContext } from './context/LocationContext';
 import { useWeather } from './hooks/useWeather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection } from './utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getMigraineRisk, getWindDirection, getWindChillIndex } from './utils/weatherCodes';
 import { MapPin, Search, HelpCircle, Wind } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
@@ -39,6 +39,39 @@ function WeatherDashboard() {
     if (minTonight > 25) return 'ecuatorial';
     if (minTonight >= 25) return 'torrida';
     if (minTonight >= 20) return 'tropical';
+    return null;
+  }, [data]);
+
+  const currentWindChill = React.useMemo(() => {
+    if (!data) return null;
+    return getWindChillIndex(data.current.temperature, data.current.windSpeed, language);
+  }, [data, language]);
+
+  const frostType = React.useMemo<'ice' | 'frost' | null>(() => {
+    if (!data?.hourly.length) return null;
+    const overnight = data.hourly.filter(h => {
+      const hour = new Date(h.time).getHours();
+      return hour >= 20 || hour <= 8;
+    });
+    if (!overnight.length) return null;
+    const minTemp = Math.min(...overnight.map(h => h.temperature));
+    const dewPoints = overnight.map(h => h.dewPoint).filter((d): d is number => d !== undefined);
+    const minDewPoint = dewPoints.length ? Math.min(...dewPoints) : Infinity;
+    if (minTemp <= 0) return 'ice';
+    if (minTemp <= 2 || minDewPoint <= 0) return 'frost';
+    return null;
+  }, [data]);
+
+  const precipOnset = React.useMemo<{ hoursFromNow: number; type: 'rain' | 'snow' | 'freezing' } | null>(() => {
+    if (!data?.hourly.length) return null;
+    for (let i = 0; i < data.hourly.length; i++) {
+      const h = data.hourly[i];
+      if (h.precipitation > 0.1) {
+        const isSnow = (h.snowfall ?? 0) > 0 || (h.weatherCode >= 71 && h.weatherCode <= 77) || h.weatherCode === 85 || h.weatherCode === 86;
+        const isFreezing = h.weatherCode === 56 || h.weatherCode === 57 || h.weatherCode === 66 || h.weatherCode === 67;
+        return { hoursFromNow: i, type: isSnow ? 'snow' : isFreezing ? 'freezing' : 'rain' };
+      }
+    }
     return null;
   }, [data]);
 
@@ -289,6 +322,24 @@ function WeatherDashboard() {
             </div>
           )}
 
+          {precipOnset && (
+            <div className="flex gap-2 justify-center mt-2">
+              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
+                precipOnset.type === 'snow' ? 'bg-cyan-500/30 border-cyan-400/40' :
+                precipOnset.type === 'freezing' ? 'bg-indigo-500/30 border-indigo-400/40' :
+                'bg-blue-500/30 border-blue-400/40'
+              } text-white`}>
+                <span>{precipOnset.type === 'snow' ? '❄️' : precipOnset.type === 'freezing' ? '🌨️' : '🌧️'}</span>
+                <span className="uppercase tracking-wider text-[10px] text-white/70">
+                  {precipOnset.type === 'snow' ? (isEn ? 'Snow' : 'Nieve') : precipOnset.type === 'freezing' ? (isEn ? 'Freezing rain' : 'Lluvia helada') : (isEn ? 'Rain' : 'Lluvia')}
+                </span>
+                <span className="font-black">
+                  {precipOnset.hoursFromNow === 0 ? (isEn ? 'now' : 'ahora') : `${isEn ? 'in' : 'en'} ${precipOnset.hoursFromNow}h`}
+                </span>
+              </div>
+            </div>
+          )}
+
           {nightType && (
             <div className={`mt-4 flex items-center justify-center gap-2 backdrop-blur-md rounded-full py-2 px-4 text-sm font-bold border shadow-md mx-auto w-fit ${
               nightType === 'ecuatorial'
@@ -302,6 +353,18 @@ function WeatherDashboard() {
               </span>
               <span>{t(`label.night_${nightType}`)}</span>
               <span className="text-[10px] opacity-80 font-normal">— {t(`label.night_${nightType}_desc`)}</span>
+            </div>
+          )}
+
+          {frostType && (
+            <div className={`mt-4 flex items-center justify-center gap-2 backdrop-blur-md rounded-full py-2 px-4 text-sm font-bold border shadow-md mx-auto w-fit ${
+              frostType === 'ice'
+                ? 'bg-cyan-900/40 border-cyan-400/40 text-white'
+                : 'bg-slate-700/40 border-slate-400/30 text-white'
+            }`}>
+              <span className="text-lg">{frostType === 'ice' ? '🧊' : '🌨️'}</span>
+              <span>{frostType === 'ice' ? (isEn ? 'Ice Risk' : 'Riesgo de Hielo') : (isEn ? 'Frost Risk' : 'Riesgo de Helada')}</span>
+              <span className="text-[10px] opacity-80 font-normal">— {frostType === 'ice' ? (isEn ? 'sub-zero tonight' : 'bajo cero esta noche') : (isEn ? 'near-freezing overnight' : 'casi congelación overnight')}</span>
             </div>
           )}
 
@@ -321,6 +384,30 @@ function WeatherDashboard() {
               </div>
               <span className="text-[10px] font-mono font-bold text-white/70">
                 Thom: {currentThom.value.toFixed(1)} DI
+              </span>
+            </div>
+          )}
+
+          {/* Penguin Wind Chill (winter) */}
+          {data.current.temperature < 10 && currentWindChill && (
+            <div className="flex flex-col items-center gap-1 mt-6">
+              <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">{isEn ? 'Wind Chill' : 'Índice Polar'}</span>
+              <div className="flex justify-center items-center h-12 gap-1 p-3 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
+                {Array.from({ length: 4 }).map((_, idx) => {
+                  const wci = currentWindChill.value;
+                  const activePenguins = wci > 0 ? 1 : wci > -10 ? 2 : wci > -25 ? 3 : 4;
+                  return (
+                    <span
+                      key={idx}
+                      className={`text-5xl transition-all duration-300 ${idx < activePenguins ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
+                    >
+                      🐧
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="text-[10px] font-mono font-bold text-white/70">
+                {isEn ? 'Feels like' : 'Sensación'}: {currentWindChill.value.toFixed(1)}°C
               </span>
             </div>
           )}

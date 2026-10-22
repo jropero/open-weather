@@ -46,6 +46,9 @@ export interface HourlyWeather {
   pressure: number;
   precipitation: number;
   weatherCode: number;
+  windSpeed: number;
+  dewPoint: number;
+  snowfall: number;
 }
 
 export interface WeatherData {
