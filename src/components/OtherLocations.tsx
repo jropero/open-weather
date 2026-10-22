@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { PREDEFINED_LOCATIONS, useLocationContext } from '../context/LocationContext';
 import type { Location } from '../types/weather';
-import { calculateWormholeWindSpeed, generateWormholeExplanation } from '../utils/wormhole';
-//import type { LocationData } from '../utils/wormhole';
+import { calculateWormholeWindSpeed, generateWormholeExplanation } from '../utils/otherLocations';
+//import type { LocationData } from '../utils/otherLocations';
 import { useLanguage, type Language } from '../context/LanguageContext';
 import { Globe, Droplets, Gauge } from 'lucide-react';
-import { getWeatherInfo, getThomsDiscomfortIndex } from '../utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getWindChillIndex } from '../utils/weatherCodes';
 
-interface WormholeSectionProps {
+interface OtherLocationsProps {
   currentLocation: Location;
   currentWeatherData: {
     temperature: number;
@@ -24,6 +24,7 @@ interface OtherLocationData {
     elevation: number;
     humidity: number;
     weatherCode: number;
+    windSpeed: number;
   } | null;
   error?: boolean;
 }
@@ -43,7 +44,7 @@ const getPressureLevelLabel = (pressure: number, lang: Language) => {
   return isEn ? 'medium' : 'media';
 };
 
-export function WormholeSection({ currentLocation }: WormholeSectionProps) {
+export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   const [otherLocationsData, setOtherLocationsData] = useState<OtherLocationData[]>([]);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguage();
@@ -62,7 +63,7 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
 
       const promises = otherLocs.map(async (loc) => {
         try {
-          const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl&timezone=auto`;
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m&timezone=auto`;
           const res = await fetch(url);
           if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
@@ -74,6 +75,7 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
               elevation: data.elevation,
               humidity: data.current.relative_humidity_2m,
               weatherCode: data.current.weather_code,
+              windSpeed: data.current.wind_speed_10m ?? 0,
             }
           };
         } catch (error) {
@@ -83,7 +85,11 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
 
       const results = await Promise.all(promises);
       if (isMounted) {
-        setOtherLocationsData(results);
+        setOtherLocationsData(results.sort((a, b) => {
+          const ta = a.weather?.temperature ?? Infinity;
+          const tb = b.weather?.temperature ?? Infinity;
+          return ta - tb;
+        }));
         setLoading(false);
       }
     };
@@ -191,6 +197,10 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
           const translatedName = getTranslatedName(location, language);
           const { icon: WeatherIcon, label: weatherLabel, colorDark: weatherColor } = getWeatherInfo(weather.weatherCode, language);
           const thom = getThomsDiscomfortIndex(weather.temperature, weather.humidity, language);
+          const isCold = weather.temperature < 10;
+          const windChill = getWindChillIndex(weather.temperature, weather.windSpeed, language);
+          const activePenguins = windChill.value > 0 ? 1 : windChill.value > -10 ? 2 : windChill.value > -25 ? 3 : 4;
+          const activeGambas = Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3));
 
           return (
             <div 
@@ -233,14 +243,25 @@ export function WormholeSection({ currentLocation }: WormholeSectionProps) {
                     <Droplets size={12} className="text-sky-400" />
                     <span className="font-bold text-slate-600">{Math.round(weather.humidity)}%</span>
                   </div>
-                  <div className="flex items-center gap-0.5" title={language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom'}>
-                    <span className="text-sm font-bold text-slate-600 mr-1">{thom.value.toFixed(1)}</span>
-                    {Array.from({ length: 4 }).map((_, idx) => (
-                      <span key={idx} className={`text-xs leading-none transition-all duration-300 ${idx < Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3)) ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}>
-                        🦐
-                      </span>
-                    ))}
-                  </div>
+                  {isCold ? (
+                    <div className="flex items-center gap-0.5" title={language === 'en' ? 'Wind Chill Index' : 'Índice Polar'}>
+                      <span className="text-sm font-bold text-slate-600 mr-1">{windChill.value.toFixed(1)}°</span>
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <span key={idx} className={`text-xl leading-none transition-all duration-300 ${idx < activePenguins ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}>
+                          🐧
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-0.5" title={language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom'}>
+                      <span className="text-sm font-bold text-slate-600 mr-1">{thom.value.toFixed(1)}</span>
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <span key={idx} className={`text-xl leading-none transition-all duration-300 ${idx < activeGambas ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}>
+                          🦐
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
