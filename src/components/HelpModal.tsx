@@ -1,4 +1,4 @@
-import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge, BarChart3, AlertTriangle } from 'lucide-react';
+import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge, BarChart3, AlertTriangle, Wind, Leaf, Bell } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface HelpModalProps {
@@ -8,7 +8,7 @@ interface HelpModalProps {
 
 export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   const { language } = useLanguage();
-  
+
   if (!isOpen) return null;
 
   const isEn = language === 'en';
@@ -16,7 +16,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
       <div className="bg-white text-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-8 duration-300">
-        
+
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-slate-900 text-white">
           <div className="flex items-center gap-2.5">
@@ -30,8 +30,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
             aria-label={isEn ? 'Close' : 'Cerrar'}
           >
@@ -41,7 +41,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
         {/* Content (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 text-sm leading-relaxed text-slate-600">
-          
+
           {/* Section 1: Intro */}
           <section className="space-y-2">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
@@ -49,8 +49,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               {isEn ? 'What is Meteoropathy?' : '¿Qué es la Meteoropatía?'}
             </h3>
             <p>
-              {isEn 
-                ? 'Meteoropathy is a word derived from the Greek meteoros ("high in the sky") and pathos ("suffering/illness"), which indicates any pathology triggered or aggravated by specific meteorological conditions. The science dealing with harmful effects on human health caused by variations in meteorological phenomena is called meteoropathology or medical biometeorology. Some authors use the term to refer to any psycho-organic disorder that can be related to meteorological factors.' 
+              {isEn
+                ? 'Meteoropathy is a word derived from the Greek meteoros ("high in the sky") and pathos ("suffering/illness"), which indicates any pathology triggered or aggravated by specific meteorological conditions. The science dealing with harmful effects on human health caused by variations in meteorological phenomena is called meteoropathology or medical biometeorology. Some authors use the term to refer to any psycho-organic disorder that can be related to meteorological factors.'
                 : 'Meteoropatía es una palabra derivada del griego meteoros («alto en el cielo») y pathos («enfermedad»), que indica cualquier patología que se desencadena o se agrava ante unas condiciones meteorológicas concretas. La ciencia que se ocupa de los efectos nocivos sobre la salud humana, provocados por las variaciones de los fenómenos meteorológicos, se denomina meteoropatología o biometeorología médica. Algunos autores utilizan el término para referirse a cualquier trastorno psico-orgánico que pueda relacionarse con factores meteorológicos.'}
             </p>
           </section>
@@ -61,19 +61,19 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <Brain size={18} className="text-indigo-500" />
               {isEn ? 'Clinical & Mathematical Calculations' : 'Cálculos Clínicos y Matemáticos'}
             </h3>
-            
+
             <div className="grid gap-4 sm:grid-cols-2">
-              
+
               {/* Thom's Index */}
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Thermometer size={14} className="text-amber-500" />
-                  {isEn ? "Thom's Discomfort Index" : "Índice de Disconfort de Thom"}
+                  {isEn ? "Thom's Discomfort Index (FAT.)" : "Índice de Disconfort de Thom (FAT.)"}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  {isEn 
-                    ? 'Evaluates heat stress on the cardiovascular system by combining air temperature (T) and relative humidity (RH). Formula:'
-                    : 'Evalúa el estrés térmico en el sistema cardiovascular combinando temperatura (T) y humedad relativa (HR). Fórmula:'}
+                  {isEn
+                    ? 'Evaluates heat stress on the cardiovascular system by combining air temperature (T) and relative humidity (RH). Shown as the right bar above 10 °C. Formula:'
+                    : 'Evalúa el estrés térmico en el sistema cardiovascular combinando temperatura (T) y humedad relativa (HR). Se muestra como barra derecha por encima de 10 °C. Fórmula:'}
                 </p>
                 <div className="bg-white/80 p-2 rounded-lg font-mono text-[10px] text-center border border-slate-200">
                   DI = T - (0.55 - 0.0055 * RH) * (T - 14.5)
@@ -86,6 +86,29 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </ul>
               </div>
 
+              {/* Wind Chill Index */}
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
+                <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                  <Wind size={14} className="text-sky-500" />
+                  {isEn ? "Wind Chill Index (WCI / POLAR)" : "Índice de Frío Polar (WCI / POLAR)"}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {isEn
+                    ? 'Replaces the FAT. bar when temperature falls below 10 °C. Measures the perceived temperature felt by exposed skin due to wind. Environment Canada/NOAA formula:'
+                    : 'Reemplaza la barra FAT. cuando la temperatura cae por debajo de 10 °C. Mide la temperatura percibida por la piel expuesta al viento. Fórmula Env. Canada/NOAA:'}
+                </p>
+                <div className="bg-white/80 p-2 rounded-lg font-mono text-[10px] text-center border border-slate-200">
+                  WCI = 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16
+                </div>
+                <ul className="text-[10px] space-y-1 text-slate-600 mt-1">
+                  <li><strong>&gt; 0°C:</strong> {isEn ? 'Cool' : 'Fresco'}</li>
+                  <li><strong>0 → −10°C:</strong> {isEn ? 'Cold' : 'Frío'}</li>
+                  <li><strong>−10 → −25°C:</strong> {isEn ? 'Very Cold' : 'Muy Frío'}</li>
+                  <li><strong>−25 → −40°C:</strong> {isEn ? 'Severe Cold' : 'Frío Severo'}</li>
+                  <li><strong>&lt; −40°C:</strong> {isEn ? 'Extreme Cold' : 'Frío Extremo'}</li>
+                </ul>
+              </div>
+
               {/* 24h Delta P */}
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
@@ -93,7 +116,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   {isEn ? "24h Pressure Delta (ΔP)" : "Variación de Presión 24h (ΔP)"}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  {isEn 
+                  {isEn
                     ? "Calculates the difference between today's pressure and yesterday's mean pressure. Rapid changes squeeze or expand gases in blood vessels and tissues."
                     : 'Calcula la diferencia de presión absoluta respecto a la media del día anterior. Cambios rápidos comprimen o expanden los gases en los tejidos.'}
                 </p>
@@ -110,23 +133,45 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </ul>
               </div>
 
+              {/* Storm Potential (CAPE) */}
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
+                <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                  <AlertTriangle size={14} className="text-orange-500" />
+                  {isEn ? "Storm Potential (CAPE)" : "Potencial de Tormenta (CAPE)"}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {isEn
+                    ? 'Convective Available Potential Energy (J/kg) measures atmospheric buoyancy available for thunderstorm development. High CAPE also amplifies migraine triggers (+1 pt when > 1000 J/kg).'
+                    : 'La Energía Potencial Convectiva Disponible (J/kg) mide la flotabilidad atmosférica para el desarrollo de tormentas. Un CAPE alto amplifica los factores de migraña (+1 pt cuando > 1000 J/kg).'}
+                </p>
+                <ul className="text-[10px] space-y-1 text-slate-600 mt-1">
+                  <li><strong>50–300 J/kg:</strong> {isEn ? 'Slight (isolated storms possible)' : 'Leve (tormentas aisladas posibles)'}</li>
+                  <li><strong>300–1000 J/kg:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
+                  <li><strong>1000–2500 J/kg:</strong> {isEn ? 'Strong (organized storms)' : 'Fuerte (tormentas organizadas)'}</li>
+                  <li><strong>&gt; 2500 J/kg:</strong> {isEn ? 'Extreme (severe storm risk)' : 'Extremo (riesgo de tormentas severas)'}</li>
+                </ul>
+              </div>
+
               {/* Hourly Pressure Velocity */}
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2 sm:col-span-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Activity size={14} className="text-purple-500" />
-                  {isEn ? "Hourly Pressure Velocity (3h & 6h Trend)" : "Tendencia Horaria de Presión (Intervalos de 3h y 6h)"}
+                  {isEn ? "Short-term Trends (3h & 6h — Pressure & Temperature)" : "Tendencias a Corto Plazo (3h y 6h — Presión y Temperatura)"}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  {isEn 
-                    ? "In addition to the 24-hour interday change, we track the short-term rate of barometric change. The 6-hour pressure drop is highlighted in Katsuki et al. (2023) as the single strongest predictor of headache onset."
-                    : 'Además de la variación de 24h, registramos la tasa de cambio a corto plazo. La caída de presión en un intervalo de 6 horas fue identificada por Katsuki et al. (2023) como el factor predictivo individual más potente para el inicio de cefaleas.'}
+                  {isEn
+                    ? "Two sets of pills are shown: pressure deltas and temperature deltas over the next 3 and 6 hours. The 6-hour pressure drop is highlighted by Katsuki et al. (2023) as the single strongest predictor of headache onset."
+                    : 'Se muestran dos conjuntos de pastillas: deltas de presión y deltas de temperatura a 3 y 6 horas. La caída de presión en 6h fue identificada por Katsuki et al. (2023) como el factor predictivo individual más potente para el inicio de cefaleas.'}
                 </p>
                 <ul className="text-[10px] space-y-1.5 text-slate-600 mt-1">
                   <li>
-                    <strong>{isEn ? "3h Delta:" : "Delta 3h:"}</strong> {isEn ? "Short-term indicator. Drop ≤ -2 hPa shows immediate, rapid barometric changes." : "Indicador a muy corto plazo. Caídas ≤ -2 hPa indican cambios barométricos inmediatos y rápidos."}
+                    <strong>{isEn ? "Pressure 3h:" : "Presión 3h:"}</strong> {isEn ? "Immediate barometric change. Drop ≤ -2 hPa = rapid change warning (orange)." : "Cambio barométrico inmediato. Caída ≤ -2 hPa = aviso de cambio rápido (naranja)."}
                   </li>
                   <li>
-                    <strong className="text-amber-600">{isEn ? "6h Delta (⚡ Critical):" : "Delta 6h (⚡ Crítico):"}</strong> {isEn ? "The premium paper trigger. Drops ≤ -3 hPa trigger the warning (⚡), and drops ≤ -5 hPa signal severe barometric collapse (red alert) correlating directly with acute neural/migraine risk." : "El disparador clave del paper. Caídas ≤ -3 hPa activan la alerta (⚡), y caídas ≤ -5 hPa indican un colapso barométrico severo (alerta roja) correlacionado directamente con riesgo migrañoso agudo."}
+                    <strong className="text-amber-600">{isEn ? "Pressure 6h ⚡ (Critical):" : "Presión 6h ⚡ (Crítico):"}</strong> {isEn ? "Drops ≤ -3 hPa trigger the ⚡ warning; ≤ -5 hPa = red alert (severe barometric collapse)." : "Caídas ≤ -3 hPa activan la alerta ⚡; ≤ -5 hPa = alerta roja (colapso barométrico severo)."}
+                  </li>
+                  <li>
+                    <strong>{isEn ? "Temperature 3h / 6h:" : "Temperatura 3h / 6h:"}</strong> {isEn ? "Forecasted temperature variation. A rise ≥ +3 °C in 6h triggers the 🔥 heat surge alert." : "Variación de temperatura prevista. Una subida ≥ +3 °C en 6h activa la alerta 🔥 de pico de calor."}
                   </li>
                 </ul>
               </div>
@@ -134,7 +179,97 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             </div>
           </section>
 
-          {/* Section 3: The Scientific Paper */}
+          {/* Section 3: Active Alert Types */}
+          <section className="space-y-3">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <Bell size={18} className="text-rose-500" />
+              {isEn ? 'Active Alert Types' : 'Tipos de Alertas Activas'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isEn
+                ? 'The hero section shows contextual alerts when atmospheric or thermal conditions exceed clinically relevant thresholds. Multiple alerts can appear simultaneously.'
+                : 'La sección principal muestra alertas contextuales cuando las condiciones atmosféricas o térmicas superan umbrales clínicamente relevantes. Pueden aparecer varias alertas a la vez.'}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">🌙 {isEn ? 'Warm Night Alert' : 'Alerta de Noche Cálida'}</span>
+                <ul className="text-[10px] text-slate-600 space-y-1">
+                  <li><strong>{isEn ? 'Tropical (🌙):' : 'Tropical (🌙):'}</strong> {isEn ? 'Min. overnight ≥ 20 °C. Impairs sleep.' : 'Mín. nocturna ≥ 20 °C. Dificulta el sueño.'}</li>
+                  <li><strong>{isEn ? 'Tórrida (🔥):' : 'Tórrida (🔥):'}</strong> {isEn ? 'Min. ≥ 25 °C. Extreme heat stress.' : 'Mín. ≥ 25 °C. Estrés térmico extremo.'}</li>
+                  <li><strong>{isEn ? 'Ecuatorial (🌊):' : 'Ecuatorial (🌊):'}</strong> {isEn ? 'Min. > 25 °C. Clinical heat hazard.' : 'Mín. > 25 °C. Peligro clínico de calor.'}</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-700">🧊 {isEn ? 'Frost / Ice Alert' : 'Alerta de Helada / Hielo'}</span>
+                <ul className="text-[10px] text-slate-600 space-y-1">
+                  <li><strong>{isEn ? 'Frost (🌨️):' : 'Helada (🌨️):'}</strong> {isEn ? 'Min. overnight ≤ 2 °C or dew point ≤ 0 °C. Surface freezing risk.' : 'Mín. nocturna ≤ 2 °C o punto de rocío ≤ 0 °C. Riesgo de congelación superficial.'}</li>
+                  <li><strong>{isEn ? 'Ice (🧊):' : 'Hielo (🧊):'}</strong> {isEn ? 'Min. overnight ≤ 0 °C. Sub-zero temperatures confirmed.' : 'Mín. nocturna ≤ 0 °C. Temperaturas bajo cero confirmadas.'}</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5 sm:col-span-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">🌧️ {isEn ? 'Precipitation Onset Alert' : 'Alerta de Inicio de Precipitación'}</span>
+                <p className="text-[10px] text-slate-600">
+                  {isEn
+                    ? 'Detects the next hourly slot with ≥ 0.1 mm precipitation and shows type (rain 🌧️ / freezing rain 🌨️ / snow ❄️), time to onset, and rain intensity label (light/moderate/heavy/violent based on mm/h rate). Below the onset pill, three accumulation badges show forecast rain for the next 3h, 6h, and 24h.'
+                    : 'Detecta el próximo intervalo horario con ≥ 0,1 mm de precipitación y muestra tipo (lluvia 🌧️ / lluvia helada 🌨️ / nieve ❄️), tiempo hasta el inicio e intensidad (leve/moderada/fuerte/torrencial según mm/h). Bajo la pastilla de inicio, tres badges muestran la acumulación prevista a 3h, 6h y 24h.'}
+                </p>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Section 4: Air Quality & Pollen */}
+          <section className="space-y-3">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <Leaf size={18} className="text-green-500" />
+              {isEn ? 'Air Quality & Pollen' : 'Calidad del Aire y Polen'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isEn
+                ? 'Data from Open-Meteo Air Quality API (CAMS European model). Shown only when AQI data is available for your location.'
+                : 'Datos de la API de Calidad del Aire de Open-Meteo (modelo europeo CAMS). Se muestra solo cuando hay datos AQI disponibles para tu ubicación.'}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">AQI — {isEn ? 'Air Quality Index' : 'Índice de Calidad del Aire'}</span>
+                <p className="text-[10px] text-slate-600">
+                  {isEn
+                    ? 'European AQI (0–100+). Combines PM2.5, PM10, NO₂, O₃, SO₂, CO concentrations. PM2.5 and PM10 particulate values (μg/m³) are shown separately.'
+                    : 'ICA europeo (0–100+). Combina concentraciones de PM2.5, PM10, NO₂, O₃, SO₂, CO. Los valores de partículas PM2.5 y PM10 (μg/m³) se muestran por separado.'}
+                </p>
+                <ul className="text-[10px] text-slate-600 space-y-0.5 mt-1">
+                  <li><strong className="text-emerald-600">0–20:</strong> {isEn ? 'Good' : 'Bueno'}</li>
+                  <li><strong className="text-yellow-600">21–40:</strong> {isEn ? 'Fair' : 'Aceptable'}</li>
+                  <li><strong className="text-orange-500">41–60:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
+                  <li><strong className="text-red-600">61–80:</strong> {isEn ? 'Poor' : 'Malo'}</li>
+                  <li><strong className="text-purple-600">81–100:</strong> {isEn ? 'Very Poor' : 'Muy Malo'}</li>
+                  <li><strong className="text-rose-900">100+:</strong> {isEn ? 'Extreme' : 'Extremo'}</li>
+                </ul>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-700">🌿 {isEn ? 'Pollen Levels' : 'Niveles de Polen'}</span>
+                <p className="text-[10px] text-slate-600">
+                  {isEn
+                    ? 'Six pollen species tracked: Grass 🌿, Birch 🌳, Alder 🌸, Mugwort 🌾, Olive 🫒, Ragweed 🌻. Only species with values > 0 are shown.'
+                    : 'Se monitorizan seis especies: Gramíneas 🌿, Abedul 🌳, Aliso 🌸, Artemisa 🌾, Olivo 🫒, Ambrosía 🌻. Solo se muestran las especies con valores > 0.'}
+                </p>
+                <ul className="text-[10px] text-slate-600 space-y-0.5 mt-1">
+                  <li><strong className="text-emerald-600">≤ 10:</strong> {isEn ? 'Low' : 'Bajo'}</li>
+                  <li><strong className="text-yellow-600">11–50:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
+                  <li><strong className="text-orange-500">51–200:</strong> {isEn ? 'High' : 'Alto'}</li>
+                  <li><strong className="text-red-600">&gt; 200:</strong> {isEn ? 'Very High' : 'Muy Alto'}</li>
+                </ul>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Section 5: The Scientific Paper */}
           <section className="bg-blue-50 border border-blue-100/50 rounded-2xl p-4 sm:p-5 space-y-3.5">
             <div className="flex items-start gap-2.5">
               <FileText size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
@@ -147,15 +282,15 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </p>
               </div>
             </div>
-            
+
             <p className="text-xs text-slate-700 font-medium">
-              {isEn 
+              {isEn
                 ? 'Our Migraine Risk Index is based on the key risk factors identified by this peer-reviewed study published in Headache: The Journal of Head and Face Pain (2023):'
                 : 'Nuestro Índice de Riesgo de Migraña está basado en los factores de riesgo identificados por este estudio revisado por pares publicado en Headache: The Journal of Head and Face Pain (2023):'}
             </p>
-            
+
             <blockquote className="border-l-4 border-blue-500 pl-3.5 my-2 italic text-xs text-slate-600">
-              {isEn 
+              {isEn
                 ? '"Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study."'
                 : '«Investigating the effects of weather on headache occurrence using a smartphone application and artificial intelligence: A retrospective observational cross-sectional study.»'}
             </blockquote>
@@ -167,7 +302,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 {isEn ? 'Methodology & Dataset' : 'Metodología y Dataset'}
               </h5>
               <p className="text-[11px] text-slate-600">
-                {isEn 
+                {isEn
                   ? 'Researchers analyzed 336,951 hourly headache events from 4,375 smartphone app users (Dec 2020 – Nov 2021). They used gradient-boosted tree models and deep learning to calculate predictive "gain" values for each atmospheric variable — the higher the gain, the stronger the statistical association with headache onset.'
                   : 'Los investigadores analizaron 336.951 eventos de dolor de cabeza por hora de 4.375 usuarios de app móvil (dic 2020 – nov 2021). Utilizaron modelos de gradient boosting y deep learning para calcular valores de «ganancia» predictiva para cada variable atmosférica: a mayor ganancia, mayor asociación estadística con el inicio de la cefalea.'}
               </p>
@@ -205,16 +340,16 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
               <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <AlertTriangle size={13} className="text-amber-500" />
-                {isEn ? 'How We Apply This in Our Scoring' : 'Cómo Aplicamos Esto en Nuestra Puntuación'}
+                {isEn ? 'How We Apply This in Our Scoring (0–6 pts)' : 'Cómo Aplicamos Esto en Nuestra Puntuación (0–6 pts)'}
               </h5>
               <p className="text-[11px] text-slate-600 mb-2">
-                {isEn 
+                {isEn
                   ? 'The original study used a continuous AI regression model (R² = 53.7%). Our app translates those findings into a practical, threshold-based heuristic scoring system for consumer use:'
                   : 'El estudio original utilizó un modelo de regresión de IA continuo (R² = 53,7%). Nuestra app traduce esas conclusiones en un sistema de puntuación heurístico basado en umbrales, práctico para uso personal:'}
               </p>
               <ul className="text-[10px] space-y-1.5 text-slate-600">
                 <li>
-                  <strong className="text-red-600">{isEn ? 'Pressure drop' : 'Caída de presión'} (ΔP):</strong> {isEn ? 'Weighted highest (+3 pts for ≤ −5 hPa, +1 for ≤ −3 hPa), reflecting the paper\'s top gain of 11.7. Our 24h window approximates the paper\'s 6h signal using daily mean comparison.' : 'Peso más alto (+3 pts para ≤ −5 hPa, +1 para ≤ −3 hPa), reflejando la ganancia máxima del paper (11,7). Nuestra ventana de 24h aproxima la señal de 6h del paper usando la media diaria.'}
+                  <strong className="text-red-600">{isEn ? 'Pressure drop' : 'Caída de presión'} (ΔP):</strong> {isEn ? 'Weighted highest (+3 pts for ≤ −5 hPa, +1 for ≤ −3 hPa), reflecting the paper\'s top gain of 11.7.' : 'Peso más alto (+3 pts para ≤ −5 hPa, +1 para ≤ −3 hPa), reflejando la ganancia máxima del paper (11,7).'}
                 </li>
                 <li>
                   <strong className="text-sky-600">{isEn ? 'Humidity' : 'Humedad'} (&gt; 70%):</strong> {isEn ? '+1 pt. Reflects gain of 7.1. Threshold of 70% is a standard clinical convention for "high humidity".' : '+1 pt. Refleja ganancia de 7,1. El umbral de 70% es una convención clínica estándar para «humedad alta».'}
@@ -225,19 +360,22 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <li>
                   <strong className="text-emerald-600">{isEn ? 'Precipitation' : 'Precipitación'} (&gt; 0 mm):</strong> {isEn ? '+1 pt. Reflects gain of 3.1. Any active rainfall counts as a trigger factor.' : '+1 pt. Refleja ganancia de 3,1. Cualquier lluvia activa se considera factor desencadenante.'}
                 </li>
+                <li>
+                  <strong className="text-orange-500">{isEn ? 'Storm instability' : 'Inestabilidad convectiva'} (CAPE &gt; 1000 J/kg):</strong> {isEn ? '+1 pt. Extended criterion: convective systems generate rapid pressure oscillations that compound headache triggers.' : '+1 pt. Criterio extendido: los sistemas convectivos generan oscilaciones de presión rápidas que amplifican los desencadenantes de migraña.'}
+                </li>
               </ul>
               <p className="text-[10px] text-slate-500 mt-2.5 italic">
-                {isEn 
+                {isEn
                   ? 'The thresholds (−5 hPa, 1010 hPa, 70%) are calibrated from broader peer-reviewed literature (NIH, multiple clinical studies citing 5–6 hPa/24h drops and 6–10 hPa absolute deviations from 1013 hPa as significant). The algorithm requires convergence of multiple factors to avoid alert fatigue.'
                   : 'Los umbrales (−5 hPa, 1010 hPa, 70%) están calibrados a partir de literatura clínica revisada por pares más amplia (NIH, múltiples estudios que citan caídas de 5–6 hPa/24h y desviaciones absolutas de 6–10 hPa respecto a 1013 hPa como significativas). El algoritmo exige convergencia de múltiples factores para evitar fatiga de alertas.'}
               </p>
             </div>
 
             <div className="pt-1">
-              <a 
-                href="https://doi.org/10.1111/head.14482" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://doi.org/10.1111/head.14482"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-sm"
               >
                 <span>{isEn ? 'Access Full Paper (DOI)' : 'Ver Artículo Completo (DOI)'}</span>
@@ -246,14 +384,14 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             </div>
           </section>
 
-          {/* Section 4: ERA5 Reanalysis */}
+          {/* Section 6: ERA5 Reanalysis */}
           <section className="space-y-2">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <Database size={18} className="text-sky-500" />
               {isEn ? 'Atmospheric Memory & Copernicus ERA5' : 'Memoria Atmosférica y Copernicus ERA5'}
             </h3>
             <p>
-              {isEn 
+              {isEn
                 ? 'To retrieve weather logs from 1949, 1973, and 2003, we fetch global reanalysis data from Copernicus ERA5 (European Centre for Medium-Range Weather Forecasts). By leveraging historical weather models and satellite/station observations, ERA5 maps global surface barometric pressure and temperature at any coordinate from 1940 to the present day.'
                 : 'Para retroceder a los años 1949, 1973 y 2003, la aplicación consulta el reanálisis global Copernicus ERA5 (Centro Europeo de Previsiones Meteorológicas a Plazo Medio). Mediante modelos físicos avanzados y lecturas de satélites/estaciones, ERA5 reconstruye la presión y temperatura exactas en cualquier coordenada desde 1940.'}
             </p>
