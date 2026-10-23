@@ -181,6 +181,8 @@ export function useWeather(location: Location) {
                 precipitation: histYearData.daily.precipitation_sum ? histYearData.daily.precipitation_sum[0] : 0,
                 precipitationProbability: 0,
                 windSpeed: histYearData.daily.wind_speed_10m_max ? histYearData.daily.wind_speed_10m_max[0] : 0,
+                sunshineDuration: 0,
+                precipitationHours: 0,
                 sunrise: '',
                 sunset: '',
               }
