@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { Location, WeatherData, DailyWeather, HourlyWeather, AirQualityData } from '../types/weather';
 
+function getModelParam(lat: number, lon: number): string {
+  const isSwiss = lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
+  return isSwiss ? '&models=meteoswiss_icon_ch2' : '';
+}
+
 export function useWeather(location: Location) {
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -17,7 +22,8 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset&timezone=UTC`;
+        const modelParam = getModelParam(location.latitude, location.longitude);
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset&timezone=UTC${modelParam}`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
