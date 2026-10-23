@@ -268,6 +268,7 @@ function WeatherDashboard() {
                     weatherParticles={weatherParticles}
                     fogGradientId="hero-fog"
                     rainIntensity={rainIntensity}
+                    windGusts={data.current.windGusts}
                   />
               }
             </svg>

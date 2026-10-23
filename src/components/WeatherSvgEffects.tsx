@@ -15,6 +15,39 @@ export function wmoToCondition(code: number): WeatherCondition {
   return 'clear';
 }
 
+/** Wind streaks composited on top of any weather condition when gusts ≥ 28 km/h. */
+interface WindStreak {
+  y: number;
+  length: number;
+  opacity: number;
+  dur: number;
+  delay: number;
+  startX: number;
+  endX: number;
+  strokeWidth: number;
+}
+
+function generateWindStreaks(gusts: number): WindStreak[] {
+  if (gusts < 28) return [];
+  // Scale count and length with gust speed: breezy (28) → 6 streaks, storm (89+) → 22
+  const t = Math.min(1, (gusts - 28) / 61);
+  const count = Math.round(6 + t * 16);
+  return Array.from({ length: count }).map(() => {
+    const dur = 1.2 - t * 0.5 + Math.random() * 0.6;
+    const length = 18 + t * 40 + Math.random() * 15;
+    return {
+      y: 20 + Math.random() * 160,
+      length,
+      opacity: 0.18 + t * 0.22 + Math.random() * 0.08,
+      dur,
+      delay: -(Math.random() * dur * 3),
+      startX: -length - Math.random() * 60,
+      endX: 310 + Math.random() * 60,
+      strokeWidth: 0.5 + t * 0.8 + Math.random() * 0.4,
+    };
+  });
+}
+
 interface Props {
   condition: WeatherCondition;
   weatherParticles: WeatherParticles;
@@ -23,6 +56,8 @@ interface Props {
   rainIntensity?: number;
   cloudOpacity?: number;
   stormOpacity?: number;
+  /** Current wind gusts in km/h; shows wind streaks when ≥ 28. */
+  windGusts?: number;
 }
 
 const WeatherSvgEffects: React.FC<Props> = ({
@@ -32,8 +67,11 @@ const WeatherSvgEffects: React.FC<Props> = ({
   rainIntensity = 0.5,
   cloudOpacity = 0.65,
   stormOpacity = 0.6,
+  windGusts = 0,
 }) => {
-  if (condition === 'clear') return null;
+  const windStreaks = React.useMemo(() => generateWindStreaks(windGusts), [windGusts]);
+
+  if (condition === 'clear' && windStreaks.length === 0) return null;
 
   const cloudFill1 = '#94a3b8';
   const cloudFill2 = '#cbd5e1';
@@ -44,13 +82,37 @@ const WeatherSvgEffects: React.FC<Props> = ({
     ? stormOpacity
     : Math.max(0, (rainIntensity - 0.25) / 0.75) * stormOpacity;
 
+  const mistGradientId = `${fogGradientId}-mist`;
+
   return (
     <g>
       {(condition === 'partly-cloudy' || condition === 'cloudy' || condition === 'rain' || condition === 'storm') && (
-        <g opacity={condition === 'partly-cloudy' ? cloudOpacity * 0.25 : condition === 'cloudy' ? cloudOpacity * 0.6 : cloudOpacity * 0.35}>
-          <path d="M -200 40 Q 50 10 120 50 T 250 30 T 500 60 L 500 -20 L -200 -20 Z" fill={cloudFill1} className="anim-cloud-fast" />
-          <path d="M -200 70 Q 80 50 150 70 T 350 90 T 500 70 L 500 -20 L -200 -20 Z" fill={cloudFill2} opacity={0.6} className="anim-cloud-slow" />
-        </g>
+        <>
+          {/* Far background layer + cumulus puffs — only when windy */}
+          {windStreaks.length > 0 && (
+            <>
+              <g opacity={condition === 'partly-cloudy' ? 0.10 : condition === 'cloudy' ? 0.22 : 0.15}>
+                <path d="M -200 35 Q 0 15 100 40 T 300 25 T 500 38 L 500 -20 L -200 -20 Z" fill="#8fa3b8" className="anim-cloud-bg" />
+                <path d="M -200 58 Q 40 38 130 62 T 330 48 T 500 58 L 500 -20 L -200 -20 Z" fill="#a3b5c5" opacity={0.7} className="anim-cloud-bg" />
+              </g>
+              {(condition === 'cloudy' || condition === 'partly-cloudy') && (
+                <g opacity={condition === 'partly-cloudy' ? 0.20 : 0.35}>
+                  <ellipse cx="55"  cy="62" rx="52" ry="16" fill={cloudFill2} className="anim-cloud-slow" />
+                  <ellipse cx="55"  cy="54" rx="36" ry="14" fill="#dde4ec" className="anim-cloud-slow" />
+                  <ellipse cx="78"  cy="58" rx="38" ry="13" fill={cloudFill1} opacity={0.8} className="anim-cloud-slow" />
+                  <ellipse cx="205" cy="50" rx="58" ry="15" fill={cloudFill2} opacity={0.9} className="anim-cloud-fast" />
+                  <ellipse cx="205" cy="42" rx="40" ry="13" fill="#dde4ec" className="anim-cloud-fast" />
+                  <ellipse cx="230" cy="46" rx="35" ry="11" fill={cloudFill1} opacity={0.75} className="anim-cloud-fast" />
+                </g>
+              )}
+            </>
+          )}
+          {/* Mid cloud band — always shown */}
+          <g opacity={condition === 'partly-cloudy' ? cloudOpacity * 0.25 : condition === 'cloudy' ? cloudOpacity * 0.6 : cloudOpacity * 0.35}>
+            <path d="M -200 40 Q 50 10 120 50 T 250 30 T 500 60 L 500 -20 L -200 -20 Z" fill={cloudFill1} className="anim-cloud-fast" />
+            <path d="M -200 70 Q 80 50 150 70 T 350 90 T 500 70 L 500 -20 L -200 -20 Z" fill={cloudFill2} opacity={0.6} className="anim-cloud-slow" />
+          </g>
+        </>
       )}
 
       {condition === 'snow' && (
@@ -84,20 +146,51 @@ const WeatherSvgEffects: React.FC<Props> = ({
       )}
 
       {(condition === 'rain' || condition === 'storm') && (
-        <g>
-          {weatherParticles.rain.map((drop, i) => (
-            <line
-              key={`rain-${i}`}
-              x1={drop.x}              y1={drop.y}
-              x2={drop.x + drop.drift} y2={drop.y + drop.length}
-              stroke="#94a3b8"
-              strokeWidth={drop.width}
-              opacity={drop.opacity}
-              className="anim-fall"
-              style={{ '--drift': `${drop.driftPx}px`, '--dur': `${drop.dur}s`, animationDelay: `${drop.delay}s` } as React.CSSProperties}
-            />
-          ))}
-        </g>
+        <>
+          <g>
+            {weatherParticles.rain.map((drop, i) => (
+              <line
+                key={`rain-${i}`}
+                x1={drop.x}              y1={drop.y}
+                x2={drop.x + drop.drift} y2={drop.y + drop.length}
+                stroke="#94a3b8"
+                strokeWidth={drop.width}
+                opacity={drop.opacity}
+                className="anim-fall"
+                style={{ '--drift': `${drop.driftPx}px`, '--dur': `${drop.dur}s`, animationDelay: `${drop.delay}s` } as React.CSSProperties}
+              />
+            ))}
+          </g>
+          {/* Ground mist + splash streaks — only when windy */}
+          {windStreaks.length > 0 && (
+            <>
+              <defs>
+                <linearGradient id={mistGradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#94a3b8" stopOpacity={0} />
+                  <stop offset="100%" stopColor="#94a3b8" stopOpacity={rainIntensity * 0.55} />
+                </linearGradient>
+              </defs>
+              <rect
+                x="-10" y="140" width="320" height="70"
+                fill={`url(#${mistGradientId})`}
+                className="anim-mist"
+                style={{ '--md': '6s', '--mb': rainIntensity * 0.5 } as React.CSSProperties}
+              />
+              {([0.15, 0.35, 0.55, 0.72, 0.88] as const).map((frac, i) => (
+                <line
+                  key={`splash-${frac}`}
+                  x1={frac * 300 - 6} y1={170 + i * 4}
+                  x2={frac * 300 + 6} y2={170 + i * 4}
+                  stroke="#cbd5e1"
+                  strokeWidth={0.6}
+                  strokeLinecap="round"
+                  className="anim-mist"
+                  style={{ '--md': `${3.5 + i * 0.7}s`, '--mb': rainIntensity * 0.4, animationDelay: `${i * 0.9}s` } as React.CSSProperties}
+                />
+              ))}
+            </>
+          )}
+        </>
       )}
 
       {condition === 'snow' && (
@@ -110,6 +203,29 @@ const WeatherSvgEffects: React.FC<Props> = ({
               opacity={flake.opacity}
               className="anim-fall"
               style={{ '--drift': `${flake.drift}px`, '--dur': `${flake.dur}s`, animationDelay: `${flake.delay}s` } as React.CSSProperties}
+            />
+          ))}
+        </g>
+      )}
+
+      {windStreaks.length > 0 && (
+        <g>
+          {windStreaks.map((streak, i) => (
+            <line
+              key={`wind-${i}`}
+              x1={streak.startX} y1={streak.y}
+              x2={streak.startX + streak.length} y2={streak.y}
+              stroke="#e2e8f0"
+              strokeWidth={streak.strokeWidth}
+              strokeLinecap="round"
+              className="anim-wind"
+              style={{
+                '--wd': `${streak.dur}s`,
+                '--ws': `${streak.startX - streak.endX}px`,
+                '--we': `${streak.endX - streak.startX}px`,
+                '--wo': streak.opacity,
+                animationDelay: `${streak.delay}s`,
+              } as React.CSSProperties}
             />
           ))}
         </g>
