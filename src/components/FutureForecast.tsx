@@ -1,6 +1,6 @@
 
 import type { DailyWeather } from '../types/weather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
+import { getWeatherInfo, getThomsDiscomfortIndex, getWindChillIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
 import { useLanguage } from '../context/LanguageContext';
 
 interface FutureForecastProps {
@@ -38,7 +38,10 @@ export function FutureForecast({ daily }: FutureForecastProps) {
           const deltaAlert = getPressureDeltaAlert(deltaP, language);
 
           const meanTemp = (day.maxTemp + day.minTemp) / 2;
-          const thomIndex = getThomsDiscomfortIndex(meanTemp, day.humidity, language);
+          const isWinter = meanTemp < 10;
+          const thomIndex = isWinter
+            ? getWindChillIndex(meanTemp, day.windSpeed, language)
+            : getThomsDiscomfortIndex(meanTemp, day.humidity, language);
           const migraineRisk = getMigraineRisk(deltaP, day.meanPressure, day.humidity, day.precipitation, language);
 
           const dayName = date.toLocaleDateString(isEn ? 'en-US' : 'es-ES', { weekday: 'long' });
@@ -78,7 +81,7 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                 {/* Compact badges */}
                 <div className="flex flex-wrap gap-1.5">
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'}`}>
-                    {t('label.fatigue')}: {thomIndex.shortLabel}
+                    {isWinter ? (isEn ? 'WCI' : 'POLAR') : t('label.fatigue')}: {thomIndex.shortLabel}
                   </span>
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${deltaAlert.bgClass}`}>
                     ΔP {deltaP > 0 ? '+' : ''}{deltaP} hPa · {deltaAlert.label}
