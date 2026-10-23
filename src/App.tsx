@@ -219,7 +219,7 @@ function WeatherDashboard() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${weatherBg || 'from-blue-400 to-blue-200'} text-white p-2 sm:p-4 font-sans selection:bg-blue-300 transition-all duration-1000 ease-in-out`}>
-      <header className="flex justify-between items-center mb-1 px-2 sm:px-0 mt-2 sm:mt-0">
+      <header className="flex justify-between items-center mb-1 px-2 sm:px-0">
         <button onClick={() => setIsSelectorOpen(true)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <MapPin className="text-white" />
           <h1 className="text-xl font-semibold">{getTranslatedLocationName(currentLocation.name, language)}</h1>
