@@ -57,7 +57,12 @@ export function FutureForecast({ daily }: FutureForecastProps) {
               <div className="flex-1 min-w-0">
                 {/* Day name + temp range */}
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="font-bold text-base capitalize text-slate-800">{dayName}</span>
+                  <span className="font-bold text-base capitalize text-slate-800">
+                    {dayName}
+                    {day.sunshineDuration > 0 && (
+                      <span className="ml-2 text-xs font-normal text-amber-500">☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
+                    )}
+                  </span>
                   <span className="text-sm font-extrabold text-slate-800">
                     {Math.round(day.maxTemp)}°
                     <span className="text-slate-400 font-light mx-0.5">/</span>
@@ -80,12 +85,6 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                     <>
                       <span className="text-slate-300">·</span>
                       <span>🌧 {day.precipitation}mm</span>
-                    </>
-                  )}
-                  {day.sunshineDuration > 0 && (
-                    <>
-                      <span className="text-slate-300">·</span>
-                      <span>☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
                     </>
                   )}
                 </div>
