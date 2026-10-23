@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useLocationContext, PREDEFINED_LOCATIONS } from '../context/LocationContext';
+import { useLocationContext } from '../context/LocationContext';
+import { PREDEFINED_LOCATIONS } from '../constants/locations';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { X, MapPin, Navigation } from 'lucide-react';
 import { useLanguage, type Language } from '../context/LanguageContext';

@@ -8,9 +8,10 @@ import { useLanguage } from '../context/LanguageContext';
 interface DailyForecastProps {
   daily: DailyWeather[];
   hourly: HourlyWeather[];
+  timezone?: string;
 }
 
-export function DailyForecast({ daily, hourly }: DailyForecastProps) {
+export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const { language, t } = useLanguage();
   const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('hourly');
   const today = new Date();
@@ -48,9 +49,12 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
   });
 
   // Hourly Chart Data
+  const locale = language === 'es' ? 'es-ES' : 'en-US';
+  const timeFormatOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: false, ...(timezone ? { timeZone: timezone } : {}) };
+
   const hourlyChartData = hourly.map(h => {
     const timeDate = new Date(h.time + 'Z');
-    const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const hourStr = timeDate.toLocaleTimeString(locale, timeFormatOpts);
     return {
       name: hourStr,
       pressure: Math.round(h.pressure),
@@ -143,7 +147,7 @@ export function DailyForecast({ daily, hourly }: DailyForecastProps) {
         <div className="flex overflow-x-auto gap-3 pb-3 pt-1 px-4 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent select-none scroll-smooth">
           {hourly.map((h, idx) => {
             const timeDate = new Date(h.time + 'Z');
-            const hourStr = timeDate.toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const hourStr = timeDate.toLocaleTimeString(locale, timeFormatOpts);
             const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language);
             const comfort = h.temperature < 10
               ? getWindChillIndex(h.temperature, h.windSpeed, language)
