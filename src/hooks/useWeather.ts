@@ -23,7 +23,7 @@ export function useWeather(location: Location) {
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
         const modelParam = getModelParam(location.latitude, location.longitude);
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset&timezone=UTC${modelParam}`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,sunrise,sunset&timezone=UTC${modelParam}`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -40,6 +40,7 @@ export function useWeather(location: Location) {
           precipitation: currentData.daily.precipitation_sum[index],
           precipitationProbability: currentData.daily.precipitation_probability_max?.[index] ?? 0,
           windSpeed: currentData.daily.wind_speed_10m_max[index],
+          sunshineDuration: currentData.daily.sunshine_duration?.[index] ?? 0,
           sunrise: currentData.daily.sunrise?.[index] ?? '',
           sunset: currentData.daily.sunset?.[index] ?? '',
         }));
