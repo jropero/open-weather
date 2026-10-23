@@ -62,6 +62,9 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                     {day.sunshineDuration > 0 && (
                       <span className="ml-2 text-sm font-normal text-amber-700">☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
                     )}
+                    {day.precipitationHours > 0 && (
+                      <span className="ml-1.5 text-sm font-normal text-sky-700">🌧 {day.precipitationHours}h</span>
+                    )}
                   </span>
                   <span className="text-sm font-extrabold text-slate-800">
                     {Math.round(day.maxTemp)}°
