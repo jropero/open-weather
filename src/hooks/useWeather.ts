@@ -126,38 +126,46 @@ export function useWeather(location: Location) {
 
         // Fetch Historical data (2003, 1973, 1949) asynchronously
         const years = [2003, 1973, 1949];
-        // We get the same month/day but for those years
         const today = new Date();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
+        // Cache key includes location + calendar date — historical data never changes for a given day
+        const histCacheKey = `hist_cache_${location.latitude}_${location.longitude}_${month}-${day}`;
 
-        const historicalPromises = years.map(async (year) => {
-          const dateStr = `${year}-${month}-${day}`;
-          const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_mean,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum&timezone=auto`;
+        Promise.resolve().then(async () => {
+          // Try cache first
           try {
-            const res = await fetch(histUrl);
-            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-            const data = await res.json();
-            if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
-              throw new Error('Invalid historical data format');
+            const raw = localStorage.getItem(histCacheKey);
+            if (raw) {
+              const cached = JSON.parse(raw);
+              if (isMounted) setData(prev => prev ? { ...prev, historical: cached } : null);
+              return;
             }
-            return { year, data, error: false };
-          } catch (err) {
-            console.error(`Error fetching historical weather for ${year}:`, err);
-            return { year, data: null, error: true };
-          }
-        });
+          } catch { /* corrupt cache — fall through */ }
 
-        Promise.all(historicalPromises).then((historicalResults) => {
+          const historicalPromises = years.map(async (year) => {
+            const dateStr = `${year}-${month}-${day}`;
+            const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_mean,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum&timezone=auto`;
+            try {
+              const res = await fetch(histUrl);
+              if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+              const data = await res.json();
+              if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+                throw new Error('Invalid historical data format');
+              }
+              return { year, data, error: false };
+            } catch (err) {
+              console.error(`Error fetching historical weather for ${year}:`, err);
+              return { year, data: null, error: true };
+            }
+          });
+
+          const historicalResults = await Promise.all(historicalPromises);
           if (!isMounted) return;
 
           const historicalData = historicalResults.map((result) => {
             if (result.error || !result.data) {
-              return {
-                year: result.year,
-                data: null,
-                error: true
-              };
+              return { year: result.year, data: null, error: true };
             }
             const histYearData = result.data;
             return {
@@ -179,15 +187,8 @@ export function useWeather(location: Location) {
             };
           });
 
-          setData(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              historical: historicalData
-            };
-          });
-        }).catch((err) => {
-          console.error("Failed to fetch historical weather data:", err);
+          try { localStorage.setItem(histCacheKey, JSON.stringify(historicalData)); } catch { /* storage full */ }
+          setData(prev => prev ? { ...prev, historical: historicalData } : null);
         });
 
         // Fetch Air Quality data asynchronously (Europe only for pollen)
