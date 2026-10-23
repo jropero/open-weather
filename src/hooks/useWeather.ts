@@ -22,17 +22,22 @@ export function useWeather(location: Location) {
 
       try {
         const modelParam = getModelParam(location.latitude, location.longitude);
-        // Fetch 1 (UTC): current + hourly + sunrise/sunset (sunrise/sunset must stay UTC — parsed with +Z for night detection)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=sunrise,sunset&timezone=UTC${modelParam}`;
-        // Fetch 2 (auto): daily aggregates bucketed by local calendar day, not UTC day
-        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours&past_days=8&timezone=auto${modelParam}`;
+        // Fetch 1 (UTC): current + hourly only — hourly timestamps must be UTC so +Z parsing works throughout the app
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&timezone=UTC${modelParam}`;
+        // Fetch 2 (auto): all daily variables including sunrise/sunset — utc_offset_seconds in the response lets us convert sunrise/sunset back to UTC strings
+        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&past_days=8&timezone=auto${modelParam}`;
 
         const [resCurrent, resDaily] = await Promise.all([fetch(currentUrl), fetch(dailyUrl)]);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
         if (!resDaily.ok) throw new Error('Error fetching daily weather data');
         const [currentData, dailyData] = await Promise.all([resCurrent.json(), resDaily.json()]);
 
-        // Parse Daily Weather — aggregates from auto-tz call, sunrise/sunset from UTC call (matched by index)
+        // sunrise/sunset come back as local-time strings from timezone=auto.
+        // Convert to UTC-equivalent strings so existing +Z parsing in App.tsx / DailyForecast stays correct.
+        const offsetMs = (dailyData.utc_offset_seconds ?? 0) * 1000;
+        const toUtcStr = (local: string) =>
+          local ? new Date(new Date(local + 'Z').getTime() - offsetMs).toISOString().slice(0, 16) : '';
+
         const dailyWeather: DailyWeather[] = dailyData.daily.time.map((time: string, index: number) => ({
           date: time,
           weatherCode: dailyData.daily.weather_code[index],
@@ -45,8 +50,8 @@ export function useWeather(location: Location) {
           windSpeed: dailyData.daily.wind_speed_10m_max[index],
           sunshineDuration: dailyData.daily.sunshine_duration?.[index] ?? 0,
           precipitationHours: dailyData.daily.precipitation_hours?.[index] ?? 0,
-          sunrise: currentData.daily.sunrise?.[index] ?? '',
-          sunset: currentData.daily.sunset?.[index] ?? '',
+          sunrise: toUtcStr(dailyData.daily.sunrise?.[index] ?? ''),
+          sunset: toUtcStr(dailyData.daily.sunset?.[index] ?? ''),
         }));
 
         // Calculate Pressure Trend
