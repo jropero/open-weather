@@ -107,6 +107,8 @@ This application is built for high-performance network requests and an immersive
 Traditional commercial APIs (like OpenWeatherMap or WeatherAPI) were bypassed in favor of Open-Meteo for a critical scientific reason:
 The application requires bulk historical data (Atmospheric Memory) and precise interday pressure delta calculations. Open-Meteo provides free, unrestricted access to the **Copernicus ERA5** database (European Centre for Medium-Range Weather Forecasts). ERA5 uses global atmospheric models and supercomputers to reconstruct historical pressure and climate records at any coordinate since 1940. This provides the most scientific, reliable backing possible for tracking meteoropathic symptoms.
 
+Additionally, for locations within Switzerland, the app automatically switches to the **MeteoSwiss ICON-CH2-E** model (`models=meteoswiss_icon_ch2`) — a high-resolution (~1 km grid) NWP model operated by MeteoSwiss that captures Alpine terrain effects (Foehn winds, valley inversions) that global models miss.
+
 ---
 
 ## 📱 PWA — Install on Your Device [NEW]
@@ -241,6 +243,8 @@ Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (*Glas
 
 Se han descartado deliberadamente APIs comerciales tradicionales (OpenWeatherMap, WeatherAPI) a favor de Open-Meteo por una razón científica:
 La aplicación necesita extraer masivamente datos retrospectivos (Memoria Atmosférica) y calcular variaciones interdiarias precisas. Open-Meteo proporciona acceso instantáneo y gratuito a la base de datos **Copernicus ERA5** (European Centre for Medium-Range Weather Forecasts), que utiliza supercomputadoras para cruzar millones de registros históricos globales y calcular la presión atmosférica exacta en cualquier coordenada desde 1940. Es la arquitectura perfecta y más fiable para la meteoropatía.
+
+Además, para ubicaciones dentro de Suiza la app cambia automáticamente al modelo **MeteoSwiss ICON-CH2-E** (`models=meteoswiss_icon_ch2`) — un modelo PNT de alta resolución (~1 km de malla) operado por MeteoSwiss que captura efectos del terreno alpino (viento Foehn, inversiones de valle) que los modelos globales no reproducen.
 
 ---
 
