@@ -58,6 +58,7 @@ interface Props {
   stormOpacity?: number;
   /** Current wind gusts in km/h; shows wind streaks when ≥ 28. */
   windGusts?: number;
+  isNight?: boolean;
 }
 
 const WeatherSvgEffects: React.FC<Props> = ({
@@ -68,10 +69,56 @@ const WeatherSvgEffects: React.FC<Props> = ({
   cloudOpacity = 0.65,
   stormOpacity = 0.6,
   windGusts = 0,
+  isNight = false,
 }) => {
   const windStreaks = React.useMemo(() => generateWindStreaks(windGusts), [windGusts]);
 
-  if (condition === 'clear' && windStreaks.length === 0) return null;
+  const sunHazeId = `${fogGradientId}-sun`;
+  const sunHorizonId = `${fogGradientId}-horizon`;
+
+  if (condition === 'clear' && windStreaks.length === 0) {
+    if (isNight) {
+      return (
+        <g>
+          <defs>
+            <radialGradient id={sunHazeId} cx="50%" cy="15%" r="70%">
+              <stop offset="0%"   stopColor="#c7d2fe" stopOpacity={0.30} />
+              <stop offset="35%"  stopColor="#818cf8" stopOpacity={0.10} />
+              <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+            </radialGradient>
+            <linearGradient id={sunHorizonId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#4f46e5" stopOpacity={0} />
+              <stop offset="100%" stopColor="#1e1b4b" stopOpacity={0.18} />
+            </linearGradient>
+          </defs>
+          {/* Cool moonlit glow */}
+          <rect x="-10" y="-10" width="320" height="220" fill={`url(#${sunHazeId})`} className="animate-[pulse_9s_ease-in-out_infinite]" />
+          {/* Deep indigo horizon */}
+          <rect x="-10" y="110" width="320" height="100" fill={`url(#${sunHorizonId})`} />
+        </g>
+      );
+    }
+    return (
+      <g>
+        <defs>
+          <radialGradient id={sunHazeId} cx="50%" cy="0%" r="75%">
+            <stop offset="0%"   stopColor="#fef9c3" stopOpacity={0.55} />
+            <stop offset="25%"  stopColor="#fde68a" stopOpacity={0.22} />
+            <stop offset="65%"  stopColor="#fbbf24" stopOpacity={0.07} />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+          </radialGradient>
+          <linearGradient id={sunHorizonId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#fde68a" stopOpacity={0} />
+            <stop offset="100%" stopColor="#fcd34d" stopOpacity={0.12} />
+          </linearGradient>
+        </defs>
+        {/* Radial sun glow from top */}
+        <rect x="-10" y="-10" width="320" height="220" fill={`url(#${sunHazeId})`} className="animate-[pulse_9s_ease-in-out_infinite]" />
+        {/* Warm horizon shimmer */}
+        <rect x="-10" y="110" width="320" height="100" fill={`url(#${sunHorizonId})`} />
+      </g>
+    );
+  }
 
   const cloudFill1 = '#94a3b8';
   const cloudFill2 = '#cbd5e1';
