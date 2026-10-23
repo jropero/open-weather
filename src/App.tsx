@@ -13,6 +13,7 @@ import { LocationSelector } from './components/LocationSelector';
 import { LanguageProvider, useLanguage, type Language } from './context/LanguageContext';
 import { HelpModal } from './components/HelpModal';
 import { OtherLocations } from './components/OtherLocations';
+import { purgeStaleCache } from './utils/cacheCleanup';
 
 function WeatherDashboard() {
   const { currentLocation } = useLocationContext();
@@ -22,6 +23,8 @@ function WeatherDashboard() {
   const { language, setLanguage, t } = useLanguage();
   const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
   const [previewCondition, setPreviewCondition] = React.useState<string>('auto');
+
+  React.useEffect(() => { purgeStaleCache(); }, []);
 
   React.useEffect(() => {
     const handleClose = () => setActivePopover(null);
