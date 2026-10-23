@@ -62,9 +62,11 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 *   **🔮 Clinical Diagnostic Breakdowns**
     *   Beyond simple alert chips, the system provides a clear, mathematical breakdown detailing exactly which environmental factors (pressure drops, rainfall, absolute pressure, etc.) are contributing risk points to help users plan their week safely.
 *   **🌍 Other Locations Panel [NEW]**
-    *   A live comparison panel fetches current temperature and pressure for a set of predefined global cities: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basel**, **Reykjavik**, and **Taipei**. Cards highlight the currently selected location.
+    *   A live comparison panel fetches current temperature and pressure for a set of predefined global cities: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basel**, **Reykjavik**, and **Taipei**. Cards highlight the currently selected location. Data is cached in `localStorage` for 1 hour — on repeat visits the panel loads instantly with no network requests.
 *   **🕰️ Atmospheric Memory (Historical Archive)**
-    *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**.
+    *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**. Records are cached for the full calendar day and auto-purged at midnight, eliminating 3 API calls on repeat loads.
+*   **☀️ Daily Sunshine & Precipitation Hours [NEW]**
+    *   Each day in the 3-day forecast shows **sunshine hours** (☀️ amber) and **precipitation hours** (🌧 sky-blue) directly next to the day name — sourced from `sunshine_duration` and `precipitation_hours` in the Open-Meteo daily API.
     *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
 
 ---
@@ -99,6 +101,7 @@ This application is built for high-performance network requests and an immersive
 *   **Mobile-First Responsive Design:** Seamless layout scales and dynamic paddings to maximize tactile and visual space on smaller screens.
 *   **Charts:** Recharts.
 *   **Data API Source:** [Open-Meteo](https://open-meteo.com/).
+*   **Client-side caching (localStorage):** The 12-city comparison panel is cached for 1 hour; historical records (1949/1973/2003) are cached for the full calendar day and auto-purged at midnight. On repeat visits, the app drops from 18 API requests to 5.
 
 ---
 
@@ -199,10 +202,12 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
 *   **🌍 Panel de Otras Ubicaciones [NUEVO]**
-    *   Panel de comparativa en tiempo real que obtiene la temperatura y la presión actuales de un conjunto de ciudades predefinidas: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basilea**, **Reikiavik** y **Taipéi**. La tarjeta de la ciudad seleccionada actualmente aparece destacada.
+    *   Panel de comparativa en tiempo real que obtiene la temperatura y la presión actuales de un conjunto de ciudades predefinidas: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basilea**, **Reikiavik** y **Taipéi**. La tarjeta de la ciudad seleccionada actualmente aparece destacada. Los datos se cachean en `localStorage` durante 1 hora — en recargas sucesivas el panel aparece al instante sin peticiones de red.
 *   **🕰️ Memoria Atmosférica (Archivo Histórico)**
-    *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
+    *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**. Los registros se cachean durante todo el día natural y se purgan automáticamente a medianoche, eliminando 3 peticiones API en recargas sucesivas.
     *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.
+*   **☀️ Horas de Sol y Precipitación Diarias [NUEVO]**
+    *   Cada día del pronóstico de 3 días muestra las **horas de sol** (☀️ ámbar) y las **horas de precipitación** (🌧 azul cielo) directamente junto al nombre del día — obtenidas de `sunshine_duration` y `precipitation_hours` de la API diaria de Open-Meteo.
 
 ---
 
@@ -235,7 +240,8 @@ Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (*Glas
 *   **PWA:** `vite-plugin-pwa` — instalable en escritorio y móvil, funciona sin conexión mediante service worker Workbox.
 *   **Diseño Fluido (Mobile-First):** Escalabilidad de componentes sin bordes y paddings dinámicos para maximizar la superficie táctil y visual en pantallas pequeñas.
 *   **Gráficos:** Recharts.
-*   **Fuente de Datos:** [Open-Meteo](https://open-meteo.com/). 
+*   **Fuente de Datos:** [Open-Meteo](https://open-meteo.com/).
+*   **Caché en cliente (localStorage):** El panel de comparativa de 12 ciudades se cachea 1 hora; los registros históricos (1949/1973/2003) se cachean durante el día natural y se purgan a medianoche. En recargas sucesivas la app pasa de 18 a 5 peticiones API.
 
 ---
 
