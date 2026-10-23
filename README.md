@@ -95,6 +95,7 @@ This application is built for high-performance network requests and an immersive
 
 *   **Core:** React 19, TypeScript, Vite.
 *   **Styles:** Tailwind CSS v4, Lucide Icons.
+*   **PWA:** `vite-plugin-pwa` — installable on desktop and mobile, offline-capable via Workbox service worker.
 *   **Mobile-First Responsive Design:** Seamless layout scales and dynamic paddings to maximize tactile and visual space on smaller screens.
 *   **Charts:** Recharts.
 *   **Data API Source:** [Open-Meteo](https://open-meteo.com/).
@@ -107,6 +108,16 @@ Traditional commercial APIs (like OpenWeatherMap or WeatherAPI) were bypassed in
 The application requires bulk historical data (Atmospheric Memory) and precise interday pressure delta calculations. Open-Meteo provides free, unrestricted access to the **Copernicus ERA5** database (European Centre for Medium-Range Weather Forecasts). ERA5 uses global atmospheric models and supercomputers to reconstruct historical pressure and climate records at any coordinate since 1940. This provides the most scientific, reliable backing possible for tracking meteoropathic symptoms.
 
 ---
+
+## 📱 PWA — Install on Your Device [NEW]
+
+The app is installable as a Progressive Web App directly from [ekult.co.uk/t](https://ekult.co.uk/t/):
+
+*   **Desktop (Chrome/Edge):** Click the install icon in the address bar.
+*   **iOS (Safari):** Share → Add to Home Screen.
+*   **Android (Chrome):** Tap the banner or ⋮ menu → Add to Home Screen.
+
+Once installed, the app works **offline** — the last fetched weather data is served from cache, and new data loads automatically when connectivity is restored.
 
 ## 🛠️ Installation & Local Development
 
@@ -219,6 +230,7 @@ Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (*Glas
 
 *   **Core:** React 19, TypeScript, Vite.
 *   **Estilos:** Tailwind CSS v4, Lucide Icons.
+*   **PWA:** `vite-plugin-pwa` — instalable en escritorio y móvil, funciona sin conexión mediante service worker Workbox.
 *   **Diseño Fluido (Mobile-First):** Escalabilidad de componentes sin bordes y paddings dinámicos para maximizar la superficie táctil y visual en pantallas pequeñas.
 *   **Gráficos:** Recharts.
 *   **Fuente de Datos:** [Open-Meteo](https://open-meteo.com/). 
@@ -231,6 +243,16 @@ Se han descartado deliberadamente APIs comerciales tradicionales (OpenWeatherMap
 La aplicación necesita extraer masivamente datos retrospectivos (Memoria Atmosférica) y calcular variaciones interdiarias precisas. Open-Meteo proporciona acceso instantáneo y gratuito a la base de datos **Copernicus ERA5** (European Centre for Medium-Range Weather Forecasts), que utiliza supercomputadoras para cruzar millones de registros históricos globales y calcular la presión atmosférica exacta en cualquier coordenada desde 1940. Es la arquitectura perfecta y más fiable para la meteoropatía.
 
 ---
+
+## 📱 PWA — Instalar en tu Dispositivo [NUEVO]
+
+La aplicación se puede instalar como Progressive Web App directamente desde [ekult.co.uk/t](https://ekult.co.uk/t/):
+
+*   **Escritorio (Chrome/Edge):** Haz clic en el icono de instalación en la barra de direcciones.
+*   **iOS (Safari):** Compartir → Añadir a la pantalla de inicio.
+*   **Android (Chrome):** Pulsa el banner o ⋮ menú → Añadir a la pantalla de inicio.
+
+Una vez instalada, la app funciona **sin conexión** — los últimos datos meteorológicos quedan en caché y los nuevos se cargan automáticamente al recuperar la conexión.
 
 ## 🛠️ Instalación y Desarrollo Local
 
