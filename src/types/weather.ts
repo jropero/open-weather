@@ -26,7 +26,10 @@ export interface DailyWeather {
   meanPressure: number;
   humidity: number;
   precipitation: number;
+  precipitationProbability: number;
   windSpeed: number;
+  sunrise: string;
+  sunset: string;
 }
 
 export interface HistoricalWeather {
