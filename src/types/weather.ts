@@ -29,6 +29,7 @@ export interface DailyWeather {
   precipitationProbability: number;
   windSpeed: number;
   sunshineDuration: number; // seconds
+  precipitationHours: number;
   sunrise: string;
   sunset: string;
 }
