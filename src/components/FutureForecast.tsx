@@ -82,6 +82,12 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                       <span>🌧 {day.precipitation}mm</span>
                     </>
                   )}
+                  {day.sunshineDuration > 0 && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span>☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Compact badges */}
