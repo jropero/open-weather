@@ -70,6 +70,12 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                   <span className="font-medium">{label}</span>
                   <span className="text-slate-300">·</span>
                   <span>💧 {Math.round(day.humidity)}%</span>
+                  {day.precipitationProbability > 0 && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span>🌂 {Math.round(day.precipitationProbability)}%</span>
+                    </>
+                  )}
                   {day.precipitation > 0 && (
                     <>
                       <span className="text-slate-300">·</span>
