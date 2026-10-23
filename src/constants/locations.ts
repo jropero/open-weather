@@ -12,6 +12,7 @@ export const PREDEFINED_LOCATIONS: Location[] = [
   { id: 'santo_domingo', name: 'Santo Domingo', latitude: 18.4801874, longitude: -70.0292817, timezone: 'America/Santo_Domingo' },
   { id: 'auckland', name: 'Auckland', latitude: -36.8318297, longitude: 174.3969279, timezone: 'Pacific/Auckland' },
   { id: 'taipei', name: 'Taipéi', latitude: 25.0174467, longitude: 121.3415663, timezone: 'Asia/Taipei' },
+  { id: 'granada', name: 'Granada', latitude: 37.1773, longitude: -3.5986, timezone: 'Europe/Madrid' },
   { id: 'torrevieja', name: 'Torrevieja', latitude: 37.9787, longitude: -0.6822, timezone: 'Europe/Madrid' },
   { id: 'santiago', name: 'Santiago de Compostela', latitude: 42.8805, longitude: -8.5457, timezone: 'Europe/Madrid' },
 ];

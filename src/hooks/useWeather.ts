@@ -17,7 +17,7 @@ export function useWeather(location: Location) {
 
       try {
         // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=UTC`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset&timezone=UTC`;
         
         const resCurrent = await fetch(currentUrl);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
@@ -32,7 +32,10 @@ export function useWeather(location: Location) {
           meanPressure: currentData.daily.pressure_msl_mean[index],
           humidity: currentData.daily.relative_humidity_2m_mean[index],
           precipitation: currentData.daily.precipitation_sum[index],
+          precipitationProbability: currentData.daily.precipitation_probability_max?.[index] ?? 0,
           windSpeed: currentData.daily.wind_speed_10m_max[index],
+          sunrise: currentData.daily.sunrise?.[index] ?? '',
+          sunset: currentData.daily.sunset?.[index] ?? '',
         }));
 
         // Calculate Pressure Trend
@@ -152,7 +155,10 @@ export function useWeather(location: Location) {
                 meanPressure: histYearData.daily.pressure_msl_mean[0],
                 humidity: histYearData.daily.relative_humidity_2m_mean ? histYearData.daily.relative_humidity_2m_mean[0] : 0,
                 precipitation: histYearData.daily.precipitation_sum ? histYearData.daily.precipitation_sum[0] : 0,
+                precipitationProbability: 0,
                 windSpeed: histYearData.daily.wind_speed_10m_max ? histYearData.daily.wind_speed_10m_max[0] : 0,
+                sunrise: '',
+                sunset: '',
               }
             };
           });
