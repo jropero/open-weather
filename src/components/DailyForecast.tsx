@@ -26,6 +26,14 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const startIndex = Math.max(0, todayIndex - 3);
   const targetDays = daily.slice(startIndex, startIndex + 7);
 
+  // Per-day sunrise/sunset lookup for night detection in hourly view
+  const sunriseSunsetByDate = Object.fromEntries(
+    daily.filter(d => d.sunrise && d.sunset).map(d => [
+      d.date,
+      { sunrise: new Date(d.sunrise + 'Z').getTime(), sunset: new Date(d.sunset + 'Z').getTime() }
+    ])
+  );
+
   // Daily Chart Data
   const dailyChartData = targetDays.map(d => {
     const actualIdx = daily.findIndex(x => x.date === d.date);
@@ -148,7 +156,10 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           {hourly.map((h, idx) => {
             const timeDate = new Date(h.time + 'Z');
             const hourStr = timeDate.toLocaleTimeString(locale, timeFormatOpts);
-            const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language);
+            const dayKey = h.time.slice(0, 10);
+            const ss = sunriseSunsetByDate[dayKey];
+            const isNightHour = ss ? (timeDate.getTime() < ss.sunrise || timeDate.getTime() > ss.sunset) : false;
+            const { icon: Icon, label } = getWeatherInfo(h.weatherCode, language, isNightHour);
             const comfort = h.temperature < 10
               ? getWindChillIndex(h.temperature, h.windSpeed, language)
               : getThomsDiscomfortIndex(h.temperature, h.humidity, language);
