@@ -21,27 +21,30 @@ export function useWeather(location: Location) {
       setError(null);
 
       try {
-        // Current, hourly (for trends), and 8-day forecast (to calculate delta P for the 7th day)
         const modelParam = getModelParam(location.latitude, location.longitude);
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&timezone=UTC${modelParam}`;
-        
-        const resCurrent = await fetch(currentUrl);
-        if (!resCurrent.ok) throw new Error('Error fetching current weather data');
-        const currentData = await resCurrent.json();
+        // Fetch 1 (UTC): current + hourly + sunrise/sunset (sunrise/sunset must stay UTC — parsed with +Z for night detection)
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&daily=sunrise,sunset&timezone=UTC${modelParam}`;
+        // Fetch 2 (auto): daily aggregates bucketed by local calendar day, not UTC day
+        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours&past_days=8&timezone=auto${modelParam}`;
 
-        // Parse Daily Weather
-        const dailyWeather: DailyWeather[] = currentData.daily.time.map((time: string, index: number) => ({
+        const [resCurrent, resDaily] = await Promise.all([fetch(currentUrl), fetch(dailyUrl)]);
+        if (!resCurrent.ok) throw new Error('Error fetching current weather data');
+        if (!resDaily.ok) throw new Error('Error fetching daily weather data');
+        const [currentData, dailyData] = await Promise.all([resCurrent.json(), resDaily.json()]);
+
+        // Parse Daily Weather — aggregates from auto-tz call, sunrise/sunset from UTC call (matched by index)
+        const dailyWeather: DailyWeather[] = dailyData.daily.time.map((time: string, index: number) => ({
           date: time,
-          weatherCode: currentData.daily.weather_code[index],
-          maxTemp: currentData.daily.temperature_2m_max[index],
-          minTemp: currentData.daily.temperature_2m_min[index],
-          meanPressure: currentData.daily.pressure_msl_mean[index],
-          humidity: currentData.daily.relative_humidity_2m_mean[index],
-          precipitation: currentData.daily.precipitation_sum[index],
-          precipitationProbability: currentData.daily.precipitation_probability_max?.[index] ?? 0,
-          windSpeed: currentData.daily.wind_speed_10m_max[index],
-          sunshineDuration: currentData.daily.sunshine_duration?.[index] ?? 0,
-          precipitationHours: currentData.daily.precipitation_hours?.[index] ?? 0,
+          weatherCode: dailyData.daily.weather_code[index],
+          maxTemp: dailyData.daily.temperature_2m_max[index],
+          minTemp: dailyData.daily.temperature_2m_min[index],
+          meanPressure: dailyData.daily.pressure_msl_mean[index],
+          humidity: dailyData.daily.relative_humidity_2m_mean[index],
+          precipitation: dailyData.daily.precipitation_sum[index],
+          precipitationProbability: dailyData.daily.precipitation_probability_max?.[index] ?? 0,
+          windSpeed: dailyData.daily.wind_speed_10m_max[index],
+          sunshineDuration: dailyData.daily.sunshine_duration?.[index] ?? 0,
+          precipitationHours: dailyData.daily.precipitation_hours?.[index] ?? 0,
           sunrise: currentData.daily.sunrise?.[index] ?? '',
           sunset: currentData.daily.sunset?.[index] ?? '',
         }));
