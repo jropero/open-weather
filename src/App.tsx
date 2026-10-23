@@ -116,6 +116,29 @@ function WeatherDashboard() {
     return null;
   }, [data]);
 
+  const windAlert = React.useMemo<{ gusts: number; minutesFromNow: number; level: 'breezy' | 'strong' | 'gale' | 'storm' } | null>(() => {
+    if (!data) return null;
+    const getLevel = (gusts: number): 'breezy' | 'strong' | 'gale' | 'storm' | null => {
+      if (gusts >= 89) return 'storm';
+      if (gusts >= 62) return 'gale';
+      if (gusts >= 40) return 'strong';
+      if (gusts >= 28) return 'breezy';
+      return null;
+    };
+    const currentLevel = getLevel(data.current.windGusts);
+    if (currentLevel) return { gusts: Math.round(data.current.windGusts), minutesFromNow: 0, level: currentLevel };
+    // Look ahead up to 12h for strengthening gusts
+    const now = Date.now();
+    for (const h of data.hourly.slice(1, 13)) {
+      const level = getLevel(h.windGusts);
+      if (level) {
+        const minutesFromNow = Math.max(0, Math.round((new Date(h.time + 'Z').getTime() - now) / 60000));
+        return { gusts: Math.round(h.windGusts), minutesFromNow, level };
+      }
+    }
+    return null;
+  }, [data]);
+
   // Must be before early returns (Rules of Hooks)
   const rainIntensity = RAIN_INTENSITY[data?.current.weatherCode ?? -1] ?? 0;
   const weatherParticles = React.useMemo(() => generateWeatherParticles(rainIntensity), [rainIntensity]);
@@ -395,21 +418,25 @@ function WeatherDashboard() {
             </span>
           </div>
 
-          {data.pressureTrend && (
+          {data.pressureTrend && (Math.abs(data.pressureTrend.delta3h) >= 2 || Math.abs(data.pressureTrend.delta6h) >= 3) && (
             <div className="flex gap-2 justify-center mt-2">
-              <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3.5 text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
-                <span className="text-white/60 uppercase tracking-wider text-[10px]">3h</span>
-                <span className={data.pressureTrend.delta3h <= -2 ? 'text-orange-200' : data.pressureTrend.delta3h > 2 ? 'text-blue-200' : ''}>
-                  {data.pressureTrend.delta3h > 0 ? '+' : ''}{data.pressureTrend.delta3h} hPa
-                </span>
-              </div>
-              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${data.pressureTrend.delta6h <= -5 ? 'bg-red-500/30 border-red-400/40 text-white' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-white/20 border-white/10 text-white'}`}>
-                <span className={`uppercase tracking-wider text-[10px] ${data.pressureTrend.delta6h <= -3 ? 'opacity-90' : 'text-white/60'}`}>6h</span>
-                <span>
-                  {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
-                </span>
-                {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
-              </div>
+              {Math.abs(data.pressureTrend.delta3h) >= 2 && (
+                <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3.5 text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
+                  <span className="text-white/60 uppercase tracking-wider text-[10px]">3h</span>
+                  <span className={data.pressureTrend.delta3h <= -2 ? 'text-orange-200' : 'text-blue-200'}>
+                    {data.pressureTrend.delta3h > 0 ? '+' : ''}{data.pressureTrend.delta3h} hPa
+                  </span>
+                </div>
+              )}
+              {Math.abs(data.pressureTrend.delta6h) >= 3 && (
+                <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${data.pressureTrend.delta6h <= -5 ? 'bg-red-500/30 border-red-400/40 text-white' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-blue-500/20 border-blue-400/30 text-white'}`}>
+                  <span className="uppercase tracking-wider text-[10px] opacity-90">6h</span>
+                  <span>
+                    {data.pressureTrend.delta6h > 0 ? '+' : ''}{data.pressureTrend.delta6h} hPa
+                  </span>
+                  {data.pressureTrend.delta6h <= -3 && <span title={isEn ? "Significant 6h drop (Main migraine trigger)" : "Caída severa en 6h (Principal riesgo)"}>⚡</span>}
+                </div>
+              )}
             </div>
           )}
 
@@ -417,7 +444,7 @@ function WeatherDashboard() {
             <div className="flex gap-2 justify-center mt-2">
               <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3.5 text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
                 <span className="text-white/60 uppercase tracking-wider text-[10px]">3h</span>
-                <span className={tempDelta3h > 0 ? 'text-red-300' : tempDelta3h < 0 ? 'text-blue-300' : ''}>
+                <span className={tempDelta3h > 0 ? 'text-orange-200' : tempDelta3h < 0 ? 'text-sky-200' : 'text-white'}>
                   {tempDelta3h > 0 ? '+' : ''}{tempDelta3h}°C
                 </span>
               </div>
@@ -448,7 +475,7 @@ function WeatherDashboard() {
                     : mmh >= 2.5 ? (isEn ? 'heavy' : 'fuerte')
                     : mmh >= 0.5 ? (isEn ? 'moderate' : 'moderada')
                     : (isEn ? 'light' : 'leve');
-                  return <span className="text-white/50 text-[10px] font-normal">· {label}</span>;
+                  return <><span className="text-white/40 text-[10px]">·</span><span className="text-white/80 text-[10px] font-semibold">{label}</span></>;
                 })()}
                 <span className="font-black">
                   {precipOnset.minutesFromNow <= 0
@@ -472,6 +499,33 @@ function WeatherDashboard() {
                     <span className="font-black">{value > 0 ? `${value}mm` : '—'}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {windAlert && (
+            <div className="flex flex-col items-center gap-1.5 mt-2">
+              <div className={`rounded-full py-1.5 px-3.5 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md text-white ${
+                windAlert.level === 'storm' ? 'bg-red-600/40 border-red-400/50' :
+                windAlert.level === 'gale'  ? 'bg-orange-500/35 border-orange-400/45' :
+                windAlert.level === 'strong'? 'bg-amber-500/30 border-amber-400/40' :
+                                              'bg-teal-500/25 border-teal-400/35'
+              }`}>
+                <span>{windAlert.level === 'storm' ? '🌪️' : windAlert.level === 'gale' ? '💨' : '🌬️'}</span>
+                <span className="uppercase tracking-wider text-[10px] text-white/70">
+                  {windAlert.level === 'storm' ? (isEn ? 'Storm' : 'Borrasca') :
+                   windAlert.level === 'gale'  ? (isEn ? 'Gale' : 'Vendaval') :
+                   windAlert.level === 'strong'? (isEn ? 'Strong wind' : 'Viento fuerte') :
+                                                 (isEn ? 'Breezy' : 'Ventoso')}
+                </span>
+                <span className="text-white/40 text-[10px]">·</span><span className="text-white font-bold text-[11px]">{windAlert.gusts} km/h</span>
+                <span className="font-black">
+                  {windAlert.minutesFromNow <= 0
+                    ? (isEn ? 'now' : 'ahora')
+                    : windAlert.minutesFromNow < 60
+                      ? `${isEn ? 'in' : 'en'} ${windAlert.minutesFromNow}min`
+                      : `${isEn ? 'in' : 'en'} ${Math.floor(windAlert.minutesFromNow / 60)}h`}
+                </span>
               </div>
             </div>
           )}
@@ -678,7 +732,7 @@ function WeatherDashboard() {
         })()}
 
         {/* Daily Forecast and Chart */}
-        <DailyForecast daily={data.daily} hourly={data.hourly} />
+        <DailyForecast daily={data.daily} hourly={data.hourly} timezone={currentLocation.timezone} />
 
         {/* Future Forecast */}
         <FutureForecast daily={data.daily} />

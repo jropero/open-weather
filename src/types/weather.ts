@@ -4,6 +4,7 @@ export interface Location {
   latitude: number;
   longitude: number;
   isGPS?: boolean;
+  timezone?: string;
 }
 
 export interface CurrentWeather {
@@ -11,6 +12,7 @@ export interface CurrentWeather {
   humidity: number;
   weatherCode: number;
   windSpeed: number;
+  windGusts: number;
   windDirection: number;
   surfacePressure: number;
   elevation: number;
@@ -48,6 +50,7 @@ export interface HourlyWeather {
   precipProbability: number;
   weatherCode: number;
   windSpeed: number;
+  windGusts: number;
   dewPoint: number;
   snowfall: number;
   apparentTemperature: number;

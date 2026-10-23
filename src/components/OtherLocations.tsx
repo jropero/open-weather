@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { PREDEFINED_LOCATIONS, useLocationContext } from '../context/LocationContext';
+import { useLocationContext } from '../context/LocationContext';
+import { PREDEFINED_LOCATIONS } from '../constants/locations';
 import type { Location } from '../types/weather';
 import { calculateWormholeWindSpeed, generateWormholeExplanation } from '../utils/otherLocations';
 //import type { LocationData } from '../utils/otherLocations';
@@ -251,6 +252,11 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                           🐧
                         </span>
                       ))}
+                    </div>
+                  ) : activeGambas === 0 ? (
+                    <div className="flex items-center gap-1" title={language === 'en' ? 'Comfortable weather' : 'Clima agradable'}>
+                      <span className="text-xl leading-none">{weather.temperature >= 20 ? '🏖️' : '🌤️'}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">{thom.value.toFixed(1)}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-0.5" title={language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom'}>
