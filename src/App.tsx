@@ -215,6 +215,7 @@ function WeatherDashboard() {
           <select
             value={previewCondition}
             onChange={(e) => setPreviewCondition(e.target.value)}
+            aria-label="Preview weather condition"
             className="appearance-none bg-white/25 border-0 text-white rounded-full py-1.5 pl-3.5 pr-7 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center' }}
           >
@@ -233,6 +234,7 @@ function WeatherDashboard() {
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
+            aria-label="Language / Idioma"
             className="appearance-none bg-white/25 border-0 text-white rounded-full py-1.5 pl-3.5 pr-7 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all uppercase tracking-wider"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center' }}
           >
@@ -249,7 +251,11 @@ function WeatherDashboard() {
             <HelpCircle size={18} />
           </button>
 
-          <button onClick={() => setIsSelectorOpen(true)} className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
+          <button
+            onClick={() => setIsSelectorOpen(true)}
+            aria-label={language === 'en' ? 'Search location' : 'Buscar ubicación'}
+            className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
+          >
             <Search size={18} />
           </button>
         </div>

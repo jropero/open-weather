@@ -64,7 +64,7 @@ export function getPressureDeltaAlert(deltaP: number, lang: Language = 'es') {
   const isEn = lang === 'en';
   if (deltaP <= -5) return { label: isEn ? 'RISK' : 'RIESGO', detail: `${deltaP} hPa`, bgClass: 'bg-red-600 text-white' };
   if (deltaP <= -3) return { label: isEn ? 'DROPS' : 'BAJA', detail: `${deltaP} hPa`, bgClass: 'bg-orange-400 text-slate-900' };
-  if (deltaP >= 5) return { label: isEn ? 'RISES' : 'SUBE', detail: `+${deltaP} hPa`, bgClass: 'bg-sky-500 text-white' };
+  if (deltaP >= 5) return { label: isEn ? 'RISES' : 'SUBE', detail: `+${deltaP} hPa`, bgClass: 'bg-sky-700 text-white' };
   const sign = deltaP > 0 ? '+' : '';
   return { label: isEn ? 'STABLE' : 'ESTABLE', detail: `${sign}${deltaP} hPa`, bgClass: 'bg-slate-700 text-slate-300' };
 }
