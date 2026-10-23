@@ -58,11 +58,30 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
 
   useEffect(() => {
     let isMounted = true;
+    const CACHE_KEY = 'other_locations_cache';
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
     const fetchOtherLocations = async () => {
       setLoading(true);
-      const otherLocs = PREDEFINED_LOCATIONS.filter(loc => loc.id !== currentLocation.id && loc.id !== 'gps');
 
-      const promises = otherLocs.map(async (loc) => {
+      // Try cache first (all locations, filter by current after)
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const { timestamp, data } = JSON.parse(raw);
+          if (Date.now() - timestamp < CACHE_TTL) {
+            const filtered = (data as OtherLocationData[]).filter(d => d.location.id !== currentLocation.id);
+            if (isMounted) {
+              setOtherLocationsData(filtered);
+              setLoading(false);
+            }
+            return;
+          }
+        }
+      } catch { /* corrupt cache — fall through to fetch */ }
+
+      const allLocs = PREDEFINED_LOCATIONS.filter(loc => loc.id !== 'gps');
+      const promises = allLocs.map(async (loc) => {
         try {
           const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m&timezone=auto`;
           const res = await fetch(url);
@@ -79,18 +98,19 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
               windSpeed: data.current.wind_speed_10m ?? 0,
             }
           };
-        } catch (error) {
+        } catch {
           return { location: loc, weather: null, error: true };
         }
       });
 
-      const results = await Promise.all(promises);
+      const all = (await Promise.all(promises)).sort((a, b) =>
+        (a.weather?.temperature ?? Infinity) - (b.weather?.temperature ?? Infinity)
+      );
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: all })); } catch { /* storage full */ }
+
       if (isMounted) {
-        setOtherLocationsData(results.sort((a, b) => {
-          const ta = a.weather?.temperature ?? Infinity;
-          const tb = b.weather?.temperature ?? Infinity;
-          return ta - tb;
-        }));
+        const filtered = all.filter(d => d.location.id !== currentLocation.id);
+        setOtherLocationsData(filtered);
         setLoading(false);
       }
     };
