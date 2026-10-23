@@ -1,0 +1,22 @@
+# Open Weather — Biometeorological Dashboard
+
+A high-fidelity, data-intensive dashboard monitoring atmospheric variables and their impact on human health.
+
+## Features
+
+- Real-time weather data: pressure, humidity, wind speed, temperature
+- Migraine risk index (0–6 pts) based on pressure deltas and humidity
+- Thom's Discomfort Index (FAT.) for heat stress above 10 °C
+- Wind Chill Index (POLAR/WCI) for cold conditions below 10 °C
+- 7-day forecast with hourly breakdown
+- Historical pressure data via ERA5 (Copernicus) from Open-Meteo
+- Atmospheric memory module for interday pressure delta calculations
+- Frost, tropical night, and precipitation onset alerts
+
+## Data Sources
+
+- [Open-Meteo API](https://open-meteo.com/) — primary weather data source (ERA5 reanalysis)
+
+## Scientific Basis
+
+Meteoropathy research links barometric pressure changes to migraine onset. The dashboard cross-references real-time weather with physiological metrics to provide actionable risk assessments.

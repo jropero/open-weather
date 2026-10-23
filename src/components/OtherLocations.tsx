@@ -216,7 +216,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                     <WeatherIcon size={20} className={weatherColor} strokeWidth={1.5} />
                   </div>
                   <div className="font-bold text-slate-700 text-sm truncate" title={`${translatedName} (${Math.round(weather.elevation)}m)`}>
-                    {translatedName} <span className="text-[10px] text-slate-400 font-normal">({Math.round(weather.elevation)}m)</span>
+                    {translatedName} <span className="text-[10px] text-slate-500 font-normal">({Math.round(weather.elevation)}m)</span>
                   </div>
                 </div>
 
@@ -233,8 +233,8 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                 <div className="flex items-center gap-1.5" title={language === 'en' ? 'Pressure' : 'Presión'}>
                   <Gauge size={12} className="text-slate-400" />
                   <span className="font-bold text-slate-600">
-                    {Math.round(weather.surfacePressure)} <span className="text-[8px] text-slate-400 font-semibold">hPa</span>{' '}
-                    <span className="text-[9px] text-slate-400 font-semibold">
+                    {Math.round(weather.surfacePressure)} <span className="text-[8px] text-slate-500 font-semibold">hPa</span>{' '}
+                    <span className="text-[9px] text-slate-500 font-semibold">
                       ({getPressureLevelLabel(weather.surfacePressure, language)})
                     </span>
                   </span>
@@ -256,7 +256,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                   ) : activeGambas === 0 ? (
                     <div className="flex items-center gap-1" title={language === 'en' ? 'Comfortable weather' : 'Clima agradable'}>
                       <span className="text-xl leading-none">{weather.temperature >= 20 ? '🏖️' : '🌤️'}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold">{thom.value.toFixed(1)}</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">{thom.value.toFixed(1)}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-0.5" title={language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom'}>
