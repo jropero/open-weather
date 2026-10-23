@@ -24,22 +24,32 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
     *   **Frost & Ice Risk:** Overnight minimum temperature and dew point are monitored; alerts surface when frost (≤ 2 °C) or ice (≤ 0 °C) conditions are expected. [NEW]
     *   **Tropical Night Alerts:** If overnight minimums exceed 20 °C (tropical), 25 °C (torrida), or 25 °C+ (ecuatorial), a contextual badge is displayed. [NEW]
     *   **Bilingual Selector (ES / EN):** A glassmorphic top-right dropdown toggle that instantly translates the entire application's interface, metrics, graphs, and clinical breakdown texts in real-time.
+*   **🌙 Day / Night Awareness [NEW]**
+    *   Fetches real sunrise and sunset times for the current location from Open-Meteo daily data.
+    *   When it is night at the selected location the hero switches to a dark indigo palette: **clear sky** shows a `Moon` icon with a cool moonlit SVG glow; **cloudy night** shows a composed `Cloud + Moon` layered icon (moon peeking from upper-right behind the cloud) with a gentle pulse animation — no rotation.
+    *   Each hourly forecast card independently detects night based on its own timestamp vs the day's sunrise/sunset, so a single scroll from evening to morning shows the correct day/night icons per card.
 *   **🎨 Dynamic Context-Aware Backgrounds [NEW]**
     *   **Weather-Based Color Themes:** The background gradient adapts beautifully to the current weather condition (e.g. warm sunny skies for clear days, slate blue for light rain, dark slate/navy for showers to guarantee high-contrast icon visibility, and deep electric purple for thunderstorms).
+    *   **Clear Night SVG Effect:** A cool indigo radial glow replaces the warm sun haze when the sky is clear and it is night at the location.
     *   **Smooth Cinematic Transitions:** Employs a smooth 1000ms CSS color transition when switching coordinates or loading a new city, providing a premium, highly responsive user experience.
 *   **📖 Interactive Help & Science Portal [NEW]**
     *   **Clinical & Etymological Database:** Access a dedicated, glassmorphic modal detailing the Greek etymological origin of **Meteoropathy** (*meteoros* meaning "high in the sky" and *pathos* meaning "illness").
     *   **Mathematical Formulas:** Explains mathematical derivations for Thom's Discomfort Index and 24h pressure delta thresholds.
     *   **Clinical Paper Link:** Direct integration of the peer-reviewed Headache Journal research study, including an interactive link to the DOI paper.
-*   **💾 Location State Persistence [NEW]**
-    *   **Automatic Restores:** The app implements smart, lazy state initialization from the browser's `localStorage` (saved under `last_location`).
-    *   **Seamless Persistence:** Remembers and restores the exact last selected predefined city, custom search coordinates, or GPS location across page reloads.
-*   **📊 Pressure & Humidity Highlight Card**
+*   **💾 Location Search & Management [NEW]**
+    *   **Geocoding Search:** Type any city name (≥ 2 chars) in the location selector to search the Open-Meteo Geocoding API in real time (debounced, results in Spanish). Hit **+** to save a result to your personal list.
+    *   **My Locations:** Saved locations persist under `custom_locations` in `localStorage` and appear in a dedicated section with a **trash** delete button. Deleting the active location falls back to the default.
+    *   **Automatic Restores:** The last active location is saved under `last_location` and restored on page reload — works for GPS, predefined, and custom locations alike.
+*   **📊 Pressure & Humidity / Air Quality — 2-Column Widget Layout [NEW]**
+    *   On mobile the **Presión y Humedad** and **Calidad del Aire** cards sit side-by-side in a 2-column grid. If air-quality data is unavailable, the pressure card stretches full-width.
+    *   Each card has a subtle directional gradient background: indigo tint for pressure, emerald tint for air quality.
+    *   **Air Quality card:** AQI value, unit, and colour-coded badge on one line; PM2.5 / PM10 with μg/m³ units and a green/yellow/orange/red dot per WHO thresholds; allergen names printed inside each pollen badge.
     *   **Double-Slider Interface:** A highly compact, high-density layout that presents both surface pressure and relative humidity side-by-side (e.g., `1013 hPa, 55% RH`).
     *   **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
     *   **Hourly Pressure Velocity (3h & 6h Trends) [NEW]:** Shows real-time barometric rate of change. Delta 6h acts as a critical scientific trigger matching Katsuki et al. (2023)'s highest AI gain parameter (11.7), alerting users with a warning icon (⚡) during rapid pressure drops.
     *   **Temperature Velocity (3h & 6h Trends) [NEW]:** Paired badges show short-term temperature change alongside the pressure trend, flagging sharp rises (🔥) that compound heat stress.
     *   **Precipitation Onset Badge [NEW]:** Detects the next rain, snow, or freezing-rain event within the 25-hour hourly window and shows a live countdown ("in 10 min", "in 2h") plus 3h / 6h / 12h accumulated rain totals.
+    *   **Grouped Alert Badges [NEW]:** Hero-section badges are organised into semantic rows — pressure+temperature trends, precipitation, wind, and conditions — using horizontal flex-wrap per group to maximise density without vertical sprawl.
     *   **Stacked Visual Range Bars:** Features two high-fidelity visual range sliders:
         1.  **Pressure range** (980–1050 hPa) with a customized green-orange-red color gradient.
         2.  **Relative humidity range** (0%–100%) with a dry-wet blue-green-orange gradient.
@@ -52,7 +62,7 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 *   **🔮 Clinical Diagnostic Breakdowns**
     *   Beyond simple alert chips, the system provides a clear, mathematical breakdown detailing exactly which environmental factors (pressure drops, rainfall, absolute pressure, etc.) are contributing risk points to help users plan their week safely.
 *   **🌍 Other Locations Panel [NEW]**
-    *   A live comparison panel fetches current temperature and pressure for a set of predefined global cities: **Torrevieja**, **Santiago de Compostela**, **Basel**, **Reykjavik**, and **Taipei**. Cards highlight the currently selected location.
+    *   A live comparison panel fetches current temperature and pressure for a set of predefined global cities: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basel**, **Reykjavik**, and **Taipei**. Cards highlight the currently selected location.
 *   **🕰️ Atmospheric Memory (Historical Archive)**
     *   A comparative history module that fetches exact historical meteorological records for today's date in **1949**, **1973**, and **2003**.
     *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
@@ -138,22 +148,32 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
     *   **Alerta de Helada y Hielo:** Se monitoriza la temperatura mínima nocturna y el punto de rocío; se activan alertas cuando se prevé helada (≤ 2 °C) o hielo (≤ 0 °C). [NUEVO]
     *   **Noches Tropicales:** Si las mínimas nocturnas superan 20 °C (tropical), 25 °C (tórrida) o más (ecuatorial), se muestra una insignia contextual. [NUEVO]
     *   **Selector de Idioma Bilingüe (ES / EN):** Un control desplegable de estilo glassmorphic arriba a la derecha que traduce toda la interfaz, métricas, gráficas y desgloses de riesgo clínico en tiempo real.
+*   **🌙 Detección Día / Noche [NUEVO]**
+    *   Obtiene la hora exacta de amanecer y anochecer para la ubicación actual desde los datos diarios de Open-Meteo.
+    *   Por la noche el héroe cambia a paleta índigo oscura: **cielo despejado** muestra el icono `Luna` con un resplandor SVG frío plateado; **noche nublada** compone `Nube + Luna` como dos iconos apilados (la luna asomando por la parte superior derecha detrás de la nube) con animación de pulso suave — sin rotación.
+    *   Cada tarjeta horaria detecta noche de forma independiente en función de su propio timestamp frente al amanecer/anochecer del día, mostrando el icono correcto al desplazarse de tarde a madrugada.
 *   **🎨 Fondos Dinámicos en Tiempo Real [NUEVO]**
     *   **Colores Adaptados al Clima:** El gradiente de fondo de la app se adapta estéticamente al tiempo actual (ej. azul cielo radiante para despejado, gris/plomo para nublado, slate/azul oscuro para chubascos garantizando un contraste del 100% en los iconos, y púrpura tormenta para tempestades).
+    *   **Efecto SVG Noche Despejada:** Un resplandor radial índigo frío reemplaza el halo solar cálido cuando el cielo está despejado y es de noche en la ubicación.
     *   **Transiciones Cinematográficas:** Suave efecto de transición CSS de 1000ms al conmutar entre ubicaciones o cargar ciudades, proporcionando un aspecto vivo y premium.
 *   **📖 Portal de Ayuda y Ciencia Interactivo [NUEVO]**
     *   **Base Médica y Etimológica:** Modal de documentación de estilo glassmorphic que detalla el origen griego de la palabra **Meteoropatía** (*meteoros* que significa "alto en el cielo" y *pathos* "enfermedad/sufrimiento").
     *   **Fórmulas Clínicas:** Muestra el desglose matemático del Índice de Thom y la escala de variación de presión barométrica 24h.
     *   **Enlace al Paper Científico:** Integración directa del estudio de la revista Headache Journal (2023), con botón directo para abrir el paper a través de su DOI oficial.
-*   **💾 Persistencia de Localización [NUEVO]**
-    *   **Restauración Automática:** Inicialización perezosa de estado mediante el almacenamiento del navegador `localStorage` (bajo la clave `last_location`).
-    *   **Experiencia Continua:** Recuerda y recupera al instante la última ciudad predefinida, coordenadas de búsqueda o localización GPS tras recargar la página.
-*   **📊 Tarjeta de Presión y Humedad Destacada**
+*   **💾 Búsqueda y Gestión de Ubicaciones [NUEVO]**
+    *   **Búsqueda Geocodificada:** Escribe cualquier nombre de ciudad (≥ 2 caracteres) en el selector de ubicación para consultar la API de Geocodificación de Open-Meteo en tiempo real (con debounce, resultados en español). Pulsa **+** para guardar una ubicación en tu lista personal.
+    *   **Mis Ubicaciones:** Las ubicaciones guardadas se persisten bajo `custom_locations` en `localStorage` y aparecen en una sección propia con botón de **papelera** para eliminarlas. Si se elimina la ubicación activa, se vuelve a la predeterminada.
+    *   **Restauración Automática:** La última ubicación activa se guarda bajo `last_location` y se restaura al recargar la página — funciona con GPS, predefinidas y ubicaciones personalizadas.
+*   **📊 Widgets de Presión/Humedad y Calidad del Aire — Diseño en 2 Columnas [NUEVO]**
+    *   En móvil las tarjetas **Presión y Humedad** y **Calidad del Aire** se muestran en cuadrícula de 2 columnas. Si no hay datos de calidad del aire, la tarjeta de presión ocupa el ancho completo.
+    *   Cada tarjeta tiene un degradado de fondo suave: tono índigo para presión, tono esmeralda para calidad del aire.
+    *   **Tarjeta de Calidad del Aire:** valor AQI, unidad e insignia con color en la misma línea; PM2,5 / PM10 con unidades μg/m³ y punto verde/amarillo/naranja/rojo según umbrales OMS; nombres de alérgenos impresos dentro de cada insignia de polino.
     *   **Interfaz de Doble Barra:** Sección compacta y de alta densidad que muestra la presión barométrica y la humedad relativa en la misma línea (ej. `1013 hPa, 55% HR`).
     *   **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. *«presión normal y humedad confortable»*).
     *   **Velocidad de Presión Horaria (Tendencias 3h y 6h) [NUEVO]:** Muestra el ritmo de cambio barométrico a corto plazo. El Delta 6h actúa como disparador de riesgo crítico, alineándose directamente con el parámetro de mayor ganancia de IA (11,7) del estudio de Katsuki et al. (2023), alertando con un icono de advertencia (⚡) en caídas rápidas.
     *   **Velocidad de Temperatura (3h y 6h) [NUEVO]:** Insignias gemelas muestran la variación de temperatura a corto plazo junto a la tendencia de presión, marcando subidas bruscas (🔥) que agravan el estrés térmico.
     *   **Insignia de Inicio de Precipitación [NUEVO]:** Detecta el próximo evento de lluvia, nieve o lluvia helada en la ventana de 25 horas y muestra una cuenta atrás en vivo ("en 10 min", "en 2h") más los totales acumulados a 3h / 6h / 12h.
+    *   **Insignias de Alerta Agrupadas [NUEVO]:** Las insignias del héroe se organizan en filas semánticas — tendencias de presión+temperatura, precipitación, viento y condiciones — con flex-wrap horizontal por grupo para maximizar la densidad sin apilar verticalmente.
     *   **Barras de Rango Apiladas:** Cuenta con dos barras de rango visual de alta fidelidad:
         1.  **Rango de presión** (980–1050 hPa) con un degradado de color personalizado verde-naranja-rojo.
         2.  **Rango de humedad** (0%–100%) con un degradado para niveles seco-húmedo.
@@ -166,7 +186,7 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 *   **🔮 Desglose de Diagnóstico Clínico**
     *   Además de mostrar "píldoras de riesgo", el sistema ofrece un desglose matemático de qué factores exactos (caída de hPa, mm de lluvia, etc.) están sumando puntos de riesgo para el paciente, ofreciendo transparencia total a la hora de organizar su semana.
 *   **🌍 Panel de Otras Ubicaciones [NUEVO]**
-    *   Panel de comparativa en tiempo real que obtiene la temperatura y la presión actuales de un conjunto de ciudades predefinidas: **Torrevieja**, **Santiago de Compostela**, **Basilea**, **Reikiavik** y **Taipéi**. La tarjeta de la ciudad seleccionada actualmente aparece destacada.
+    *   Panel de comparativa en tiempo real que obtiene la temperatura y la presión actuales de un conjunto de ciudades predefinidas: **Granada**, **Torrevieja**, **Santiago de Compostela**, **Basilea**, **Reikiavik** y **Taipéi**. La tarjeta de la ciudad seleccionada actualmente aparece destacada.
 *   **🕰️ Memoria Atmosférica (Archivo Histórico)**
     *   Un módulo nostálgico/comparativo que analiza el clima exacto del día de hoy en retrospectiva, viajando hasta los años **1949**, **1973** y **2003**.
     *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.
