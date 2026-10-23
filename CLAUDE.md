@@ -22,6 +22,17 @@ The architecture is driven by sophisticated data presentation and scientific val
 4.  **Styling & Theming:**
     *   The entire UI is built using **Tailwind CSS v4** with a strong focus on accessibility (A11y high contrast) and cinematic, context-aware visual transitions (e.g., dynamic background gradients, glow effects).
 
+## 📦 PWA (Progressive Web App)
+The app is deployed at `ekult.co.uk/t` and is fully installable as a PWA on desktop and mobile (iOS/Android Chrome).
+
+*   **Base path:** `base: '/t/'` in `vite.config.ts` — must be an **absolute** path. Using `'./'` breaks the service worker scope registration.
+*   **Plugin:** `vite-plugin-pwa` with `registerType: 'autoUpdate'`. Generates `dist/sw.js` + `dist/workbox-*.js` alongside the app bundle.
+*   **Manifest:** `start_url`, `scope`, and `id` are all `/t/`. The icon is `favicon.svg` (`type: image/svg+xml`, `purpose: any maskable`).
+*   **Caching strategy:**
+    *   Open-Meteo forecast API → `NetworkFirst` with 30-minute TTL (fresh data preferred, offline fallback).
+    *   Open-Meteo Geocoding API → `CacheFirst` with 7-day TTL (location names rarely change).
+*   **Deploy:** copy the entire `dist/` output to the server's `/t/` directory. The SW must be served from the same scope — do not move `sw.js` into a subdirectory.
+
 ## 🛠️ Development Workflow & Commands
 The project uses a standard Vite/React/TypeScript setup. All development actions should respect the following CLI commands defined in `package.json`:
 
