@@ -60,7 +60,7 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                   <span className="font-bold text-base capitalize text-slate-800">
                     {dayName}
                     {day.sunshineDuration > 0 && (
-                      <span className="ml-2 text-sm font-normal text-amber-500">☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
+                      <span className="ml-2 text-sm font-normal text-amber-700">☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
                     )}
                   </span>
                   <span className="text-sm font-extrabold text-slate-800">
