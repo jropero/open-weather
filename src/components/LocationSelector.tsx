@@ -83,7 +83,6 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-100 pl-10 pr-10 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-400"
-            autoFocus
           />
           {searchLoading && (
             <Loader className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={18} />
