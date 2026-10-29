@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Location, WeatherData, DailyWeather, HourlyWeather, AirQualityData } from '../types/weather';
+import type { Location, WeatherData, DailyWeather, HourlyWeather, AirQualityData, SummaryHour } from '../types/weather';
 
 function getModelParam(lat: number, lon: number): string {
   const isSwiss = lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
@@ -102,6 +102,28 @@ export function useWeather(location: Location) {
           }
         }
 
+        // Wider hourly range for the Today & Tomorrow summary (same response, no extra request).
+        // −25 h reaches local midnight of today, +50 h reaches tomorrow 24:00 local (incl. a DST fallback hour).
+        const summaryHours: SummaryHour[] = [];
+        if (currentData.hourly?.time && currentData.current?.time) {
+          const h = currentData.hourly;
+          const currentIndex = h.time.findIndex((t: string) => t.startsWith(currentData.current.time.substring(0, 13)));
+          if (currentIndex >= 0) {
+            for (let i = Math.max(0, currentIndex - 25); i < Math.min(h.time.length, currentIndex + 51); i++) {
+              summaryHours.push({
+                time: h.time[i],
+                temperature: h.temperature_2m?.[i] ?? null,
+                apparentTemperature: h.apparent_temperature?.[i] ?? null,
+                precipitation: h.precipitation?.[i] ?? null,
+                precipProbability: h.precipitation_probability?.[i] ?? null,
+                snowfall: h.snowfall?.[i] ?? null,
+                weatherCode: h.weather_code?.[i] ?? null,
+                windGusts: h.wind_gusts_10m?.[i] ?? null,
+              });
+            }
+          }
+        }
+
         if (!isMounted) return;
 
         // Set main weather data immediately (non-blocking)
@@ -118,6 +140,8 @@ export function useWeather(location: Location) {
           },
           daily: dailyWeather,
           hourly: hourlyWeather,
+          summaryHours,
+          timezone: dailyData.timezone ?? null,
           historical: [], // starts empty and loads asynchronously
           pressureTrend,
           airQuality: null, // starts null and loads asynchronously
@@ -224,8 +248,8 @@ export function useWeather(location: Location) {
         }).catch((err) => {
           console.error("Failed to fetch air quality data:", err);
         });
-      } catch (err: any) {
-        if (isMounted) setError(err.message);
+      } catch (err) {
+        if (isMounted) setError(err instanceof Error ? err.message : String(err));
       } finally {
         if (isMounted) setLoading(false);
       }
