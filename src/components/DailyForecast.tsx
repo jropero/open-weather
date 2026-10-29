@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DailyWeather, HourlyWeather } from '../types/weather';
 
-import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getWindChillIndex } from '../utils/weatherCodes';
-import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
-import { useLanguage } from '../context/LanguageContext';
+import { getWeatherInfo, getThomsDiscomfortIndex, getPressureDeltaAlert, getWindChillIndex, getPressureDescription, getPressureColor, getMigraineRisk } from '../utils/weatherCodes';
+import { ComposedChart, Area, Line, Bar, ResponsiveContainer, YAxis, XAxis, Tooltip, ReferenceLine, ReferenceArea, ZIndexLayer, DefaultZIndexes, useXAxisScale, useYAxisScale, usePlotArea } from 'recharts';
+import type { XAxisTickContentProps } from 'recharts';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface DailyForecastProps {
   daily: DailyWeather[];
@@ -11,9 +12,55 @@ interface DailyForecastProps {
   timezone?: string;
 }
 
+// Same bands as the humidity "aurora" background gradient
+function getHumidityBand(humidity: number) {
+  if (humidity >= 85) return { color: '#7e22ce', key: 'chart.hum_saturated' }; // Morado fuerte (saturado)
+  if (humidity >= 70) return { color: '#2563eb', key: 'chart.hum_humid' };     // Azul fuerte
+  if (humidity >= 50) return { color: '#34d399', key: 'chart.hum_normal' };    // Verde
+  return { color: '#fbbf24', key: 'chart.hum_dry' };                           // Amarillo (seco)
+}
+
+// Invisible tooltip content: forwards Recharts' active index (mouse, touch, keyboard) to the detail panel
+function ActiveIndexSync({ active, activeIndex, onChange }: { active: boolean; activeIndex: string | null | undefined; onChange: (idx: number) => void }) {
+  useEffect(() => {
+    const idx = Number(activeIndex);
+    if (active && activeIndex != null && Number.isInteger(idx)) onChange(idx);
+  }, [active, activeIndex, onChange]);
+  return null;
+}
+
+// Selected-point marker drawn straight from the axis scales. Unlike ReferenceLine/ReferenceDot it does not
+// register in the chart store, so moving it doesn't recompute the axes or re-create the series.
+function SelectionMarker({ index, pressure }: { index: number; pressure: number }) {
+  const xScale = useXAxisScale();
+  const yScale = useYAxisScale('pressure');
+  const plot = usePlotArea();
+  const x = xScale?.(index, { position: 'middle' });
+  const y = yScale?.(pressure);
+  if (x == null || y == null || !plot) return null;
+  return (
+    <ZIndexLayer zIndex={DefaultZIndexes.cursorLine}>
+      <g pointerEvents="none">
+        <line x1={x} x2={x} y1={plot.y} y2={plot.y + plot.height} stroke="#ffffff" strokeOpacity={0.6} strokeWidth={1} />
+        <circle cx={x} cy={y} r={5} fill="#f87171" stroke="#ffffff" strokeWidth={2} />
+      </g>
+    </ZIndexLayer>
+  );
+}
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Stable chart props (module-level so re-renders don't hand Recharts new references)
+const CHART_MARGIN = { top: 20, right: 0, left: 0, bottom: 0 };
+const PERCENT_DOMAIN: [number, number] = [0, 100];
+const PRECIP_DOMAIN: [number, string] = [0, 'dataMax + 15'];
+const WIND_DOMAIN: [number, string] = [0, 'dataMax + 10'];
+const PRESSURE_TICK_STYLE = { fill: '#fca5a5', fontSize: 10, fontWeight: 700, stroke: '#0f172a', strokeWidth: 3, paintOrder: 'stroke' as const };
+
 export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const { language, t } = useLanguage();
   const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('hourly');
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -34,15 +81,21 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
     ])
   );
 
+  // Chart data is memoized: a new array on every selection change would make Recharts re-create the
+  // series elements, which re-animates them and detaches the node a touch drag started on.
+
   // Daily Chart Data
-  const dailyChartData = targetDays.map(d => {
+  const dailyChartData = useMemo(() => daily.slice(startIndex, startIndex + 7).map((d, idx) => {
     const actualIdx = daily.findIndex(x => x.date === d.date);
     const yesterday = actualIdx > 0 ? daily[actualIdx - 1] : d;
     const deltaP = Math.round(d.meanPressure - yesterday.meanPressure);
     const isToday = actualIdx === todayIndex;
-    
+
     return {
-      name: isToday 
+      idx,
+      isToday,
+      isPast: todayIndex >= 0 && actualIdx < todayIndex,
+      name: isToday
         ? (language === 'en' ? 'TODAY' : 'HOY') 
         : new Date(d.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }),
       pressure: Math.round(d.meanPressure),
@@ -54,16 +107,24 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       deltaP,
       bgValue: 100
     };
-  });
+  }), [daily, startIndex, todayIndex, language]);
 
   // Hourly Chart Data
   const locale = language === 'es' ? 'es-ES' : 'en-US';
-  const timeFormatOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: false, ...(timezone ? { timeZone: timezone } : {}) };
+  const timeFormatOpts = useMemo<Intl.DateTimeFormatOptions>(
+    () => ({ hour: '2-digit', minute: '2-digit', hour12: false, ...(timezone ? { timeZone: timezone } : {}) }),
+    [timezone]
+  );
 
-  const hourlyChartData = hourly.map(h => {
+  const hourlyChartData = useMemo(() => hourly.map((h, idx) => {
+    const dayFormatOpts = (weekday: 'short' | 'long'): Intl.DateTimeFormatOptions => ({ weekday, ...(timezone ? { timeZone: timezone } : {}) });
     const timeDate = new Date(h.time + 'Z');
     const hourStr = timeDate.toLocaleTimeString(locale, timeFormatOpts);
     return {
+      idx,
+      hour: parseInt(hourStr.slice(0, 2), 10) % 24,
+      dayShort: timeDate.toLocaleDateString(locale, dayFormatOpts('short')),
+      dayLong: timeDate.toLocaleDateString(locale, dayFormatOpts('long')),
       name: hourStr,
       pressure: Math.round(h.pressure),
       temp: Math.round(h.temperature),
@@ -75,16 +136,225 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       deltaP: 0,
       bgValue: 100
     };
-  });
+  }), [hourly, locale, timeFormatOpts, timezone]);
 
-  const chartData = viewMode === 'daily' ? dailyChartData : hourlyChartData;
+  // Fields shared by both views (what the chart and the detail panel read)
+  type ChartPoint = { idx: number; name: string; pressure: number; temp: number; humidity: number; wind: number; precip: number; weatherCode: number; deltaP: number; bgValue: number };
+  const chartData: ChartPoint[] = viewMode === 'daily' ? dailyChartData : hourlyChartData;
 
-  const minPressure = Math.min(...chartData.map(d => d.pressure)) - 5;
-  const maxPressure = Math.max(...chartData.map(d => d.pressure)) + 5;
-  const minTemp = Math.min(...chartData.map(d => d.temp)) - 5;
-  const maxTemp = Math.max(...chartData.map(d => d.temp)) + 5;
+  // Axis domains and ticks are memoized too (new arrays would also re-create the series, see above)
+  const { pressureDomain, tempDomain, pressureTicks } = useMemo(() => {
+    const minPressure = Math.min(...chartData.map(d => d.pressure)) - 5;
+    const maxPressure = Math.max(...chartData.map(d => d.pressure)) + 5;
+    const minTemp = Math.min(...chartData.map(d => d.temp)) - 5;
+    const maxTemp = Math.max(...chartData.map(d => d.temp)) + 5;
+
+    // Pressure axis: round ticks inside the padded domain, unit on the top tick
+    const pressureStep = maxPressure - minPressure > 30 ? 10 : 5;
+    const ticks: number[] = [];
+    for (let p = Math.ceil(minPressure / pressureStep) * pressureStep; p <= maxPressure; p += pressureStep) ticks.push(p);
+
+    return { pressureDomain: [minPressure, maxPressure], tempDomain: [minTemp, maxTemp], pressureTicks: ticks };
+  }, [chartData]);
 
   const isEn = language === 'en';
+
+  // X axis: every day in daily view; every 3 h in hourly view, with the weekday at midnight
+  const nowHourIdx = 0; // useWeather starts the hourly window at the current hour
+  const todayChartIdx = Math.max(0, dailyChartData.findIndex(d => d.isToday));
+  const pastCount = dailyChartData.filter(d => d.isPast).length;
+  const xTicks = useMemo(() => (viewMode === 'daily'
+    ? dailyChartData.map(d => d.idx)
+    : hourlyChartData.filter(h => h.idx === nowHourIdx || (h.hour % 3 === 0 && Math.abs(h.idx - nowHourIdx) > 2)).map(h => h.idx)
+  ), [viewMode, dailyChartData, hourlyChartData]);
+
+  // Selected point (defaults to now / today); reset when switching views
+  const defaultIdx = viewMode === 'daily' ? todayChartIdx : nowHourIdx;
+  const activeIdx = Math.min(chartData.length - 1, selectedIdx ?? defaultIdx);
+  const isDefaultSelection = activeIdx === defaultIdx;
+  const switchView = (mode: 'daily' | 'hourly') => { setViewMode(mode); setSelectedIdx(null); };
+
+  const renderXTick = useCallback(({ x: rawX, y: rawY, payload }: XAxisTickContentProps) => {
+    const x = Number(rawX);
+    const y = Number(rawY);
+    const idx = Number(payload.value);
+    if (viewMode === 'daily') {
+      const d = dailyChartData[idx];
+      if (!d) return <g />;
+      return (
+        <text x={x} y={y + 13} textAnchor="middle" fontSize={12} fontWeight={d.isToday ? 900 : 500}
+          fill={d.isToday ? '#ffffff' : d.isPast ? '#94a3b8' : '#e2e8f0'} letterSpacing={d.isToday ? 1.5 : 0}>
+          {d.isToday ? d.name : capitalize(d.name)}
+        </text>
+      );
+    }
+    const h = hourlyChartData[idx];
+    if (!h) return <g />;
+    const isNow = idx === nowHourIdx;
+    const isMidnight = h.hour === 0 && !isNow;
+    const anchor = idx === nowHourIdx && idx === 0 ? 'start' : idx === hourlyChartData.length - 1 ? 'end' : 'middle';
+    return (
+      <text x={x} y={y + 13} textAnchor={anchor} fontSize={11} fontWeight={isNow || isMidnight ? 800 : 500}
+        fill={isNow || isMidnight ? '#ffffff' : '#cbd5e1'}>
+        {isNow ? t('chart.now') : isMidnight ? capitalize(h.dayShort) : `${String(h.hour).padStart(2, '0')}h`}
+      </text>
+    );
+  }, [viewMode, dailyChartData, hourlyChartData, t]);
+
+  // Everything inside the chart except the selection marker. Memoized as one element so a selection
+  // change doesn't re-render the axes/series: Recharts re-registers any axis or reference element whose
+  // props change by reference, which recomputes the scales and re-creates (and re-animates) the series.
+  const chartLayers = useMemo(() => (
+    <>
+      <defs>
+        <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+          <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2} />
+        </linearGradient>
+        <linearGradient id="humidityGradient" x1="0" y1="0" x2="1" y2="0">
+          {chartData.map((d, i) => {
+            const offset = `${(i / (Math.max(1, chartData.length - 1))) * 100}%`;
+            return <stop key={i} offset={offset} stopColor={getHumidityBand(d.humidity).color} />;
+          })}
+        </linearGradient>
+      </defs>
+      <XAxis
+        dataKey="idx"
+        ticks={xTicks}
+        interval={0}
+        tick={renderXTick}
+        height={24}
+        axisLine={false}
+        tickLine={false}
+      />
+
+      <YAxis
+        yAxisId="pressure"
+        orientation="right"
+        mirror
+        domain={pressureDomain}
+        ticks={pressureTicks}
+        tickFormatter={(v: number, i: number) => (i === pressureTicks.length - 1 ? `${v}${String.fromCharCode(160)}hPa` : `${v}`)}
+        tick={PRESSURE_TICK_STYLE}
+        axisLine={false}
+        tickLine={false}
+      />
+      <YAxis yAxisId="temp" hide domain={tempDomain} />
+      <YAxis yAxisId="humidity" hide domain={PERCENT_DOMAIN} />
+      <YAxis yAxisId="precip" hide domain={PRECIP_DOMAIN} />
+      <YAxis yAxisId="bg" hide domain={PERCENT_DOMAIN} />
+      <YAxis yAxisId="wind" hide domain={WIND_DOMAIN} />
+
+      {/* Tap / drag / hover only drives the detail panel above — no floating box */}
+      <Tooltip
+        cursor={false}
+        isAnimationActive={false}
+        content={({ active, activeIndex }) => (
+          <ActiveIndexSync active={active} activeIndex={activeIndex} onChange={setSelectedIdx} />
+        )}
+      />
+
+      {/* Past days (daily view) */}
+      {viewMode === 'daily' && pastCount > 0 && (
+        <ReferenceArea
+          yAxisId="bg"
+          x1={0}
+          x2={pastCount - 1}
+          fill="#ffffff"
+          fillOpacity={0.05}
+          stroke="none"
+          label={{ value: t('chart.past'), position: 'insideTopLeft', fill: '#94a3b8', fontSize: 9, fontWeight: 700 }}
+        />
+      )}
+
+      {/* Standard atmosphere reference (hidden automatically when outside the domain) */}
+      <ReferenceLine
+        yAxisId="pressure"
+        y={1013}
+        stroke="#fca5a5"
+        strokeOpacity={0.5}
+        strokeDasharray="2 4"
+        label={{ value: `1013 ${t('chart.normal')}`, position: 'insideBottomLeft', fill: '#fca5a5', fontSize: 9, fontWeight: 700 }}
+      />
+
+      {/* Fondo Dinámico de Humedad (Aurora) */}
+      <Area
+        yAxisId="bg"
+        type="monotone"
+        dataKey="bgValue"
+        stroke="none"
+        fill="url(#humidityGradient)"
+        fillOpacity={0.25}
+        isAnimationActive={false}
+        activeDot={false}
+      />
+
+      {/* Precipitación: Columnas (Fondo) */}
+      <Bar
+        yAxisId="precip"
+        dataKey="precip"
+        fill="#a5b4fc"
+        opacity={0.5}
+        radius={[4, 4, 0, 0]}
+      />
+
+      {/* Presión: Area y Línea Roja */}
+      <Area
+        yAxisId="pressure"
+        type="monotone"
+        dataKey="pressure"
+        stroke="#f87171"
+        strokeWidth={3}
+        fillOpacity={1}
+        fill="url(#colorPressure)"
+        dot={{ r: 3, fill: "#f87171", strokeWidth: 1, stroke: "#1e293b" }}
+        activeDot={{ r: 5 }}
+      />
+      {/* Temperatura: Línea Amarilla */}
+      <Line
+        yAxisId="temp"
+        type="monotone"
+        dataKey="temp"
+        stroke="#fcd34d"
+        strokeWidth={2}
+        dot={{ r: 2, fill: "#fcd34d", strokeWidth: 1, stroke: "#1e293b" }}
+      />
+      {/* Viento: Línea Azul */}
+      <Line
+        yAxisId="wind"
+        type="monotone"
+        dataKey="wind"
+        stroke="#38bdf8"
+        strokeWidth={1.5}
+        strokeDasharray="5 3"
+        dot={false}
+      />
+    </>
+  ), [chartData, xTicks, renderXTick, pressureDomain, pressureTicks, tempDomain, viewMode, pastCount, t]);
+
+  // Detail panel content for the selected point
+  const sel = chartData[activeIdx];
+  const selHourly = viewMode === 'hourly' ? hourly[activeIdx] : undefined;
+  const selDaily = viewMode === 'daily' ? targetDays[activeIdx] : undefined;
+  const selDailyPoint = viewMode === 'daily' ? dailyChartData[activeIdx] : undefined;
+  const selTemp = selHourly ? selHourly.temperature : sel?.temp ?? 0;
+  const selComfort = sel && (selTemp < 10
+    ? getWindChillIndex(selTemp, selHourly ? selHourly.windSpeed : sel.wind, language)
+    : getThomsDiscomfortIndex(selTemp, selHourly ? selHourly.humidity : sel.humidity, language));
+  const selHumidityBand = getHumidityBand(sel?.humidity ?? 0);
+  const selDeltaAlert = sel && viewMode === 'daily' ? getPressureDeltaAlert(sel.deltaP, language) : undefined;
+  const selMigraine = selDaily && sel ? getMigraineRisk(sel.deltaP, selDaily.meanPressure, selDaily.humidity, selDaily.precipitation, language) : undefined;
+  // Hourly trend: change vs. the current hour; at "now", the change over the whole 24 h window
+  const nowPressure = hourlyChartData[nowHourIdx]?.pressure ?? 0;
+  const lastPressure = hourlyChartData[hourlyChartData.length - 1]?.pressure ?? 0;
+  const hourlyDelta = activeIdx === nowHourIdx ? lastPressure - nowPressure : (sel?.pressure ?? 0) - nowPressure;
+  const trendArrow = hourlyDelta > 0 ? '↑' : hourlyDelta < 0 ? '↓' : '→';
+  const selHeader = viewMode === 'daily'
+    ? (selDaily ? capitalize(new Date(selDaily.date).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })) : '')
+    : (hourlyChartData[activeIdx] ? `${capitalize(hourlyChartData[activeIdx].dayLong)} ${hourlyChartData[activeIdx].name}` : '');
+  const selStatus = viewMode === 'daily'
+    ? (selDailyPoint?.isToday ? t('label.today') : selDailyPoint?.isPast ? t('chart.past') : t('chart.forecast'))
+    : (activeIdx === nowHourIdx ? t('chart.now') : null);
 
   return (
     <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl py-5 px-0.5 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
@@ -96,13 +366,13 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
         
         <div className="bg-white/10 p-0.5 rounded-full flex gap-1 border border-white/5 backdrop-blur-md">
           <button 
-            onClick={() => setViewMode('daily')}
+            onClick={() => switchView('daily')}
             className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all duration-300 ${viewMode === 'daily' ? 'bg-white text-slate-900 shadow-md' : 'text-white hover:bg-white/5'}`}
           >
             {isEn ? 'Daily' : 'Diario'}
           </button>
           <button 
-            onClick={() => setViewMode('hourly')}
+            onClick={() => switchView('hourly')}
             className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all duration-300 ${viewMode === 'hourly' ? 'bg-white text-slate-900 shadow-md' : 'text-white hover:bg-white/5'}`}
           >
             {isEn ? 'Hourly' : 'Por Horas'}
@@ -200,158 +470,104 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
         </div>
       )}
 
+      {/* Detail panel for the selected chart point (sits above the chart so the finger never covers it) */}
+      {sel && (
+        <div className="mx-3 sm:mx-0 mt-3 bg-white/5 border border-white/10 rounded-2xl px-3 py-2.5 shadow-md" aria-live="polite">
+          <div className="flex items-center justify-between gap-2 mb-1.5 h-6">
+            <span className="text-[13px] font-bold text-white truncate">{selHeader}</span>
+            {isDefaultSelection ? (
+              selStatus && <span className="text-[10px] font-bold uppercase tracking-wider text-slate-900 bg-white/90 rounded-full px-2 py-0.5 flex-shrink-0">{selStatus}</span>
+            ) : (
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {selStatus && <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{selStatus}</span>}
+                <button
+                  onClick={() => setSelectedIdx(null)}
+                  className="text-[11px] font-bold text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-full px-2.5 py-0.5 transition-colors"
+                >
+                  {viewMode === 'daily' ? t('chart.back_to_today') : t('chart.back_to_now')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pressure: the headline value for migraine risk */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-baseline gap-1 flex-shrink-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#f87171] self-center mr-0.5"></span>
+              <span className="text-2xl font-black text-red-300 leading-none">{sel.pressure}</span>
+              <span className="text-xs font-bold text-red-300/80">hPa</span>
+            </div>
+            {/* min height = two chip rows, so the panel (and the chart below it) doesn't jump while scrubbing */}
+            <div className="flex flex-wrap items-center content-center gap-1.5 min-w-0 min-h-[42px]">
+              <span className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 ${getPressureColor(sel.pressure)}`}>
+                {getPressureDescription(sel.pressure, language)}
+              </span>
+              {selDeltaAlert ? (
+                <span className={`text-[10px] font-bold tracking-wide rounded px-1.5 py-0.5 ${selDeltaAlert.bgClass}`} title={t('chart.vs_prev_day')}>
+                  {selDeltaAlert.label} {selDeltaAlert.detail}
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-200">
+                  {trendArrow} {hourlyDelta > 0 ? '+' : ''}{hourlyDelta} hPa <span className="font-medium text-slate-400">{activeIdx === nowHourIdx ? t('chart.next_24h') : t('chart.vs_now')}</span>
+                </span>
+              )}
+              {selMigraine && (
+                <span className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 ${selMigraine.bgClass}`} title={selMigraine.detail}>
+                  🧠 {selMigraine.label} · {selMigraine.score}/6
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Other series, each with the swatch used in the chart */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <div className="flex flex-col min-w-0">
+              <span className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-1 rounded-full bg-[#fcd34d] flex-shrink-0"></span>{t('label.temp')}</span>
+              <span className="text-sm font-black text-amber-300 leading-tight">{Math.round(selTemp)}°C</span>
+              {selComfort && (
+                <span className={`self-start mt-0.5 px-1 py-px rounded text-[9px] font-bold uppercase tracking-wider leading-none ${selComfort.bgClass} ${selComfort.bgClass.includes('text-white') ? '' : 'text-slate-900'}`} title={`${t('label.fatigue_calc')}: ${selComfort.label}`}>
+                  {selComfort.shortLabel}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: selHumidityBand.color }}></span>{t('label.humidity')}</span>
+              <span className="text-sm font-black text-white leading-tight">{sel.humidity}%</span>
+              <span className="text-[10px] font-semibold text-slate-300 leading-tight">{t(selHumidityBand.key)}</span>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-px border-t-2 border-dashed border-[#38bdf8] flex-shrink-0"></span>{t('label.wind')}</span>
+              <span className="text-sm font-black text-[#38bdf8] leading-tight whitespace-nowrap">{sel.wind} <span className="text-[10px] font-bold">km/h</span></span>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#a5b4fc]/60 flex-shrink-0"></span>{t('label.rain')}</span>
+              <span className="text-sm font-black text-indigo-300 leading-tight whitespace-nowrap">{sel.precip} <span className="text-[10px] font-bold">mm</span></span>
+              {selHourly && selHourly.precipProbability > 0 && (
+                <span className="text-[10px] font-semibold text-violet-300 leading-tight">🌂 {selHourly.precipProbability}%</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Multi-Line Composed Chart */}
-      <div className={`w-full mt-4 -ml-1 ${viewMode === 'daily' ? 'h-40 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]' : 'h-40 overflow-hidden px-3 sm:px-4'}`}>
+      <div className={`w-full mt-3 h-[184px] overflow-hidden touch-pan-y ${viewMode === 'daily' ? '' : 'px-3 sm:px-4'}`}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
-            <defs>
-              <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2} />
-              </linearGradient>
-              <linearGradient id="humidityGradient" x1="0" y1="0" x2="1" y2="0">
-                {chartData.map((d, i) => {
-                  const offset = `${(i / (Math.max(1, chartData.length - 1))) * 100}%`;
-                  let color = '#fbbf24'; // Amarillo (seco)
-                  if (d.humidity >= 85) color = '#7e22ce'; // Morado fuerte (saturado)
-                  else if (d.humidity >= 70) color = '#2563eb'; // Azul fuerte
-                  else if (d.humidity >= 50) color = '#34d399'; // Verde
-                  return <stop key={i} offset={offset} stopColor={color} />;
-                })}
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="name" hide />
+          {/* Keyed by view so the tooltip index from one view doesn't carry over into the other */}
+          <ComposedChart key={viewMode} data={chartData} margin={CHART_MARGIN} barCategoryGap={2}>
+            {chartLayers}
 
-            <YAxis yAxisId="pressure" hide domain={[minPressure, maxPressure]} />
-            <YAxis yAxisId="temp" hide domain={[minTemp, maxTemp]} />
-            <YAxis yAxisId="humidity" hide domain={[0, 100]} />
-            <YAxis yAxisId="precip" hide domain={[0, 'dataMax + 15']} />
-            <YAxis yAxisId="bg" hide domain={[0, 100]} />
-            <YAxis yAxisId="wind" hide domain={[0, 'dataMax + 10']} />
-
-            {/* Interactive Tooltip */}
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-2.5 rounded-xl text-[10px] sm:text-xs shadow-xl flex flex-col gap-1 text-white">
-                      <p className="font-extrabold text-slate-300 border-b border-slate-700/50 pb-1 mb-1">{data.name}</p>
-                      <p className="flex justify-between gap-4">
-                        <span className="text-red-400 font-bold">{t('label.pressure')}:</span>
-                        <span className="font-black">{data.pressure} hPa</span>
-                      </p>
-                      <p className="flex justify-between gap-4">
-                        <span className="text-amber-300 font-bold">{t('label.temp')}:</span>
-                        <span className="font-black">{data.temp}°C</span>
-                      </p>
-                      <p className="flex justify-between gap-4">
-                        <span className="text-sky-300 font-bold">{t('label.humidity')}:</span>
-                        <span className="font-black">{data.humidity}%</span>
-                      </p>
-                      {data.wind > 0 && (
-                        <p className="flex justify-between gap-4">
-                          <span className="text-sky-300 font-bold">{t('label.wind')}:</span>
-                          <span className="font-black">{data.wind} km/h</span>
-                        </p>
-                      )}
-                      {data.precipProb > 0 && (
-                        <p className="flex justify-between gap-4">
-                          <span className="text-violet-300 font-bold">{isEn ? 'Prob.:' : 'Prob.:'}</span>
-                          <span className="font-black">{data.precipProb}%</span>
-                        </p>
-                      )}
-                      {data.precip > 0 && (
-                        <p className="flex justify-between gap-4">
-                          <span className="text-indigo-300 font-bold">{t('label.rain')}:</span>
-                          <span className="font-black">{data.precip} mm</span>
-                        </p>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-
-            {/* Fondo Dinámico de Humedad (Aurora) */}
-            <Area
-              yAxisId="bg"
-              type="monotone"
-              dataKey="bgValue"
-              stroke="none"
-              fill="url(#humidityGradient)"
-              fillOpacity={0.25}
-              isAnimationActive={false}
-              activeDot={false}
-            />
-
-            {/* Precipitación: Columnas (Fondo) */}
-            <Bar
-              yAxisId="precip"
-              dataKey="precip"
-              fill="#a5b4fc"
-              opacity={0.5}
-              radius={[4, 4, 0, 0]}
-            />
-
-            {/* Presión: Area y Línea Roja */}
-            <Area
-              yAxisId="pressure"
-              type="monotone"
-              dataKey="pressure"
-              stroke="#f87171"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#colorPressure)"
-              dot={{ r: 3, fill: "#f87171", strokeWidth: 1, stroke: "#1e293b" }}
-              activeDot={{ r: 5 }}
-            />
-            {/* Temperatura: Línea Amarilla */}
-            <Line
-              yAxisId="temp"
-              type="monotone"
-              dataKey="temp"
-              stroke="#fcd34d"
-              strokeWidth={2}
-              dot={{ r: 2, fill: "#fcd34d", strokeWidth: 1, stroke: "#1e293b" }}
-            />
-            {/* Viento: Línea Azul */}
-            <Line
-              yAxisId="wind"
-              type="monotone"
-              dataKey="wind"
-              stroke="#38bdf8"
-              strokeWidth={1.5}
-              strokeDasharray="5 3"
-              dot={false}
-            />
+            {/* Selected point marker (persists after the finger lifts) */}
+            {sel && <SelectionMarker index={activeIdx} pressure={sel.pressure} />}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Bottom row: Day/Time names */}
-      {viewMode === 'daily' ? (
-        <div className="flex justify-between w-full px-2 mt-2">
-          {chartData.map((d, idx) => (
-            <div key={idx} className="flex-1 flex justify-center">
-              <span className={`text-xs drop-shadow-sm ${d.name === 'HOY' || d.name === 'TODAY' ? 'font-black tracking-widest text-white opacity-100' : 'capitalize opacity-90'}`}>
-                {d.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex justify-between w-full px-4 mt-2 text-[8px] sm:text-[10px] text-slate-400 font-medium">
-          <span>{chartData[0]?.name}</span>
-          <span>{chartData[Math.floor(chartData.length / 2)]?.name}</span>
-          <span>{chartData[chartData.length - 1]?.name}</span>
-        </div>
-      )}
-
       {/* Guía de Lectura del Gráfico */}
       <div className="mt-5 pt-4 px-4 border-t border-slate-700/50 text-[10px] sm:text-xs">
         <h4 className="font-bold text-slate-400 mb-2 uppercase tracking-wider text-[9px]">{t('label.how_to_interpret')}</h4>
+        <p className="text-slate-300 mb-1">{t('chart.hint')}</p>
+        <p className="text-slate-400 mb-3">{t('chart.scale_note')}</p>
         <div className="flex flex-col gap-y-2 opacity-90">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-gradient-to-b from-[#ef4444]/40 to-transparent border-t-2 border-[#f87171] flex-shrink-0"></span>
