@@ -9,7 +9,21 @@ import {
   CloudFog,
   CloudDrizzle,
 } from 'lucide-react';
-import type { Language } from '../context/LanguageContext';
+import type { Language } from '../hooks/useLanguage';
+
+export type WeatherCondition = 'clear' | 'partly-cloudy' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
+
+/** Map WMO weather codes to a WeatherCondition for the SVG animation layer. */
+export function wmoToCondition(code: number): WeatherCondition {
+  if (code === 0) return 'clear';
+  if (code <= 2) return 'partly-cloudy';
+  if (code === 3) return 'cloudy';
+  if (code === 45 || code === 48) return 'fog';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if (code === 95 || code === 96 || code === 99) return 'storm';
+  if (code >= 51) return 'rain';
+  return 'clear';
+}
 
 export function getWeatherInfo(code: number, lang: Language = 'es', isNight = false) {
   const isEn = lang === 'en';
@@ -161,6 +175,19 @@ export function getMigraineRisk(deltaP: number, pressure: number, humidity: numb
   if (riskScore >= 3) return { label: isEn ? 'MOD' : 'MOD', detail: isEn ? 'Moderate risk' : 'Riesgo moderado', bgClass: 'bg-orange-500 text-white', reasons, score: riskScore };
   if (riskScore >= 2) return { label: isEn ? 'LOW' : 'BAJO', detail: isEn ? 'Mild risk' : 'Riesgo leve', bgClass: 'bg-yellow-400 text-slate-900', reasons, score: riskScore };
   return { label: isEn ? 'MINIMAL' : 'MÍNIMO', detail: isEn ? 'Stable weather (No risk)' : 'Clima estable (Sin riesgo)', bgClass: 'bg-emerald-500 text-slate-900', reasons, score: riskScore };
+}
+
+export type GustLevel = 'breezy' | 'strong' | 'gale' | 'storm';
+
+// Minimum gust (km/h) per level — shared by the hero wind badge and the Today & Tomorrow summary
+export const GUST_THRESHOLDS: Record<GustLevel, number> = { breezy: 28, strong: 40, gale: 62, storm: 89 };
+
+export function getGustLevel(gusts: number): GustLevel | null {
+  if (gusts >= GUST_THRESHOLDS.storm) return 'storm';
+  if (gusts >= GUST_THRESHOLDS.gale) return 'gale';
+  if (gusts >= GUST_THRESHOLDS.strong) return 'strong';
+  if (gusts >= GUST_THRESHOLDS.breezy) return 'breezy';
+  return null;
 }
 
 export function getStormPotential(cape: number, lang: Language = 'es') {
