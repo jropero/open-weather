@@ -1,19 +1,6 @@
 import React from 'react';
 import type { WeatherParticles } from '../utils/weatherParticles';
-
-export type WeatherCondition = 'clear' | 'partly-cloudy' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
-
-/** Map WMO weather codes to a WeatherCondition for the SVG animation layer. */
-export function wmoToCondition(code: number): WeatherCondition {
-  if (code === 0) return 'clear';
-  if (code <= 2) return 'partly-cloudy';
-  if (code === 3) return 'cloudy';
-  if (code === 45 || code === 48) return 'fog';
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
-  if (code === 95 || code === 96 || code === 99) return 'storm';
-  if (code >= 51) return 'rain';
-  return 'clear';
-}
+import type { WeatherCondition } from '../utils/weatherCodes';
 
 /** Wind streaks composited on top of any weather condition when gusts ≥ 28 km/h. */
 interface WindStreak {

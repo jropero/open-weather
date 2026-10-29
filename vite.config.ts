@@ -48,6 +48,21 @@ export default defineConfig({
             }
           },
           {
+            // Seasonal outlook: localStorage is the primary cache; this only adds an offline fallback
+            urlPattern: /^https:\/\/seasonal-api\.open-meteo\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'open-meteo-seasonal-cache',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
             urlPattern: /^https:\/\/geocoding-api\.open-meteo\.com\/.*/i,
             handler: 'CacheFirst',
             options: {

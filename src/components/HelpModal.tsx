@@ -1,5 +1,5 @@
 import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge, BarChart3, AlertTriangle, Wind, Leaf, Bell } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface HelpModalProps {
   isOpen: boolean;

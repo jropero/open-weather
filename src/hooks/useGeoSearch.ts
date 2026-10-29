@@ -21,14 +21,11 @@ export function useGeoSearch(query: string): UseGeoSearchResult {
   const [results, setResults] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Too-short queries don't search; their empty state is derived below instead of set from the effect
+  const isTooShort = query.trim().length < 2;
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (isTooShort) return;
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -60,7 +57,8 @@ export function useGeoSearch(query: string): UseGeoSearchResult {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [query, isTooShort]);
 
+  if (isTooShort) return { results: [], loading: false, error: null };
   return { results, loading, error };
 }
