@@ -13,6 +13,14 @@ export function purgeStaleCache() {
       const key = localStorage.key(i);
       if (key?.startsWith('hist_cache_') && !key.endsWith(todayMonthDay)) {
         localStorage.removeItem(key);
+      } else if (key?.startsWith('seasonal_cache_')) {
+        // One entry per visited location (incl. custom ones) — drop those older than a day
+        try {
+          const { timestamp } = JSON.parse(localStorage.getItem(key) ?? '{}');
+          if (!(Date.now() - timestamp < PURGE_INTERVAL)) localStorage.removeItem(key);
+        } catch {
+          localStorage.removeItem(key);
+        }
       }
     }
 
