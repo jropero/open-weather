@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useLocationContext } from '../context/LocationContext';
+import { useLocationContext } from '../hooks/useLocationContext';
 import { PREDEFINED_LOCATIONS } from '../constants/locations';
 import type { Location } from '../types/weather';
 import { calculateWormholeWindSpeed, generateWormholeExplanation } from '../utils/otherLocations';
 //import type { LocationData } from '../utils/otherLocations';
-import { useLanguage, type Language } from '../context/LanguageContext';
-import { Globe, Droplets, Gauge } from 'lucide-react';
+import { useLanguage, type Language } from '../hooks/useLanguage';
+import { Globe, Droplets, Gauge, CalendarRange } from 'lucide-react';
 import { getWeatherInfo, getThomsDiscomfortIndex, getWindChillIndex } from '../utils/weatherCodes';
+import { useSeasonalTrends, type SeasonalTrend } from '../hooks/useSeasonalTrends';
+import { classifyAnomaly, getAnomalyClass, getSeasonName } from '../utils/seasonal';
+import { SeasonalAttribution } from './SeasonalAttribution';
+
+// All 12 predefined cities — the trend cache covers the active one too, so switching location needs no request
+const TREND_LOCATIONS = PREDEFINED_LOCATIONS.filter(loc => loc.id !== 'gps');
+
+const CONFIDENCE_DOTS = { high: '●●●', medium: '●●○', low: '●○○' } as const;
 
 interface OtherLocationsProps {
   currentLocation: Location;
@@ -48,8 +56,9 @@ const getPressureLevelLabel = (pressure: number, lang: Language) => {
 export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   const [otherLocationsData, setOtherLocationsData] = useState<OtherLocationData[]>([]);
   const [loading, setLoading] = useState(true);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { setCurrentLocation } = useLocationContext();
+  const { trends, load: loadTrends } = useSeasonalTrends(TREND_LOCATIONS);
 
   // Keep references to wormhole helper functions to prevent compilation/lint errors while commented out
   if (false as boolean) {
@@ -202,6 +211,58 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   */
 
   // ==========================================
+  // SEASONAL TREND (on demand, same data model as LongRangeOutlook)
+  // ==========================================
+  const trendStates = TREND_LOCATIONS.map(loc => trends[loc.id]?.status);
+  const trendsLoading = trendStates.some(s => s === 'loading');
+  const trendErrors = trendStates.filter(s => s === 'error').length;
+  const trendsIdle = trendStates.filter(s => s === undefined).length;
+  const locale = language === 'en' ? 'en-GB' : 'es-ES';
+
+  const renderTrend = (trend: SeasonalTrend | undefined) => {
+    if (!trend) return null;
+    if (trend.status === 'loading') {
+      return <div className="h-5 w-48 max-w-full rounded-full bg-slate-200 animate-pulse" aria-label={t('seasonal.compact.loading')} />;
+    }
+    if (trend.status === 'error') {
+      return <span className="text-[10px] font-bold text-amber-800">⚠ {t('seasonal.compact.error')}</span>;
+    }
+    const { season: period, zone } = trend;
+    const season = period.season!;
+    const name = getSeasonName(season.key, zone);
+    const fmtMonth = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' });
+    const seasonLabel = name ? t(`seasonal.season.${name}`) : `${fmtMonth(period.start)}–${fmtMonth(period.end)}`;
+    const partial = season.months.length < season.monthsExpected;
+    const chips = (['temperature', 'precipitation'] as const).map(variable => {
+      const d = classifyAnomaly(variable, period.values[variable], period.days);
+      if (!d) return null;
+      const word = d.level === 0 ? t('seasonal.word.normal') : t(`seasonal.word.${variable}.${d.level > 0 ? 'above' : 'below'}`);
+      return (
+        <span key={variable} className={`px-2 py-0.5 rounded-full font-bold leading-tight ${getAnomalyClass(variable, d.level, 'light')}`}>
+          <span aria-hidden="true">{variable === 'temperature' ? '🌡' : '💧'}</span>{' '}
+          <span className="sr-only">{t(`seasonal.var.${variable}`)}: </span>
+          {d.value}{d.unit} {word}
+        </span>
+      );
+    });
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+        <span className="font-bold text-slate-700 capitalize">{seasonLabel}</span>
+        <span className="text-slate-600" title={`${t('seasonal.confidence')}: ${t(`seasonal.confidence.${period.confidence}`)}`}>
+          <span aria-hidden="true">{CONFIDENCE_DOTS[period.confidence]}</span>
+          <span className="sr-only">{t('seasonal.confidence')}: {t(`seasonal.confidence.${period.confidence}`)}</span>
+        </span>
+        {partial && (
+          <span className="font-bold text-amber-800" title={t('seasonal.coverage_partial')}>
+            ⚠ {t('seasonal.coverage').replace('{n}', String(season.months.length)).replace('{m}', String(season.monthsExpected))}
+          </span>
+        )}
+        {chips}
+      </div>
+    );
+  };
+
+  // ==========================================
   // NEW COMPACT OTHER LOCATIONS WEATHER VIEW
   // ==========================================
   return (
@@ -210,6 +271,36 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
         <Globe className="inline-block mr-2 text-indigo-500" size={18} />
         {language === 'en' ? 'Weather in Other Locations' : 'El Clima en Otras Ubicaciones'}
       </h3>
+
+      {/* Seasonal trend control — no request until the user clicks */}
+      <div className="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-2.5 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="min-w-0">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <CalendarRange size={14} className="text-indigo-500 shrink-0" />
+              {t('seasonal.compact.title')}
+            </span>
+            <span className="block text-[10px] text-slate-600">{t('seasonal.compact.hint')}</span>
+          </div>
+          {trendsLoading ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700" role="status">
+              <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600" />
+              {t('seasonal.compact.loading')}
+            </span>
+          ) : trendsIdle > 0 || trendErrors > 0 ? (
+            <button
+              type="button"
+              onClick={loadTrends}
+              className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-bold shadow-sm hover:bg-indigo-700 transition-colors"
+            >
+              {trendsIdle === 0 ? t('seasonal.retry') : t('seasonal.compact.load')}
+            </button>
+          ) : (
+            <span className="text-[10px] font-semibold text-slate-600">✓ {t('seasonal.compact.cached')}</span>
+          )}
+        </div>
+        <SeasonalAttribution variant="compact" />
+      </div>
 
       <div className="flex flex-col gap-2">
         {otherLocationsData.map(({ location, weather, error }) => {
@@ -226,7 +317,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
           return (
             <div 
               key={location.id} 
-              className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+              className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
               onClick={() => setCurrentLocation(location)}
             >
               {/* Line 1: Location details & Current conditions */}
@@ -290,6 +381,13 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                   )}
                 </div>
               </div>
+
+              {/* Line 3: Seasonal trend (only after the user loaded it) */}
+              {trends[location.id] && (
+                <div className="w-full border-t border-slate-100 pt-2">
+                  {renderTrend(trends[location.id])}
+                </div>
+              )}
             </div>
           );
         })}
