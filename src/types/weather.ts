@@ -62,6 +62,24 @@ export interface HourlyWeather {
   cape: number;
 }
 
+// Hourly values for the Today & Tomorrow summary — nulls are kept so missing data is never read as 0
+export interface SummaryHour {
+  time: string; // UTC, parse with +Z
+  temperature: number | null;
+  apparentTemperature: number | null;
+  precipitation: number | null;
+  precipProbability: number | null;
+  snowfall: number | null;
+  weatherCode: number | null;
+  windGusts: number | null;
+}
+
+// Waking hours in the location's local time; `end` is exclusive (07–23 covers the 07:00…22:00 hour slots)
+export interface WakingWindow {
+  start: number; // 0–23
+  end: number;   // start+1 … 24
+}
+
 export interface AirQualityData {
   currentAqi: number | null;
   currentPm25: number | null;
@@ -78,7 +96,60 @@ export interface WeatherData {
   current: CurrentWeather;
   daily: DailyWeather[];
   hourly: HourlyWeather[];
+  summaryHours: SummaryHour[]; // current hour −25 h … +50 h (covers today and tomorrow in any timezone)
+  timezone: string | null;     // IANA timezone of the location, from the timezone=auto daily response
   historical: HistoricalWeather[];
   pressureTrend: PressureTrend | null;
   airQuality: AirQualityData | null;
+}
+
+// --- Long-range outlook (Open-Meteo Seasonal API: ECMWF EC46 weekly + SEAS5 monthly) ---
+
+export type SeasonalVariable = 'temperature' | 'precipitation' | 'pressure' | 'sunshine' | 'snowfall';
+export type SeasonKey = 'DJF' | 'MAM' | 'JJA' | 'SON';
+export type SeasonName = 'winter' | 'spring' | 'summer' | 'autumn';
+export type ClimateZone = 'north' | 'south' | 'tropical';
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+export interface SeasonalValue {
+  mean: number | null;      // period mean (temp °C, pressure hPa) or period total (precip mm, sunshine s, snow cm)
+  anomaly: number | null;   // forecast minus the model's hindcast climatology, same unit as mean
+  probAbove: number | null; // % of ensemble members with anomaly > 0 (weekly temp/precip/pressure only)
+}
+
+export interface SeasonalRawPeriod {
+  start: string; // YYYY-MM-DD — Monday (weekly) or 1st of month (monthly)
+  values: Record<SeasonalVariable, SeasonalValue>;
+}
+
+export interface SeasonalForecastData {
+  weekly: SeasonalRawPeriod[];
+  monthly: SeasonalRawPeriod[];
+}
+
+export interface SeasonInfo {
+  key: SeasonKey;
+  kind: 'rest' | 'next';
+  months: string[];       // start dates of the months that have data
+  monthsExpected: number; // months the column should cover (rest of season can be < 3)
+}
+
+export interface SeasonalPeriod {
+  start: string;
+  end: string; // inclusive
+  days: number;
+  inProgress: boolean; // started before today
+  values: Record<SeasonalVariable, SeasonalValue>;
+  confidence: ConfidenceLevel;
+  agreement: number | null; // weekly only: mean ensemble agreement on the anomaly sign, %
+  season?: SeasonInfo;
+}
+
+export interface SeasonalOutlook {
+  weeks: SeasonalPeriod[];
+  months: SeasonalPeriod[];
+  seasons: SeasonalPeriod[]; // [rest of current season, next full season]
+  zone: ClimateZone;
+  today: string;
+  seas5Issue: string | null; // first monthly entry = SEAS5 issue month
 }
