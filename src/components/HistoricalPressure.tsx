@@ -1,6 +1,6 @@
 import type { HistoricalWeather } from '../types/weather';
 import { getWeatherInfo } from '../utils/weatherCodes';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface HistoricalPressureProps {
   historical: HistoricalWeather[];

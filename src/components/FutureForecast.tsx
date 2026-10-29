@@ -1,7 +1,7 @@
 
 import type { DailyWeather } from '../types/weather';
 import { getWeatherInfo, getThomsDiscomfortIndex, getWindChillIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface FutureForecastProps {
   daily: DailyWeather[];

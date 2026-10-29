@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useLocationContext } from '../context/LocationContext';
+import { useLocationContext } from '../hooks/useLocationContext';
 import { PREDEFINED_LOCATIONS } from '../constants/locations';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useGeoSearch } from '../hooks/useGeoSearch';
 import { X, MapPin, Navigation, Plus, Trash2, Loader } from 'lucide-react';
-import { useLanguage, type Language } from '../context/LanguageContext';
+import { useLanguage, type Language } from '../hooks/useLanguage';
 import type { Location } from '../types/weather';
 
 interface LocationSelectorProps {

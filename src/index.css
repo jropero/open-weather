@@ -43,6 +43,11 @@ body {
   min-height: 100vh;
 }
 
+/* No page scroll behind an open modal <dialog> */
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
 .icon-glow {
   filter: drop-shadow(0 0 6px currentColor);
 }

@@ -138,7 +138,7 @@ export function generateWormholeExplanation(
   }
 
   // 2. Parte 1: Prefijo de Intensidad (switch simple basado solo en velocidad)
-  let intensity = "";
+  let intensity: string;
   if (lang === 'en') {
     if (speed < 50) {
       intensity = "Barely a breeze (0-50 km/h).";
@@ -166,7 +166,7 @@ export function generateWormholeExplanation(
   }
 
   // 3. Parte 2: El Motor Principal (Determinar qué fuerza empuja más)
-  let engine = "";
+  let engine: string;
   if (lang === 'en') {
     if (deltaAlt > 100 && deltaPmsl <= 8) {
       // Condición A (Mucha Altitud, Clima normal)
