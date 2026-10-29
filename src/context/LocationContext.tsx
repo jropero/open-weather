@@ -1,16 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Location } from '../types/weather';
 import { PREDEFINED_LOCATIONS } from '../constants/locations';
-
-interface LocationContextType {
-  currentLocation: Location;
-  setCurrentLocation: (location: Location) => void;
-  customLocations: Location[];
-  addCustomLocation: (location: Location) => void;
-  deleteCustomLocation: (id: string) => void;
-}
-
-const LocationContext = createContext<LocationContextType | undefined>(undefined);
+import { LocationContext } from '../hooks/useLocationContext';
 
 function loadCustomLocations(): Location[] {
   try {
@@ -78,12 +69,4 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       {children}
     </LocationContext.Provider>
   );
-}
-
-export function useLocationContext() {
-  const context = useContext(LocationContext);
-  if (context === undefined) {
-    throw new Error('useLocationContext must be used within a LocationProvider');
-  }
-  return context;
 }
