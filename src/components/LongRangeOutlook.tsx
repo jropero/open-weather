@@ -30,6 +30,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   const [tier, setTier] = useState<Tier>('weeks');
   const [expanded, setExpanded] = useState(true);
   const [selected, setSelected] = useState<{ col: number; variable: SeasonalVariable } | null>(null);
+  const [showAbsolute, setShowAbsolute] = useState(false);
 
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
@@ -123,12 +124,14 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
           type="button"
           onClick={() => setSelected(isSel ? null : { col, variable })}
           aria-pressed={isSel}
-          aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${d.value}${d.unit}, ${word}`}
+          aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${showAbsolute ? formatAbsolute(variable, mean) : `${d.value}${d.unit}`}, ${word}`}
           title={`${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
           className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''}`}
         >
           <span className="text-xs font-black leading-none whitespace-nowrap">
-            {d.value}<span className="text-[9px] font-bold ml-px">{d.unit}</span>
+            {showAbsolute
+              ? formatAbsolute(variable, mean)
+              : <>{d.value}<span className="text-[9px] font-bold ml-px">{d.unit}</span></>}
           </span>
           <span className="text-[9px] font-semibold leading-tight mt-0.5 whitespace-nowrap">{word}</span>
         </button>
@@ -138,7 +141,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
   const renderDetail = () => {
     if (!selected || !periods[selected.col]) {
-      return <p className="text-[11px] text-slate-300 mt-2 px-1">{t('seasonal.tap_hint')}</p>;
+      return <p className="text-[11px] text-slate-300 mt-2 px-1">{t(showAbsolute ? 'seasonal.tap_hint.absolute' : 'seasonal.tap_hint')}</p>;
     }
     const p = periods[selected.col];
     const v = selected.variable;
@@ -197,6 +200,24 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
                 {t(`seasonal.tier.${key}`)}
               </button>
             ))}
+          </div>
+
+          {/* Anomaly / Value toggle */}
+          <div className="flex items-center justify-end gap-1.5 mb-3 -mt-1">
+            <span className="text-[10px] text-slate-400 font-medium">{t('seasonal.view.anomaly')} / {t('seasonal.view.absolute')}:</span>
+            <div className="flex rounded-full bg-white/10 p-0.5 gap-0.5 border border-white/5">
+              {(['anomaly', 'absolute'] as const).map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setShowAbsolute(mode === 'absolute')}
+                  aria-pressed={showAbsolute === (mode === 'absolute')}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-200 ${showAbsolute === (mode === 'absolute') ? 'bg-white text-slate-900 shadow' : 'text-slate-300 hover:text-white'}`}
+                >
+                  {mode === 'anomaly' ? 'Δ' : t('seasonal.view.absolute')}
+                </button>
+              ))}
+            </div>
           </div>
 
           {loading ? (
