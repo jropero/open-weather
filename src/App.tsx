@@ -932,8 +932,8 @@ function WeatherDashboard() {
                 </div>
               )}
 
-              {/* Group: Conditions (night type, frost, storm potential) */}
-              {(nightType || frostType || stormPotential) && (
+              {/* Group: Conditions (night type, frost, storm potential, fog) */}
+              {(nightType || frostType || stormPotential || wmoCondition === 'fog') && (
                 <div className="flex flex-wrap justify-center gap-2">
                   {nightType && (
                     <div
@@ -990,6 +990,16 @@ function WeatherDashboard() {
                       <span>⛈️</span>
                       <span>
                         {isEn ? "Storm" : "Tormenta"}: {stormPotential.label}
+                      </span>
+                    </div>
+                  )}
+                  {wmoCondition === 'fog' && (
+                    <div className="rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md bg-zinc-500/30 border-zinc-400/40 text-white">
+                      <span>🌫️</span>
+                      <span>
+                        {data.current.weatherCode === 48
+                          ? (isEn ? "Rime fog" : "Niebla helada")
+                          : (isEn ? "Fog" : "Niebla")}
                       </span>
                     </div>
                   )}

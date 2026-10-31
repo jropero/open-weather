@@ -26,11 +26,23 @@ export function useWeather(location: Location) {
         const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&timezone=UTC${modelParam}`;
         // Fetch 2 (auto): all daily variables including sunrise/sunset — utc_offset_seconds in the response lets us convert sunrise/sunset back to UTC strings
         const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&past_days=8&timezone=auto${modelParam}`;
+        // Fetch 3: current weather_code only from the global model (no models= param).
+        // MeteoSwiss ICON-CH2 consistently misclassifies fog (code 45) as overcast (code 3); the global
+        // model is more reliable for WMO fog detection. All other current/hourly values still come from
+        // the MeteoSwiss model when available.
+        const globalCodeUrl = modelParam
+          ? `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=weather_code&timezone=UTC`
+          : null;
 
-        const [resCurrent, resDaily] = await Promise.all([fetch(currentUrl), fetch(dailyUrl)]);
+        const fetches: Promise<Response>[] = [fetch(currentUrl), fetch(dailyUrl)];
+        if (globalCodeUrl) fetches.push(fetch(globalCodeUrl));
+        const [resCurrent, resDaily, resGlobalCode] = await Promise.all(fetches);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
         if (!resDaily.ok) throw new Error('Error fetching daily weather data');
         const [currentData, dailyData] = await Promise.all([resCurrent.json(), resDaily.json()]);
+        const globalCodeData = (resGlobalCode && resGlobalCode.ok) ? await resGlobalCode.json() : null;
+        // Use global model weather_code if available (better fog detection); fall back to MeteoSwiss code
+        const currentWeatherCode: number = globalCodeData?.current?.weather_code ?? currentData.current.weather_code;
 
         // sunrise/sunset come back as local-time strings from timezone=auto.
         // Convert to UTC-equivalent strings so existing +Z parsing in App.tsx / DailyForecast stays correct.
@@ -131,7 +143,7 @@ export function useWeather(location: Location) {
           current: {
             temperature: currentData.current.temperature_2m,
             humidity: currentData.current.relative_humidity_2m,
-            weatherCode: currentData.current.weather_code,
+            weatherCode: currentWeatherCode,
             windSpeed: currentData.current.wind_speed_10m,
             windGusts: currentData.current.wind_gusts_10m ?? 0,
             windDirection: currentData.current.wind_direction_10m,
