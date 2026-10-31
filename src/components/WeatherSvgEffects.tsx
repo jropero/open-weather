@@ -165,10 +165,10 @@ const WeatherSvgEffects: React.FC<Props> = ({
               <stop offset="100%" stopColor="#e5e7eb" stopOpacity={0.95} />
             </linearGradient>
           </defs>
-          <rect x="-10" y="80" width="320" height="130" fill={`url(#${fogGradientId})`} opacity={0.85} />
-          <ellipse cx="70"  cy="75"  rx="130" ry="14" fill="#e5e7eb" opacity={0.5}  className="anim-cloud-slow" />
-          <ellipse cx="220" cy="65"  rx="110" ry="11" fill="#f3f4f6" opacity={0.4}  className="anim-cloud-fast" />
-          <ellipse cx="150" cy="90"  rx="160" ry="16" fill="#e5e7eb" opacity={0.55} className="anim-cloud-slow" />
+          <rect x="-10" y="55" width="320" height="155" fill={`url(#${fogGradientId})`} opacity={0.85} />
+          <ellipse cx="70"  cy="50"  rx="130" ry="14" fill="#e5e7eb" opacity={0.5}  className="anim-cloud-slow" />
+          <ellipse cx="220" cy="40"  rx="110" ry="11" fill="#f3f4f6" opacity={0.4}  className="anim-cloud-fast" />
+          <ellipse cx="150" cy="65"  rx="160" ry="16" fill="#e5e7eb" opacity={0.55} className="anim-cloud-slow" />
         </g>
       )}
 

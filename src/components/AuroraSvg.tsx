@@ -46,31 +46,31 @@ const HUE_BRIGHT = '#6ee7b7;#6ee7b7;#5eead4;#c4b5fd;#fda4af;#c4b5fd;#5eead4;#6ee
 // Back to front: far curtains first.
 const CURTAINS: Curtain[] = [
   { // high red — real aurora is red above the green band
-    x0: -40, x1: 340, base: 50, height: 34, rayLen: 22, rayDash: '0.7 3.1 1.4 4.6 0.5 2.4 1.9 5.2',
+    x0: -40, x1: 340, base: 30, height: 34, rayLen: 22, rayDash: '0.7 3.1 1.4 4.6 0.5 2.4 1.9 5.2',
     waves: [{ amp: 5, freq: 1.1, speed: 1, offset: 0.3 }, { amp: 2.2, freq: 2.6, speed: -1, offset: 1.7 }],
     opacity: 0.34, morphS: 27, swayS: 37, swayX: 3, swaySkew: 0.8,
     colors: { top: '#be123c', main: '#e11d48', bright: '#fb7185' },
   },
   { // blue, right half
-    x0: 70, x1: 360, base: 70, height: 40, rayLen: 26, rayDash: '0.9 2.7 1.6 3.9 0.6 3.3 2.1 4.4',
+    x0: 70, x1: 360, base: 50, height: 40, rayLen: 26, rayDash: '0.9 2.7 1.6 3.9 0.6 3.3 2.1 4.4',
     waves: [{ amp: 6, freq: 1.3, speed: -1, offset: 2.1 }, { amp: 2.5, freq: 3.1, speed: 1, offset: 0.4 }],
     opacity: 0.4, morphS: 22, swayS: 31, swayX: 4, swaySkew: 1,
     colors: { top: '#4338ca', main: '#6366f1', bright: '#93c5fd' },
   },
   { // mid teal-green, left
-    x0: -70, x1: 220, base: 92, height: 52, rayLen: 32, rayDash: '1 2.4 1.8 3.6 0.6 2 2.4 4.2',
+    x0: -70, x1: 220, base: 72, height: 52, rayLen: 32, rayDash: '1 2.4 1.8 3.6 0.6 2 2.4 4.2',
     waves: [{ amp: 8, freq: 1.4, speed: 1, offset: 1.1 }, { amp: 3, freq: 3.4, speed: -1, offset: 2.6 }],
     opacity: 0.55, morphS: 17, swayS: 23, swayX: 7, swaySkew: 1.6,
     colors: null, fringe: '#0e7490', hueBegin: -40,
   },
   { // mid green, right
-    x0: 40, x1: 350, base: 104, height: 60, rayLen: 36, rayDash: '0.8 2.2 2 3.2 0.6 1.8 1.4 3.8',
+    x0: 40, x1: 350, base: 84, height: 60, rayLen: 36, rayDash: '0.8 2.2 2 3.2 0.6 1.8 1.4 3.8',
     waves: [{ amp: 9, freq: 1.2, speed: -1, offset: 0.2 }, { amp: 3.5, freq: 2.9, speed: 1, offset: 1.4 }],
     opacity: 0.62, morphS: 14, swayS: 19, swayX: 8, swaySkew: 2,
     colors: null, fringe: '#047857',
   },
   { // near bright green with a pink top fringe
-    x0: -60, x1: 360, base: 122, height: 76, rayLen: 46, rayDash: '1.2 2 2.4 3 0.7 1.6 1.8 3.6',
+    x0: -60, x1: 360, base: 102, height: 76, rayLen: 46, rayDash: '1.2 2 2.4 3 0.7 1.6 1.8 3.6',
     waves: [{ amp: 11, freq: 1.5, speed: 1, offset: 2.4 }, { amp: 4, freq: 3.7, speed: -2, offset: 0.9 }],
     opacity: 0.82, morphS: 10, swayS: 13, swayX: 12, swaySkew: 2.6,
     colors: null, fringe: '#f472b6',
@@ -175,7 +175,7 @@ const AuroraSvg: React.FC<{ className?: string; style?: React.CSSProperties }> =
       </defs>
 
       {/* Ambient glow from above: fades out before any viewBox edge, so nothing clips. */}
-      <ellipse cx="150" cy="40" rx="190" ry="95" fill={`url(#${id('glow')})`} />
+      <ellipse cx="150" cy="20" rx="190" ry="95" fill={`url(#${id('glow')})`} />
 
       {CURTAINS.map((c, i) => {
         const g = GEOMETRY[i];
