@@ -115,13 +115,13 @@ export function useWeather(location: Location) {
         }
 
         // Wider hourly range for the Today & Tomorrow summary (same response, no extra request).
-        // −25 h reaches local midnight of today, +50 h reaches tomorrow 24:00 local (incl. a DST fallback hour).
+        // −25 h reaches local midnight of today, +74 h reaches day-after-tomorrow 24:00 local (incl. a DST fallback hour).
         const summaryHours: SummaryHour[] = [];
         if (currentData.hourly?.time && currentData.current?.time) {
           const h = currentData.hourly;
           const currentIndex = h.time.findIndex((t: string) => t.startsWith(currentData.current.time.substring(0, 13)));
           if (currentIndex >= 0) {
-            for (let i = Math.max(0, currentIndex - 25); i < Math.min(h.time.length, currentIndex + 51); i++) {
+            for (let i = Math.max(0, currentIndex - 25); i < Math.min(h.time.length, currentIndex + 75); i++) {
               summaryHours.push({
                 time: h.time[i],
                 temperature: h.temperature_2m?.[i] ?? null,

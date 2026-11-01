@@ -6,7 +6,7 @@ import { DEFAULT_WAKING_WINDOW, useWakingWindow } from '../hooks/useWakingWindow
 import { getAqiInfo, getPollenLevel, type GustLevel } from '../utils/weatherCodes';
 import {
   buildDaySummary, getHighlights, getTomorrowMigraine, SUMMARY_THRESHOLDS,
-  type DayPart, type Highlight, type HourRange, type NightNote, type UmbrellaVerdict,
+  type DayKey, type DayPart, type Highlight, type HourRange, type NightNote, type UmbrellaVerdict,
 } from '../utils/daySummary';
 
 interface MigraineResult {
@@ -113,7 +113,7 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
       case 'wind':
         return fill(t('summary.teaser.wind'), { level: windLabel(h.level), day, range: fmtRanges(h.ranges) });
       case 'felt':
-        return fill(t(`summary.teaser.felt.${feltKey(h.delta, h.feltMax)}`), { n: fmtSigned(h.delta) });
+        return fill(t(`summary.teaser.felt.${feltKey(h.delta, h.feltMax)}`), { n: fmtSigned(h.delta), day: t(`summary.day.${h.day}`) });
       case 'migraine':
         return fill(t('summary.teaser.migraine'), { score: h.score, day });
       case 'pressure':
@@ -128,12 +128,23 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
   };
   const teaser = highlights.length ? capitalize(highlights.map(phrase).join(' · ')) : t('summary.teaser.none');
 
-  const feltRows = (part: DayPart, day: 'today' | 'tomorrow'): ReactNode => {
+  const feltRows = (part: DayPart, day: DayKey): ReactNode => {
     if (!part.felt) return <Row icon="🌡️" title={t('summary.felt.none')} muted />;
     const range = part.felt.min === part.felt.max
       ? fill(t('summary.felt.single'), { ...part.felt })
       : fill(t('summary.felt.range'), { ...part.felt });
     if (day === 'today') return <Row icon="🌡️" title={range} />;
+
+    if (day === 'dayAfterTomorrow') {
+      const { feltDeltaDayAfter, tomorrowFelt } = summary;
+      if (feltDeltaDayAfter === null || !tomorrowFelt) return <Row icon="🌡️" title={range} detail={t('summary.felt.no_compare')} />;
+      const n = Math.abs(feltDeltaDayAfter);
+      const title = n < SUMMARY_THRESHOLDS.feltSimilar
+        ? t('summary.felt.similar')
+        : fill(t(`summary.felt.${feltKey(feltDeltaDayAfter, part.felt.max)}`), { n });
+      const detail = fill(t('summary.felt.detail'), { ...part.felt, tmin: tomorrowFelt.min, tmax: tomorrowFelt.max });
+      return <Row icon="🌡️" title={title} detail={detail} aside={n < SUMMARY_THRESHOLDS.feltSimilar ? undefined : `${fmtSigned(feltDeltaDayAfter)}°`} />;
+    }
 
     const { feltDelta, todayFelt } = summary;
     if (feltDelta === null || !todayFelt) return <Row icon="🌡️" title={range} detail={t('summary.felt.no_compare')} />;
@@ -203,6 +214,18 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
     </>
   );
 
+  const dayAfterTomorrowMigraine = getTomorrowMigraine(summary.tomorrowDaily, summary.dayAfterTomorrowDaily, language);
+  const healthRowsDayAfterTomorrow = (): ReactNode => (
+    <>
+      {!dayAfterTomorrowMigraine
+        ? <Row icon="🧠" title={t('summary.health.migraine_none')} muted />
+        : dayAfterTomorrowMigraine.score >= 2
+          ? <Row icon="🧠" title={fill(t('summary.health.migraine'), { label: dayAfterTomorrowMigraine.label, score: dayAfterTomorrowMigraine.score })} detail={dayAfterTomorrowMigraine.detail} />
+          : <Row icon="✅" title={t('summary.health.ok_tomorrow')} detail={fill(t('summary.health.ok_migraine'), { score: dayAfterTomorrowMigraine.score })} />}
+      <Row icon="🫁" title={t('summary.health.aq_tomorrow')} muted />
+    </>
+  );
+
   const nightLine = (note: NightNote | null, labelKey: string): ReactNode => {
     if (!note) return null;
     const p = note.precip;
@@ -225,7 +248,7 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
     );
   };
 
-  const section = (day: 'today' | 'tomorrow', part: DayPart | null, before?: ReactNode, after?: ReactNode) => (
+  const section = (day: DayKey, part: DayPart | null, before?: ReactNode, after?: ReactNode) => (
     <section aria-labelledby={`summary-${day}`} className="py-3 first:pt-0">
       <h3 id={`summary-${day}`} className="text-xs uppercase tracking-widest font-bold text-slate-500 mb-1">
         {t(`summary.${day}`)} {part && <span className="text-slate-400 tabular-nums normal-case tracking-normal">({fmtRange(part)})</span>}
@@ -236,7 +259,7 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
           {feltRows(part, day)}
           {umbrellaRow(part)}
           {windRow(part)}
-          {day === 'today' ? healthRowsToday() : healthRowsTomorrow()}
+          {day === 'today' ? healthRowsToday() : day === 'tomorrow' ? healthRowsTomorrow() : healthRowsDayAfterTomorrow()}
         </ul>
       ) : (
         <p className="text-sm text-slate-500 py-2">{t('summary.no_data_day')}</p>
@@ -287,7 +310,7 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 divide-y divide-slate-200">
-          {!summary.today && !summary.tomorrow ? (
+          {!summary.today && !summary.tomorrow && !summary.dayAfterTomorrow ? (
             <p className="text-sm text-slate-500">{t('summary.no_data')}</p>
           ) : (
             <>
@@ -295,6 +318,7 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
                 ? section('today', summary.today, nightLine(summary.earlyNight, 'summary.night.early'))
                 : <p className="text-xs text-slate-500 pb-3">{t('summary.today_over')}</p>}
               {section('tomorrow', summary.tomorrow, nightLine(summary.night, 'summary.night.overnight'))}
+              {section('dayAfterTomorrow', summary.dayAfterTomorrow, nightLine(summary.nightAfterTomorrow, 'summary.night.overnight'))}
             </>
           )}
         </div>
