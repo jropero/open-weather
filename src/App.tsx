@@ -684,7 +684,7 @@ function WeatherDashboard() {
                     </span>
                   )}
               </span>
-              {data.airQuality?.uvIndex != null && (() => {
+              {data.airQuality?.uvIndex != null && data.airQuality.uvIndex > 0 && (() => {
                 const uvInfo = getUvInfo(data.airQuality.uvIndex, language);
                 const uvHeroColor =
                   data.airQuality.uvIndex < 3 ? 'text-emerald-300'
