@@ -47,11 +47,41 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
   });
 
   const pollutants = [
-    { name: 'PM2.5', value: aq.aqiPm25, raw: aq.currentPm25, unit: 'μg/m³' },
-    { name: 'PM10',  value: aq.aqiPm10, raw: aq.currentPm10, unit: 'μg/m³' },
-    { name: 'NO₂',  value: aq.aqiNo2, raw: null, unit: null },
-    { name: 'O₃',   value: aq.aqiO3,  raw: null, unit: null },
-    { name: 'SO₂',  value: aq.aqiSo2, raw: null, unit: null },
+    {
+      name: 'PM2.5',
+      value: aq.aqiPm25,
+      raw: aq.currentPm25,
+      unit: 'μg/m³',
+      health: isEn ? 'fine particles · penetrate deep into lungs' : 'partículas finas · penetran en los pulmones',
+    },
+    {
+      name: 'PM10',
+      value: aq.aqiPm10,
+      raw: aq.currentPm10,
+      unit: 'μg/m³',
+      health: isEn ? 'coarse particles · irritate nose, throat & lungs' : 'partículas gruesas · irritan nariz, garganta y pulmones',
+    },
+    {
+      name: 'NO₂',
+      value: aq.aqiNo2,
+      raw: null,
+      unit: null,
+      health: isEn ? 'nitrogen dioxide · irritates airways, worsens asthma' : 'dióxido de nitrógeno · irrita bronquios, agrava el asma',
+    },
+    {
+      name: 'O₃',
+      value: aq.aqiO3,
+      raw: null,
+      unit: null,
+      health: isEn ? 'ground-level ozone · damages lung tissue on exposure' : 'ozono troposférico · daña tejido pulmonar en exposición prolongada',
+    },
+    {
+      name: 'SO₂',
+      value: aq.aqiSo2,
+      raw: null,
+      unit: null,
+      health: isEn ? 'sulphur dioxide · aggravates respiratory conditions' : 'dióxido de azufre · agrava afecciones respiratorias',
+    },
   ].filter(p => p.value !== null);
 
   const pollens = [
@@ -127,7 +157,10 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
                 return (
                   <div key={p.name} className="flex flex-col gap-0.5">
                     <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
-                      <span>{p.name}</span>
+                      <span className="flex flex-col gap-0">
+                        <span>{p.name}</span>
+                        <span className="text-[10px] text-slate-400 font-normal leading-tight">{p.health}</span>
+                      </span>
                       <span className="font-bold text-slate-800">
                         {isEn ? 'sub-AQI' : 'sub-ICA'} {p.value}
                         {p.raw !== null && p.unit ? ` · ${p.raw!.toFixed(1)} ${p.unit}` : ''}
