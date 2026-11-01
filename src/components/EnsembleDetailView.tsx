@@ -46,6 +46,7 @@ interface Props {
   period: SeasonalPeriod;
   weekIndex: number; // 0-based (0 = "Semana 1")
   initialVariable: SeasonalVariable;
+  lowConfidence: boolean;
   onClose: () => void;
 }
 
@@ -131,7 +132,7 @@ function BandLayer({
 
 // ---
 
-export function EnsembleDetailView({ location, period, weekIndex, initialVariable, onClose }: Props) {
+export function EnsembleDetailView({ location, period, weekIndex, initialVariable, lowConfidence, onClose }: Props) {
   const { language, t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [variable, setVariable] = useState<EnsembleVar>(SEASONAL_TO_ENSEMBLE[initialVariable]);
@@ -310,6 +311,15 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
           );
         })}
       </div>
+
+      {/* Low-confidence banner */}
+      {lowConfidence && (
+        <div className="px-4 pt-1 shrink-0">
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] rounded-lg px-3 py-1.5">
+            {t('ensemble.low_confidence').replace('{week}', String(weekIndex + 1))}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-5">

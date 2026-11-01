@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAllPeriodRanks } from '../hooks/useAllPeriodRanks';
 import { CalendarRange, Thermometer, CloudRain, Gauge, Sun, Snowflake, ChevronDown, type LucideIcon } from 'lucide-react';
 import type { Location, SeasonalPeriod, SeasonalVariable, ConfidenceLevel } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
@@ -35,7 +36,6 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
   const [drillTarget, setDrillTarget] = useState<{ weekIndex: number; period: SeasonalPeriod; variable: SeasonalVariable } | null>(null);
   const [climateTarget, setClimateTarget] = useState<{ period: SeasonalPeriod } | null>(null);
-  const [disabledTooltip, setDisabledTooltip] = useState<{ col: number; variable: SeasonalVariable } | null>(null);
 
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
@@ -49,6 +49,13 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   const switchTier = (next: Tier) => { setTier(next); setSelected(null); };
 
   const periods: SeasonalPeriod[] = outlook ? outlook[tier] : [];
+  const isSeasonal = tier === 'seasons';
+  const periodRanks = useAllPeriodRanks(
+    location.latitude,
+    location.longitude,
+    tier !== 'weeks' ? periods : [],
+    isSeasonal,
+  );
   const rows = SEASONAL_VARIABLES.filter(v => hasMeaningfulRow(v, periods));
   const hasAnyData = !!outlook && (outlook.weeks.length > 0 || outlook.months.length > 0);
 
@@ -124,20 +131,18 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     const { mean, anomaly } = p.values[variable];
     const normal = mean !== null && anomaly !== null ? mean - anomaly : null;
 
-    const isDrillableEnsemble = tier === 'weeks' && col <= 1;
-    const isDisabledWeek = tier === 'weeks' && col > 1;
+    const isDrillableEnsemble = tier === 'weeks';
     const isDrillableClimate = tier === 'months' || tier === 'seasons';
-    // legacy alias kept for className logic below
     const isDrillable = isDrillableEnsemble;
+
+    const periodKey = `${p.start}_${isSeasonal ? 'seas' : 'month'}`;
+    const rank = (isDrillableClimate && variable === 'temperature') ? periodRanks?.get(periodKey) : undefined;
 
     const handleClick = () => {
       if (isDrillableEnsemble) {
         setDrillTarget({ weekIndex: col, period: p, variable });
       } else if (isDrillableClimate) {
         setClimateTarget({ period: p });
-      } else if (isDisabledWeek) {
-        setDisabledTooltip({ col, variable });
-        setTimeout(() => setDisabledTooltip(null), 2500);
       } else {
         setSelected(isSel ? null : { col, variable });
       }
@@ -145,17 +150,12 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
     return (
       <td key={col} className="p-0 relative">
-        {isDisabledWeek && disabledTooltip?.col === col && disabledTooltip?.variable === variable && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-slate-700 text-white text-[9px] font-semibold rounded px-2 py-1 pointer-events-none shadow-lg">
-            {t('ensemble.disabled')}
-          </div>
-        )}
         <button
           type="button"
           onClick={handleClick}
           aria-pressed={isSel}
           aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${d.value}${d.unit}, ${word}`}
-          title={isDrillable ? t('ensemble.disabled').replace('solo disponibles para las 2 primeras semanas', '— ver modelos individuales') : `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
+          title={isDrillable ? `${t('ensemble.week')} ${col + 1}` : `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
           className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''} ${isDrillable || isDrillableClimate ? 'ring-1 ring-inset ring-white/30' : ''}`}
         >
           <span className="text-xs font-black leading-none whitespace-nowrap">
@@ -164,6 +164,11 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
           <span className="text-[9px] font-semibold leading-tight mt-0.5 whitespace-nowrap">{word}</span>
           {isDrillable && <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ modelos</span>}
           {isDrillableClimate && <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ historia</span>}
+          {rank && rank.above > 0 && rank.above < rank.total && (
+            <span className="text-[7px] leading-none mt-0.5 opacity-60 tabular-nums">
+              {rank.above}/{rank.total}
+            </span>
+          )}
         </button>
       </td>
     );
@@ -202,6 +207,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
         period={drillTarget.period}
         weekIndex={drillTarget.weekIndex}
         initialVariable={drillTarget.variable}
+        lowConfidence={drillTarget.weekIndex >= 2}
         onClose={() => setDrillTarget(null)}
       />
     )}

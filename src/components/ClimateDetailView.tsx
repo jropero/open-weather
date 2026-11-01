@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { BarChart, Bar, Cell, LabelList, XAxis, YAxis, ReferenceLine, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Cell, LabelList, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer } from 'recharts';
 import { X, Thermometer, CloudRain, Gauge, Sun, Snowflake, type LucideIcon } from 'lucide-react';
 import type { Location, SeasonalPeriod, SeasonalVariable, SeasonKey } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
@@ -100,7 +100,7 @@ function comparisonLabel(
 
 // ---- Mini bar chart -------------------------------------------------------
 
-type BarEntry = { year: string; value: number | null; isForecast: boolean };
+type BarEntry = { year: string; value: number | null; isForecast: boolean; trendValue?: number | null };
 
 function MiniBarChart({
   years, values, forecastValue, climMean, color, variable,
@@ -134,6 +134,20 @@ function MiniBarChart({
     data.push({ year: 'S5', value: forecastValue, isForecast: true });
   }
 
+  // Linear regression over historical bars only
+  const histData = data.filter(d => !d.isForecast && d.value !== null);
+  const n = histData.length;
+  if (n >= 2) {
+    const xMean = (n - 1) / 2;
+    const yMean = histData.reduce((s, d) => s + (d.value as number), 0) / n;
+    const denom = histData.reduce((s, _, i) => s + (i - xMean) ** 2, 0);
+    const slope = denom !== 0
+      ? histData.reduce((s, d, i) => s + (i - xMean) * ((d.value as number) - yMean), 0) / denom
+      : 0;
+    const intercept = yMean - slope * xMean;
+    histData.forEach((d, i) => { d.trendValue = intercept + slope * i; });
+  }
+
   const allValues = data.map(d => d.value).filter((v): v is number => v !== null);
   const minVal = allValues.length ? Math.min(...allValues) : 0;
   const maxVal = allValues.length ? Math.max(...allValues) : 1;
@@ -144,7 +158,7 @@ function MiniBarChart({
   return (
     <div className="flex-1 min-w-0" style={{ height: 80 }}>
       <ResponsiveContainer width="100%" height={80}>
-        <BarChart data={data} margin={{ top: 14, right: 2, left: 2, bottom: 0 }} barCategoryGap="10%">
+        <ComposedChart data={data} margin={{ top: 14, right: 2, left: 2, bottom: 0 }} barCategoryGap="10%">
           <XAxis
             dataKey="year"
             tick={{ fontSize: 8, fill: '#64748b' }}
@@ -195,7 +209,16 @@ function MiniBarChart({
               }}
             />
           </Bar>
-        </BarChart>
+          <Line
+            dataKey="trendValue"
+            stroke="rgba(148,163,184,0.5)"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
+            dot={false}
+            isAnimationActive={false}
+            connectNulls
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
