@@ -684,6 +684,23 @@ function WeatherDashboard() {
                     </span>
                   )}
               </span>
+              {data.airQuality?.uvIndex != null && (() => {
+                const uvInfo = getUvInfo(data.airQuality.uvIndex, language);
+                const uvHeroColor =
+                  data.airQuality.uvIndex < 3 ? 'text-emerald-300'
+                  : data.airQuality.uvIndex < 6 ? 'text-yellow-300'
+                  : data.airQuality.uvIndex < 8 ? 'text-orange-300'
+                  : data.airQuality.uvIndex < 11 ? 'text-red-300'
+                  : 'text-purple-300';
+                return (
+                  <>
+                    <span className="w-px h-4 bg-white/30" />
+                    <span className={`text-xs font-semibold ${uvHeroColor}`}>
+                      ☀️ UV {Math.round(data.airQuality.uvIndex)} · {uvInfo.label}
+                    </span>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Today & Tomorrow: one teaser line, details in a dialog */}
@@ -1209,16 +1226,6 @@ function WeatherDashboard() {
                         <span>Ext.</span>
                       </div>
                     </div>
-
-                    {aq.uvIndex !== null && (() => {
-                      const uvInfo = getUvInfo(aq.uvIndex, language);
-                      return (
-                        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                          <span>☀️ UV {aq.uvIndex.toFixed(1)}</span>
-                          <span className={`font-bold ${uvInfo.colorClass}`}>{uvInfo.label}</span>
-                        </div>
-                      );
-                    })()}
 
                     {(aq.currentPm25 !== null || aq.currentPm10 !== null) &&
                       (() => {
