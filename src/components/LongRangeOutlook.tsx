@@ -5,6 +5,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import { useSeasonalForecast } from '../hooks/useSeasonalForecast';
 import { SEASONAL_VARIABLES, classifyAnomaly, formatAbsolute, getAnomalyClass, getSeasonName, hasMeaningfulRow } from '../utils/seasonal';
 import { SeasonalAttribution } from './SeasonalAttribution';
+import { EnsembleDetailView } from './EnsembleDetailView';
 
 type Tier = 'weeks' | 'months' | 'seasons';
 
@@ -31,6 +32,8 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   const [expanded, setExpanded] = useState(true);
   const [selected, setSelected] = useState<{ col: number; variable: SeasonalVariable } | null>(null);
   const [showAbsolute, setShowAbsolute] = useState(false);
+  const [drillTarget, setDrillTarget] = useState<{ weekIndex: number; period: SeasonalPeriod; variable: SeasonalVariable } | null>(null);
+  const [disabledTooltip, setDisabledTooltip] = useState(false);
 
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
@@ -118,15 +121,35 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     const isSel = selected?.col === col && selected.variable === variable;
     const { mean, anomaly } = p.values[variable];
     const normal = mean !== null && anomaly !== null ? mean - anomaly : null;
+
+    const isDrillable = tier === 'weeks' && col <= 1;
+    const isDisabledWeek = tier === 'weeks' && col > 1;
+
+    const handleClick = () => {
+      if (isDrillable) {
+        setDrillTarget({ weekIndex: col, period: p, variable });
+      } else if (isDisabledWeek) {
+        setDisabledTooltip(true);
+        setTimeout(() => setDisabledTooltip(false), 2500);
+      } else {
+        setSelected(isSel ? null : { col, variable });
+      }
+    };
+
     return (
-      <td key={col} className="p-0">
+      <td key={col} className="p-0 relative">
+        {isDisabledWeek && disabledTooltip && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-slate-700 text-white text-[9px] font-semibold rounded px-2 py-1 pointer-events-none shadow-lg">
+            {t('ensemble.disabled')}
+          </div>
+        )}
         <button
           type="button"
-          onClick={() => setSelected(isSel ? null : { col, variable })}
+          onClick={handleClick}
           aria-pressed={isSel}
           aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${showAbsolute ? formatAbsolute(variable, mean) : `${d.value}${d.unit}`}, ${word}`}
-          title={`${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
-          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''}`}
+          title={isDrillable ? t('ensemble.disabled').replace('solo disponibles para las 2 primeras semanas', '— ver modelos individuales') : `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
+          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''} ${isDrillable ? 'ring-1 ring-inset ring-white/30' : ''}`}
         >
           <span className="text-xs font-black leading-none whitespace-nowrap">
             {showAbsolute
@@ -134,6 +157,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
               : <>{d.value}<span className="text-[9px] font-bold ml-px">{d.unit}</span></>}
           </span>
           <span className="text-[9px] font-semibold leading-tight mt-0.5 whitespace-nowrap">{word}</span>
+          {isDrillable && <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ modelos</span>}
         </button>
       </td>
     );
@@ -165,6 +189,16 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   };
 
   return (
+    <>
+    {drillTarget && (
+      <EnsembleDetailView
+        location={location}
+        period={drillTarget.period}
+        weekIndex={drillTarget.weekIndex}
+        initialVariable={drillTarget.variable}
+        onClose={() => setDrillTarget(null)}
+      />
+    )}
     <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-xl mt-4 text-white border border-slate-700/50">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
@@ -286,5 +320,6 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
         </>
       )}
     </section>
+    </>
   );
 }
