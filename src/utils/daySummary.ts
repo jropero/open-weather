@@ -25,7 +25,7 @@ export const SUMMARY_THRESHOLDS = {
   pressureDrop6h: -3, // same as the ⚡ 6h badge in the hero
 } as const;
 
-export type DayKey = 'today' | 'tomorrow';
+export type DayKey = 'today' | 'tomorrow' | 'dayAfterTomorrow';
 export type PrecipKind = 'rain' | 'snow' | 'mixed' | 'freezing';
 export interface HourRange { from: number; to: number } // local hours, `to` exclusive (may be 24)
 export interface FeltRange { min: number; max: number }
@@ -71,12 +71,17 @@ export interface NightNote {
 export interface DaySummary {
   today: DayPart | null;    // remaining waking hours; null once today's window is over
   tomorrow: DayPart | null;
+  dayAfterTomorrow: DayPart | null;
   earlyNight: NightNote | null; // now → today's window start (only when opened before it)
   night: NightNote | null;      // today's window end → tomorrow's window start
+  nightAfterTomorrow: NightNote | null;
   todayFelt: FeltRange | null;  // full waking window of today — basis of the comparison
+  tomorrowFelt: FeltRange | null;
   feltDelta: number | null;     // tomorrow − today felt max (full windows), °C
+  feltDeltaDayAfter: number | null;
   todayDaily: DailyWeather | null;
   tomorrowDaily: DailyWeather | null;
+  dayAfterTomorrowDaily: DailyWeather | null;
 }
 
 interface LocalHour extends SummaryHour {
@@ -264,24 +269,35 @@ export function buildDaySummary({ hours, daily, timezone, now, wakingWindow, cur
 
   const todayFull = all.filter(h => h.date === today && inWindow(h));
   const tomorrowFull = all.filter(h => h.date === tomorrow && inWindow(h));
+  const dayAfterTomorrowDate = nextDate(tomorrow);
+  const dayAfterTomorrowFull = all.filter(h => h.date === dayAfterTomorrowDate && inWindow(h));
   const earlySeg = all.filter(h => h.date === today && h.hour < start && remaining(h));
   const nightSeg = all.filter(h => remaining(h) && ((h.date === today && h.hour >= end) || (h.date === tomorrow && h.hour < start)));
+  const nightAfterTomorrowSeg = all.filter(h => remaining(h) && ((h.date === tomorrow && h.hour >= end) || (h.date === dayAfterTomorrowDate && h.hour < start)));
 
   // Comparison only when both full windows have a felt value for every hour
   const complete = (seg: LocalHour[]) => seg.length > 0 && seg.every(h => h.apparentTemperature !== null);
   const feltDelta = complete(todayFull) && complete(tomorrowFull)
     ? Math.round(Math.max(...values(tomorrowFull, h => h.apparentTemperature)) - Math.max(...values(todayFull, h => h.apparentTemperature)))
     : null;
+  const feltDeltaDayAfter = complete(tomorrowFull) && complete(dayAfterTomorrowFull)
+    ? Math.round(Math.max(...values(dayAfterTomorrowFull, h => h.apparentTemperature)) - Math.max(...values(tomorrowFull, h => h.apparentTemperature)))
+    : null;
 
   return {
     today: dayPart(today, todayFull.filter(remaining)),
     tomorrow: dayPart(tomorrow, tomorrowFull),
+    dayAfterTomorrow: dayPart(dayAfterTomorrowDate, dayAfterTomorrowFull),
     earlyNight: assessNight(earlySeg),
     night: assessNight(nightSeg),
+    nightAfterTomorrow: assessNight(nightAfterTomorrowSeg),
     todayFelt: feltRange(todayFull),
+    tomorrowFelt: feltRange(tomorrowFull),
     feltDelta,
+    feltDeltaDayAfter,
     todayDaily: daily.find(d => d.date === today) ?? null,
     tomorrowDaily: daily.find(d => d.date === tomorrow) ?? null,
+    dayAfterTomorrowDaily: daily.find(d => d.date === dayAfterTomorrowDate) ?? null,
   };
 }
 
@@ -306,7 +322,7 @@ export interface HealthSignals {
 export type Highlight =
   | { topic: 'umbrella'; day: DayKey; umbrella: UmbrellaVerdict }
   | { topic: 'wind'; day: DayKey; level: GustLevel; gusts: number; ranges: HourRange[] }
-  | { topic: 'felt'; day: 'tomorrow'; delta: number; feltMax: number }
+  | { topic: 'felt'; day: 'tomorrow' | 'dayAfterTomorrow'; delta: number; feltMax: number }
   | { topic: 'migraine'; day: DayKey; score: number }
   | { topic: 'pressure'; day: 'today'; delta: number }
   | { topic: 'air'; day: 'today'; aqi: number }
@@ -322,7 +338,7 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
   const candidates: { h: Highlight; w: number }[] = [];
   const add = (h: Highlight, w: number) => candidates.push({ h, w });
 
-  for (const [day, part, offset] of [['today', s.today, 0], ['tomorrow', s.tomorrow, 5]] as const) {
+  for (const [day, part, offset] of [['today', s.today, 0], ['tomorrow', s.tomorrow, 5], ['dayAfterTomorrow', s.dayAfterTomorrow, 10]] as const) {
     if (!part) continue;
     const u = part.umbrella;
     if (u?.level === 'take') add({ topic: 'umbrella', day, umbrella: u }, (u.thunder ? 100 : 80) - offset);
@@ -336,6 +352,10 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
   if (s.tomorrow?.felt && s.feltDelta !== null && Math.abs(s.feltDelta) >= SUMMARY_THRESHOLDS.feltSimilar) {
     add({ topic: 'felt', day: 'tomorrow', delta: s.feltDelta, feltMax: s.tomorrow.felt.max },
       Math.abs(s.feltDelta) >= SUMMARY_THRESHOLDS.feltStrong ? 58 : 50);
+  }
+  if (s.dayAfterTomorrow?.felt && s.feltDeltaDayAfter !== null && Math.abs(s.feltDeltaDayAfter) >= SUMMARY_THRESHOLDS.feltSimilar) {
+    add({ topic: 'felt', day: 'dayAfterTomorrow', delta: s.feltDeltaDayAfter, feltMax: s.dayAfterTomorrow.felt.max },
+      Math.abs(s.feltDeltaDayAfter) >= SUMMARY_THRESHOLDS.feltStrong ? 48 : 40);
   }
 
   if (s.today) {
@@ -351,7 +371,7 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
   candidates.sort((a, b) => b.w - a.w); // stable: insertion order (today first) breaks ties
   const [first, ...rest] = candidates;
   if (!first) {
-    const day: DayKey | null = s.today ? 'today' : s.tomorrow ? 'tomorrow' : null;
+    const day: DayKey | null = s.today ? 'today' : s.tomorrow ? 'tomorrow' : s.dayAfterTomorrow ? 'dayAfterTomorrow' : null;
     return day ? [{ topic: 'calm', day, felt: (day === 'today' ? s.today : s.tomorrow)?.felt ?? null }] : [];
   }
   const second = rest.find(c => c.h.topic !== first.h.topic && c.w >= SECONDARY_MIN_WEIGHT);
