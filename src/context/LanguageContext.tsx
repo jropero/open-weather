@@ -227,7 +227,21 @@ const translations: Record<Language, Record<string, string>> = {
     'summary.window.from': 'Desde',
     'summary.window.to': 'Hasta',
     'summary.window.hint': 'Solo estas horas cuentan para los avisos; la noche aparece aparte.',
-    'summary.window.reset': 'Restablecer 07–23h'
+    'summary.window.reset': 'Restablecer 07–23h',
+    'ensemble.week': 'Semana',
+    'ensemble.loading': 'Cargando modelos...',
+    'ensemble.error': 'No se pudieron cargar los datos del conjunto. Inténtalo de nuevo.',
+    'ensemble.no_data': 'Sin datos para esta semana.',
+    'ensemble.legend.members': 'Modelos individuales',
+    'ensemble.legend.mean': 'Media',
+    'ensemble.spread.agree': 'Los modelos se ponen de acuerdo',
+    'ensemble.spread.disagree': 'Los modelos discrepan',
+    'ensemble.spread.bimodal': 'Dos escenarios posibles',
+    'ensemble.spread.agree.detail': 'Los modelos individuales (miembros del conjunto) convergen en un resultado similar. La previsión tiene buena coherencia.',
+    'ensemble.spread.disagree.detail': 'Los modelos individuales divergen ampliamente. Existe incertidumbre significativa en la previsión para esta semana.',
+    'ensemble.spread.bimodal.detail': 'Los modelos se dividen en dos grupos con resultados muy distintos. Puede producirse cualquiera de los dos escenarios.',
+    'ensemble.footnote': 'Cada línea fina representa un modelo individual del conjunto ECMWF IFS (hasta 50 modelos individuales). La banda sombreada muestra el rango central (p10–p90 y p25–p75); la línea gruesa, la media del conjunto.',
+    'ensemble.disabled': 'Datos de conjunto solo disponibles para las 2 primeras semanas'
   },
   en: {
     'title.pressure_humidity': 'Pressure & Humidity',
@@ -454,7 +468,21 @@ const translations: Record<Language, Record<string, string>> = {
     'summary.window.from': 'From',
     'summary.window.to': 'To',
     'summary.window.hint': 'Only these hours count for the verdicts; night is shown separately.',
-    'summary.window.reset': 'Reset to 07–23h'
+    'summary.window.reset': 'Reset to 07–23h',
+    'ensemble.week': 'Week',
+    'ensemble.loading': 'Loading ensemble models...',
+    'ensemble.error': 'Could not load ensemble data. Please try again.',
+    'ensemble.no_data': 'No data available for this week.',
+    'ensemble.legend.members': 'Individual models',
+    'ensemble.legend.mean': 'Mean',
+    'ensemble.spread.agree': 'Models agree',
+    'ensemble.spread.disagree': 'Models disagree',
+    'ensemble.spread.bimodal': 'Two possible scenarios',
+    'ensemble.spread.agree.detail': 'The individual ensemble members converge on a similar outcome. The forecast has good coherence.',
+    'ensemble.spread.disagree.detail': 'The individual members diverge widely. There is significant uncertainty in the forecast for this week.',
+    'ensemble.spread.bimodal.detail': 'The models split into two distinct clusters. Either outcome is plausible.',
+    'ensemble.footnote': 'Each thin line is one individual model run from the ECMWF IFS ensemble (up to 50 members). The shaded bands show the central range (p10–p90 and p25–p75); the thick line is the ensemble mean.',
+    'ensemble.disabled': 'Ensemble data only available for the first 2 weeks'
   }
 };
 
