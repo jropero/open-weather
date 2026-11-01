@@ -217,3 +217,12 @@ export function getPollenLevel(value: number, lang: Language = 'es') {
   if (value <= 200) return { label: isEn ? 'High' : 'Alto', bgClass: 'bg-orange-500 text-white' };
   return { label: isEn ? 'V.High' : 'M.Alto', bgClass: 'bg-red-600 text-white' };
 }
+
+export function getUvInfo(uv: number, lang: Language = 'es') {
+  const isEn = lang === 'en';
+  if (uv < 3) return { label: isEn ? 'Low' : 'Bajo', colorClass: 'text-emerald-600' };
+  if (uv < 6) return { label: isEn ? 'Moderate' : 'Moderado', colorClass: 'text-yellow-600' };
+  if (uv < 8) return { label: isEn ? 'High' : 'Alto', colorClass: 'text-orange-500' };
+  if (uv < 11) return { label: isEn ? 'V.High' : 'Muy Alto', colorClass: 'text-red-600' };
+  return { label: isEn ? 'Extreme' : 'Extremo', colorClass: 'text-purple-700' };
+}
