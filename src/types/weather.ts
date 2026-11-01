@@ -96,7 +96,7 @@ export interface WeatherData {
   current: CurrentWeather;
   daily: DailyWeather[];
   hourly: HourlyWeather[];
-  summaryHours: SummaryHour[]; // current hour −25 h … +50 h (covers today and tomorrow in any timezone)
+  summaryHours: SummaryHour[]; // current hour −25 h … +74 h (covers today, tomorrow and day-after-tomorrow in any timezone)
   timezone: string | null;     // IANA timezone of the location, from the timezone=auto daily response
   historical: HistoricalWeather[];
   pressureTrend: PressureTrend | null;
