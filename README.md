@@ -68,6 +68,10 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 *   **☀️ Daily Sunshine & Precipitation Hours [NEW]**
     *   Each day in the 3-day forecast shows **sunshine hours** (☀️ amber) and **precipitation hours** (🌧 sky-blue) directly next to the day name — sourced from `sunshine_duration` and `precipitation_hours` in the Open-Meteo daily API.
     *   **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
+*   **🔮 Long-Range Outlook — Drill-Down Views [NEW]**
+    *   The Long-Range Outlook widget (EC46 weekly + SEAS5 monthly/seasonal heatmap) now supports interactive drill-downs on every cell.
+    *   **Ensemble fan chart (weeks 1–2):** Tapping a cell opens a full-screen overlay showing all 50 ECMWF IFS ensemble members as individual spaghetti lines, a shaded probability fan (p10–p90 / p25–p75), and the ensemble mean. A plain-language spread badge classifies whether members agree (✓), diverge (⚡), or split into two clusters (⑂). Variable switcher covers temperature, precipitation, pressure, and wind.
+    *   **Climate history comparison (months + seasons):** Tapping a monthly or seasonal cell compares the SEAS5 forecast against the last 10 years of ERA5 observed history. Shows the 3 most analogous past years, and a compact bar chart per variable displaying each year's value alongside the S5 bias-corrected forecast. The adjusted forecast is computed as *ERA5 10-year mean + SEAS5 anomaly* to correct for SEAS5's known cold bias (~3 °C for Alpine winters). A methodological footnote discloses that the SEAS5 anomaly baseline (1993–2016 hindcast) differs from the ERA5 baseline (2016–2025), which may introduce ~0.5–1.5 °C of overestimation.
 
 ---
 
@@ -208,6 +212,10 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
     *   **Pulido Visual de Alta Calidad:** Se han eliminado las animaciones repetitivas de los iconos históricos, sustituyéndolas por un efecto de resplandor sutil (`icon-glow` vía filtro CSS drop-shadow) que proporciona presencia y coherencia premium sin ruido visual de movimiento.
 *   **☀️ Horas de Sol y Precipitación Diarias [NUEVO]**
     *   Cada día del pronóstico de 3 días muestra las **horas de sol** (☀️ ámbar) y las **horas de precipitación** (🌧 azul cielo) directamente junto al nombre del día — obtenidas de `sunshine_duration` y `precipitation_hours` de la API diaria de Open-Meteo.
+*   **🔮 Perspectiva a Largo Plazo — Vistas de Detalle [NUEVO]**
+    *   El widget de Perspectiva a Largo Plazo (mapa de calor EC46 semanal + SEAS5 mensual/estacional) ahora permite explorar cada celda en profundidad.
+    *   **Gráfico de abanico ensemble (semanas 1–2):** Al pulsar una celda se abre una vista a pantalla completa con los 50 miembros individuales del conjunto ECMWF IFS como líneas espagueti, una banda de probabilidad sombreada (p10–p90 / p25–p75) y la media del conjunto. Una etiqueta en lenguaje llano clasifica si los modelos coinciden (✓), divergen (⚡) o se dividen en dos grupos (⑂). Selector de variable: temperatura, precipitación, presión y viento.
+    *   **Comparativa histórica (meses + estaciones):** Al pulsar una celda mensual o estacional se compara la previsión SEAS5 con los últimos 10 años de ERA5. Muestra los 3 años más análogos y un gráfico de barras por variable con los valores de cada año junto a la previsión S5 ajustada. El valor ajustado se calcula como *media ERA5 10 años + anomalía SEAS5*, corrigiendo el sesgo frío conocido de SEAS5 (~3 °C en inviernos alpinos). Una nota metodológica advierte que la referencia de anomalía SEAS5 (hindcast 1993–2016) difiere de la base ERA5 (2016–2025), lo que puede suponer una sobreestimación de ~0,5–1,5 °C.
 
 ---
 
