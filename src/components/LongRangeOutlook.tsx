@@ -6,6 +6,7 @@ import { useSeasonalForecast } from '../hooks/useSeasonalForecast';
 import { SEASONAL_VARIABLES, classifyAnomaly, formatAbsolute, getAnomalyClass, getSeasonName, hasMeaningfulRow } from '../utils/seasonal';
 import { SeasonalAttribution } from './SeasonalAttribution';
 import { EnsembleDetailView } from './EnsembleDetailView';
+import { ClimateDetailView } from './ClimateDetailView';
 
 type Tier = 'weeks' | 'months' | 'seasons';
 
@@ -31,9 +32,10 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   const [tier, setTier] = useState<Tier>('weeks');
   const [expanded, setExpanded] = useState(true);
   const [selected, setSelected] = useState<{ col: number; variable: SeasonalVariable } | null>(null);
-  const [showAbsolute, setShowAbsolute] = useState(false);
+
   const [drillTarget, setDrillTarget] = useState<{ weekIndex: number; period: SeasonalPeriod; variable: SeasonalVariable } | null>(null);
-  const [disabledTooltip, setDisabledTooltip] = useState(false);
+  const [climateTarget, setClimateTarget] = useState<{ period: SeasonalPeriod } | null>(null);
+  const [disabledTooltip, setDisabledTooltip] = useState<{ col: number; variable: SeasonalVariable } | null>(null);
 
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
@@ -122,15 +124,20 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     const { mean, anomaly } = p.values[variable];
     const normal = mean !== null && anomaly !== null ? mean - anomaly : null;
 
-    const isDrillable = tier === 'weeks' && col <= 1;
+    const isDrillableEnsemble = tier === 'weeks' && col <= 1;
     const isDisabledWeek = tier === 'weeks' && col > 1;
+    const isDrillableClimate = tier === 'months' || tier === 'seasons';
+    // legacy alias kept for className logic below
+    const isDrillable = isDrillableEnsemble;
 
     const handleClick = () => {
-      if (isDrillable) {
+      if (isDrillableEnsemble) {
         setDrillTarget({ weekIndex: col, period: p, variable });
+      } else if (isDrillableClimate) {
+        setClimateTarget({ period: p });
       } else if (isDisabledWeek) {
-        setDisabledTooltip(true);
-        setTimeout(() => setDisabledTooltip(false), 2500);
+        setDisabledTooltip({ col, variable });
+        setTimeout(() => setDisabledTooltip(null), 2500);
       } else {
         setSelected(isSel ? null : { col, variable });
       }
@@ -138,7 +145,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
     return (
       <td key={col} className="p-0 relative">
-        {isDisabledWeek && disabledTooltip && (
+        {isDisabledWeek && disabledTooltip?.col === col && disabledTooltip?.variable === variable && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-slate-700 text-white text-[9px] font-semibold rounded px-2 py-1 pointer-events-none shadow-lg">
             {t('ensemble.disabled')}
           </div>
@@ -147,17 +154,16 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
           type="button"
           onClick={handleClick}
           aria-pressed={isSel}
-          aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${showAbsolute ? formatAbsolute(variable, mean) : `${d.value}${d.unit}`}, ${word}`}
+          aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t(`seasonal.var.${variable}`)}: ${d.value}${d.unit}, ${word}`}
           title={isDrillable ? t('ensemble.disabled').replace('solo disponibles para las 2 primeras semanas', '— ver modelos individuales') : `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`}
-          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''} ${isDrillable ? 'ring-1 ring-inset ring-white/30' : ''}`}
+          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''} ${isDrillable || isDrillableClimate ? 'ring-1 ring-inset ring-white/30' : ''}`}
         >
           <span className="text-xs font-black leading-none whitespace-nowrap">
-            {showAbsolute
-              ? formatAbsolute(variable, mean)
-              : <>{d.value}<span className="text-[9px] font-bold ml-px">{d.unit}</span></>}
+            {d.value}<span className="text-[9px] font-bold ml-px">{d.unit}</span>
           </span>
           <span className="text-[9px] font-semibold leading-tight mt-0.5 whitespace-nowrap">{word}</span>
           {isDrillable && <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ modelos</span>}
+          {isDrillableClimate && <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ historia</span>}
         </button>
       </td>
     );
@@ -165,7 +171,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
   const renderDetail = () => {
     if (!selected || !periods[selected.col]) {
-      return <p className="text-[11px] text-slate-300 mt-2 px-1">{t(showAbsolute ? 'seasonal.tap_hint.absolute' : 'seasonal.tap_hint')}</p>;
+      return <p className="text-[11px] text-slate-300 mt-2 px-1">{t('seasonal.tap_hint')}</p>;
     }
     const p = periods[selected.col];
     const v = selected.variable;
@@ -197,6 +203,13 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
         weekIndex={drillTarget.weekIndex}
         initialVariable={drillTarget.variable}
         onClose={() => setDrillTarget(null)}
+      />
+    )}
+    {climateTarget && (
+      <ClimateDetailView
+        location={location}
+        period={climateTarget.period}
+        onClose={() => setClimateTarget(null)}
       />
     )}
     <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-xl mt-4 text-white border border-slate-700/50">
@@ -236,23 +249,6 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
             ))}
           </div>
 
-          {/* Anomaly / Value toggle */}
-          <div className="flex items-center justify-end gap-1.5 mb-3 -mt-1">
-            <span className="text-[10px] text-slate-400 font-medium">{t('seasonal.view.anomaly')} / {t('seasonal.view.absolute')}:</span>
-            <div className="flex rounded-full bg-white/10 p-0.5 gap-0.5 border border-white/5">
-              {(['anomaly', 'absolute'] as const).map(mode => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setShowAbsolute(mode === 'absolute')}
-                  aria-pressed={showAbsolute === (mode === 'absolute')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-200 ${showAbsolute === (mode === 'absolute') ? 'bg-white text-slate-900 shadow' : 'text-slate-300 hover:text-white'}`}
-                >
-                  {mode === 'anomaly' ? 'Δ' : t('seasonal.view.absolute')}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2">
