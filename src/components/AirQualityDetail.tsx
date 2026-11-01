@@ -154,6 +154,7 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
               {pollutants.map(p => {
                 const pct = Math.min(100, ((p.value!) / 100) * 100);
                 const color = aqiBarColor(p.value!);
+                const levelInfo = getAqiInfo(p.value!, language);
                 return (
                   <div key={p.name} className="flex flex-col gap-0.5">
                     <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
@@ -161,9 +162,13 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
                         <span>{p.name}</span>
                         <span className="text-[10px] text-slate-400 font-normal leading-tight">{p.health}</span>
                       </span>
-                      <span className="font-bold text-slate-800">
-                        {isEn ? 'sub-AQI' : 'sub-ICA'} {p.value}
-                        {p.raw !== null && p.unit ? ` · ${p.raw!.toFixed(1)} ${p.unit}` : ''}
+                      <span className="flex items-center gap-1.5">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${levelInfo.bgClass}`}>
+                          {levelInfo.label}
+                        </span>
+                        <span className="text-slate-400 font-normal">
+                          {p.value}{p.raw !== null && p.unit ? ` · ${p.raw!.toFixed(1)} ${p.unit}` : ''}
+                        </span>
                       </span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
