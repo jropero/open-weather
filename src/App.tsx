@@ -12,10 +12,12 @@ import {
   getStormPotential,
   getAqiInfo,
   getPollenLevel,
+  getUvInfo,
   wmoToCondition,
   getGustLevel,
   type GustLevel,
 } from "./utils/weatherCodes";
+import { AirQualityDetail } from "./components/AirQualityDetail";
 import WeatherSvgEffects from "./components/WeatherSvgEffects";
 import {
   RAIN_INTENSITY,
@@ -46,6 +48,7 @@ function WeatherDashboard() {
   >(null);
   const [previewCondition, setPreviewCondition] =
     React.useState<string>("auto");
+  const [aqDetailOpen, setAqDetailOpen] = React.useState(false);
   const now = useNow();
 
   React.useEffect(() => {
@@ -1166,110 +1169,142 @@ function WeatherDashboard() {
               ].filter((p) => p.value !== null && p.value > 0);
 
               return (
-                <section className="bg-gradient-to-br from-white to-emerald-50 rounded-2xl p-3 shadow-lg text-slate-800 flex flex-col gap-2">
-                  <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold leading-tight">
-                    {isEn ? "Air Quality" : "Calidad del Aire"}
-                  </h3>
+                <>
+                  <section className="bg-gradient-to-br from-white to-emerald-50 rounded-2xl p-3 shadow-lg text-slate-800 flex flex-col gap-2">
+                    <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold leading-tight">
+                      {isEn ? "Air Quality" : "Calidad del Aire"}
+                    </h3>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-slate-900 leading-none">
-                      {Math.round(aq.currentAqi!)}
-                    </span>
-                    <span className="text-xs text-slate-400 font-bold uppercase">
-                      AQI
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold ${aqiInfo.bgClass}`}
-                    >
-                      {aqiInfo.label}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <div className="relative w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-purple-600 opacity-80" />
-                      <div
-                        className="absolute top-0 h-full w-1 bg-slate-900 rounded-full border border-white shadow-sm transition-all duration-1000 ease-out"
-                        style={{
-                          left: `calc(${Math.max(0, Math.min(100, (aq.currentAqi! / 100) * 100))}% - 2px)`,
-                        }}
-                      />
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-black text-slate-900 leading-none">
+                        {Math.round(aq.currentAqi!)}
+                      </span>
+                      <span className="text-xs text-slate-400 font-bold uppercase">
+                        AQI
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${aqiInfo.bgClass}`}
+                      >
+                        {aqiInfo.label}
+                      </span>
+                      {aq.dominantPollutant && (
+                        <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                          {aq.dominantPollutant}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex justify-between text-xs text-slate-400 font-bold">
-                      <span>{isEn ? "Good" : "Bueno"}</span>
-                      <span>Ext.</span>
-                    </div>
-                  </div>
 
-                  {(aq.currentPm25 !== null || aq.currentPm10 !== null) &&
-                    (() => {
-                      const pm25dot = (v: number) =>
-                        v < 12
-                          ? "bg-emerald-400"
-                          : v < 35.5
-                            ? "bg-yellow-400"
-                            : v < 55.5
-                              ? "bg-orange-400"
-                              : "bg-red-500";
-                      const pm10dot = (v: number) =>
-                        v < 54
-                          ? "bg-emerald-400"
-                          : v < 154
-                            ? "bg-yellow-400"
-                            : v < 254
-                              ? "bg-orange-400"
-                              : "bg-red-500";
+                    <div className="flex flex-col gap-1">
+                      <div className="relative w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-purple-600 opacity-80" />
+                        <div
+                          className="absolute top-0 h-full w-1 bg-slate-900 rounded-full border border-white shadow-sm transition-all duration-1000 ease-out"
+                          style={{
+                            left: `calc(${Math.max(0, Math.min(100, (aq.currentAqi! / 100) * 100))}% - 2px)`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-400 font-bold">
+                        <span>{isEn ? "Good" : "Bueno"}</span>
+                        <span>Ext.</span>
+                      </div>
+                    </div>
+
+                    {aq.uvIndex !== null && (() => {
+                      const uvInfo = getUvInfo(aq.uvIndex, language);
                       return (
-                        <div className="flex flex-col gap-0.5">
-                          {aq.currentPm25 !== null && (
-                            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                              <span>
-                                PM2.5{" "}
-                                <span className="font-bold text-slate-700">
-                                  {aq.currentPm25.toFixed(1)}
-                                </span>{" "}
-                                μg/m³
-                              </span>
-                              <span
-                                className={`w-2.5 h-2.5 rounded-full ml-2 ${pm25dot(aq.currentPm25)}`}
-                              />
-                            </div>
-                          )}
-                          {aq.currentPm10 !== null && (
-                            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                              <span>
-                                PM10{" "}
-                                <span className="font-bold text-slate-700">
-                                  {aq.currentPm10.toFixed(1)}
-                                </span>{" "}
-                                μg/m³
-                              </span>
-                              <span
-                                className={`w-2.5 h-2.5 rounded-full ml-2 ${pm10dot(aq.currentPm10)}`}
-                              />
-                            </div>
-                          )}
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                          <span>☀️ UV {aq.uvIndex.toFixed(1)}</span>
+                          <span className={`font-bold ${uvInfo.colorClass}`}>{uvInfo.label}</span>
                         </div>
                       );
                     })()}
 
-                  {pollens.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1.5 border-t border-slate-100">
-                      {pollens.map((p) => {
-                        const level = getPollenLevel(p.value!, language);
-                        if (!level) return null;
+                    {(aq.currentPm25 !== null || aq.currentPm10 !== null) &&
+                      (() => {
+                        const pm25dot = (v: number) =>
+                          v < 12
+                            ? "bg-emerald-400"
+                            : v < 35.5
+                              ? "bg-yellow-400"
+                              : v < 55.5
+                                ? "bg-orange-400"
+                                : "bg-red-500";
+                        const pm10dot = (v: number) =>
+                          v < 54
+                            ? "bg-emerald-400"
+                            : v < 154
+                              ? "bg-yellow-400"
+                              : v < 254
+                                ? "bg-orange-400"
+                                : "bg-red-500";
                         return (
-                          <span
-                            key={p.name}
-                            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${level.bgClass}`}
-                          >
-                            {p.emoji} {p.name}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            {aq.currentPm25 !== null && (
+                              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                                <span>
+                                  PM2.5{" "}
+                                  <span className="font-bold text-slate-700">
+                                    {aq.currentPm25.toFixed(1)}
+                                  </span>{" "}
+                                  μg/m³
+                                </span>
+                                <span
+                                  className={`w-2.5 h-2.5 rounded-full ml-2 ${pm25dot(aq.currentPm25)}`}
+                                />
+                              </div>
+                            )}
+                            {aq.currentPm10 !== null && (
+                              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                                <span>
+                                  PM10{" "}
+                                  <span className="font-bold text-slate-700">
+                                    {aq.currentPm10.toFixed(1)}
+                                  </span>{" "}
+                                  μg/m³
+                                </span>
+                                <span
+                                  className={`w-2.5 h-2.5 rounded-full ml-2 ${pm10dot(aq.currentPm10)}`}
+                                />
+                              </div>
+                            )}
+                          </div>
                         );
-                      })}
-                    </div>
+                      })()}
+
+                    {pollens.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1.5 border-t border-slate-100">
+                        {pollens.map((p) => {
+                          const level = getPollenLevel(p.value!, language);
+                          if (!level) return null;
+                          return (
+                            <span
+                              key={p.name}
+                              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${level.bgClass}`}
+                            >
+                              {p.emoji} {p.name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setAqDetailOpen(true)}
+                      className="mt-auto text-xs text-emerald-600 font-bold text-right hover:text-emerald-800 transition-colors"
+                    >
+                      {isEn ? "View detail →" : "Ver detalle →"}
+                    </button>
+                  </section>
+
+                  {aqDetailOpen && (
+                    <AirQualityDetail
+                      aq={aq}
+                      timezone={data.timezone}
+                      onClose={() => setAqDetailOpen(false)}
+                    />
                   )}
-                </section>
+                </>
               );
             })()}
         </div>

@@ -90,6 +90,15 @@ export interface AirQualityData {
   mugwortPollen: number | null;
   olivePollen: number | null;
   ragweedPollen: number | null;
+  uvIndex: number | null;
+  dominantPollutant: string | null;
+  hourlyAqi: number[];
+  hourlyTime: string[];
+  aqiPm25: number | null;
+  aqiPm10: number | null;
+  aqiNo2: number | null;
+  aqiO3: number | null;
+  aqiSo2: number | null;
 }
 
 export interface WeatherData {

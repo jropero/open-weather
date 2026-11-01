@@ -230,7 +230,7 @@ export function useWeather(location: Location) {
         });
 
         // Fetch Air Quality data asynchronously (Europe only for pollen)
-        const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.latitude}&longitude=${location.longitude}&hourly=european_aqi,pm2_5,pm10,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=UTC&forecast_days=1`;
+        const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.latitude}&longitude=${location.longitude}&hourly=european_aqi,pm2_5,pm10,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi_pm2_5,european_aqi_pm10,european_aqi_nitrogen_dioxide,european_aqi_ozone,european_aqi_sulphur_dioxide,uv_index&timezone=UTC&forecast_days=2`;
         fetch(aqUrl).then(async (res) => {
           if (!res.ok || !isMounted) return;
           const aqData = await res.json();
@@ -240,6 +240,26 @@ export function useWeather(location: Location) {
           const nowHour = new Date().toISOString().substring(0, 13);
           const idx = aqData.hourly.time.findIndex((t: string) => t.startsWith(nowHour));
           const i = idx >= 0 ? idx : 0;
+
+          // Per-pollutant sub-AQIs at current hour
+          const aqiPm25: number | null = aqData.hourly.european_aqi_pm2_5?.[i] ?? null;
+          const aqiPm10: number | null = aqData.hourly.european_aqi_pm10?.[i] ?? null;
+          const aqiNo2: number | null = aqData.hourly.european_aqi_nitrogen_dioxide?.[i] ?? null;
+          const aqiO3: number | null = aqData.hourly.european_aqi_ozone?.[i] ?? null;
+          const aqiSo2: number | null = aqData.hourly.european_aqi_sulphur_dioxide?.[i] ?? null;
+
+          // Dominant pollutant: whichever sub-AQI is highest (only label if notable, i.e. > 20)
+          const pollComponents = [
+            { name: 'PM2.5', value: aqiPm25 },
+            { name: 'PM10', value: aqiPm10 },
+            { name: 'NO₂', value: aqiNo2 },
+            { name: 'O₃', value: aqiO3 },
+            { name: 'SO₂', value: aqiSo2 },
+          ].filter((c): c is { name: string; value: number } => c.value !== null);
+          pollComponents.sort((a, b) => b.value - a.value);
+          const dominantPollutant = pollComponents.length > 0 && pollComponents[0].value > 20
+            ? pollComponents[0].name
+            : null;
 
           const airQuality: AirQualityData = {
             currentAqi: aqData.hourly.european_aqi?.[i] ?? null,
@@ -251,6 +271,15 @@ export function useWeather(location: Location) {
             mugwortPollen: aqData.hourly.mugwort_pollen?.[i] ?? null,
             olivePollen: aqData.hourly.olive_pollen?.[i] ?? null,
             ragweedPollen: aqData.hourly.ragweed_pollen?.[i] ?? null,
+            uvIndex: aqData.hourly.uv_index?.[i] ?? null,
+            dominantPollutant,
+            hourlyAqi: (aqData.hourly.european_aqi?.slice(i, i + 24) ?? []).map((v: number | null) => v ?? 0),
+            hourlyTime: aqData.hourly.time?.slice(i, i + 24) ?? [],
+            aqiPm25,
+            aqiPm10,
+            aqiNo2,
+            aqiO3,
+            aqiSo2,
           };
 
           setData(prev => {
