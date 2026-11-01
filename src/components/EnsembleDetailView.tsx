@@ -230,7 +230,10 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
           orientation="right"
           mirror
           domain={yDomain}
-          tickFormatter={(v: number) => `${v}`}
+          tickFormatter={(v: number) => {
+            if (variable === 'precipitation' || variable === 'wind_speed_10m') return String(Math.round(v));
+            return v % 1 === 0 ? String(v) : v.toFixed(1);
+          }}
           tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }}
           axisLine={false}
           tickLine={false}
@@ -336,7 +339,7 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
                 <span className="text-[10px] font-semibold text-slate-500">{varMeta.unit}</span>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart data={chartData} margin={{ top: 8, right: 48, left: 0, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 8, right: 48, left: 16, bottom: 0 }}>
                   {chartLayers}
                 </ComposedChart>
               </ResponsiveContainer>

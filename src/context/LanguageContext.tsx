@@ -241,7 +241,13 @@ const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.disagree.detail': 'Los modelos individuales divergen ampliamente. Existe incertidumbre significativa en la previsión para esta semana.',
     'ensemble.spread.bimodal.detail': 'Los modelos se dividen en dos grupos con resultados muy distintos. Puede producirse cualquiera de los dos escenarios.',
     'ensemble.footnote': 'Cada línea fina representa un modelo individual del conjunto ECMWF IFS (hasta 50 modelos individuales). La banda sombreada muestra el rango central (p10–p90 y p25–p75); la línea gruesa, la media del conjunto.',
-    'ensemble.disabled': 'Datos de conjunto solo disponibles para las 2 primeras semanas'
+    'ensemble.disabled': 'Datos de conjunto solo disponibles para las 2 primeras semanas',
+    'climate.analogues.label': 'Se parece más a:',
+    'climate.analogues.note': 'Años con clima más parecido al previsto, según las 5 variables combinadas.',
+    'climate.no_forecast': 'Sin previsión',
+    'climate.error': 'No se pudieron cargar los datos históricos. Inténtalo de nuevo.',
+    'climate.footnote': 'Barras blancas: valores ERA5 reales {start}–{end}. Barra de color (S5): previsión SEAS5. Más brillante = por encima de la media ERA5.',
+    'climate.footnote.bias': 'Nota metodológica: la anomalía SEAS5 se calcula respecto a su climatología 1993–2016, aplicada aquí sobre la media ERA5 2016–2025 (periodo más cálido). Esto puede sobreestimar el valor ajustado en ~0,5–1,5 °C.',
   },
   en: {
     'title.pressure_humidity': 'Pressure & Humidity',
@@ -482,7 +488,13 @@ const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.disagree.detail': 'The individual members diverge widely. There is significant uncertainty in the forecast for this week.',
     'ensemble.spread.bimodal.detail': 'The models split into two distinct clusters. Either outcome is plausible.',
     'ensemble.footnote': 'Each thin line is one individual model run from the ECMWF IFS ensemble (up to 50 members). The shaded bands show the central range (p10–p90 and p25–p75); the thick line is the ensemble mean.',
-    'ensemble.disabled': 'Ensemble data only available for the first 2 weeks'
+    'ensemble.disabled': 'Ensemble data only available for the first 2 weeks',
+    'climate.analogues.label': 'Most similar to:',
+    'climate.analogues.note': 'Years with climate most similar to the forecast, across all 5 combined variables.',
+    'climate.no_forecast': 'No forecast',
+    'climate.error': 'Could not load historical data. Please try again.',
+    'climate.footnote': 'White bars: actual ERA5 values {start}–{end}. Coloured bar (S5): SEAS5 forecast. Brighter = above the ERA5 mean.',
+    'climate.footnote.bias': 'Methodological note: SEAS5 anomaly is computed against its 1993–2016 hindcast climatology, applied here over the 2016–2025 ERA5 mean (a warmer period). This may overestimate the adjusted value by ~0.5–1.5 °C.',
   }
 };
 
