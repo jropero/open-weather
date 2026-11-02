@@ -13,7 +13,7 @@ const translations: Record<Language, Record<string, string>> = {
     'label.temp': 'Temp',
     'label.wind': 'Viento',
     'label.rain': 'Lluvia',
-    'label.fatigue': 'Fatiga',
+    'label.fatigue': 'Calor',
     'label.migraine': 'Riesgo Migraña',
     'label.pressure': 'Presión',
     'label.seco': 'Seco',

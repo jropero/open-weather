@@ -126,7 +126,14 @@ export function TodayTomorrowSummary({ data, now, todayMigraine, placeName, time
         return [t(`summary.teaser.calm.${h.day}`), h.felt && fill(t('summary.teaser.calm_felt'), { ...h.felt })].filter(Boolean).join(' · ');
     }
   };
-  const teaser = highlights.length ? capitalize(highlights.map(phrase).join(' · ')) : t('summary.teaser.none');
+  const teaser = highlights.length
+  ? highlights.map((item, index) => (
+      <span key={index}>
+        {index === 0 ? capitalize(phrase(item)) : phrase(item)}
+        {index < highlights.length - 1 && <br />}
+      </span>
+    ))
+  : t('summary.teaser.none');
 
   const feltRows = (part: DayPart, day: DayKey): ReactNode => {
     if (!part.felt) return <Row icon="🌡️" title={t('summary.felt.none')} muted />;
