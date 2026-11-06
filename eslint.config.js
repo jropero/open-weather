@@ -1,22 +1,149 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import babelParser from '@babel/eslint-parser';
+import js from '@eslint/js';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import sonarjs from 'eslint-plugin-sonarjs';
+
+const browserGlobals = {
+  window: 'readonly',
+  document: 'readonly',
+  navigator: 'readonly',
+  console: 'readonly',
+  setTimeout: 'readonly',
+  clearTimeout: 'readonly',
+  setInterval: 'readonly',
+  clearInterval: 'readonly',
+  fetch: 'readonly',
+  URL: 'readonly',
+  URLSearchParams: 'readonly',
+  AbortController: 'readonly',
+  AbortSignal: 'readonly',
+  Request: 'readonly',
+  Response: 'readonly',
+  Headers: 'readonly',
+  FormData: 'readonly',
+  Blob: 'readonly',
+  File: 'readonly',
+  FileReader: 'readonly',
+  Event: 'readonly',
+  CustomEvent: 'readonly',
+  EventTarget: 'readonly',
+  Element: 'readonly',
+  HTMLElement: 'readonly',
+  HTMLInputElement: 'readonly',
+  HTMLButtonElement: 'readonly',
+  HTMLDialogElement: 'readonly',
+  HTMLDivElement: 'readonly',
+  HTMLCanvasElement: 'readonly',
+  HTMLScriptElement: 'readonly',
+  SVGElement: 'readonly',
+  MutationObserver: 'readonly',
+  ResizeObserver: 'readonly',
+  IntersectionObserver: 'readonly',
+  requestAnimationFrame: 'readonly',
+  cancelAnimationFrame: 'readonly',
+  localStorage: 'readonly',
+  sessionStorage: 'readonly',
+  location: 'readonly',
+  history: 'readonly',
+  performance: 'readonly',
+  screen: 'readonly',
+  matchMedia: 'readonly',
+  getComputedStyle: 'readonly',
+  alert: 'readonly',
+  confirm: 'readonly',
+  prompt: 'readonly',
+  scrollTo: 'readonly',
+  scrollBy: 'readonly',
+  self: 'readonly',
+  globalThis: 'readonly',
+  Promise: 'readonly',
+  Map: 'readonly',
+  Set: 'readonly',
+  WeakMap: 'readonly',
+  WeakSet: 'readonly',
+  Symbol: 'readonly',
+  Proxy: 'readonly',
+  Reflect: 'readonly',
+  Array: 'readonly',
+  Object: 'readonly',
+  String: 'readonly',
+  Number: 'readonly',
+  Boolean: 'readonly',
+  BigInt: 'readonly',
+  Math: 'readonly',
+  Date: 'readonly',
+  RegExp: 'readonly',
+  Error: 'readonly',
+  TypeError: 'readonly',
+  RangeError: 'readonly',
+  ReferenceError: 'readonly',
+  SyntaxError: 'readonly',
+  JSON: 'readonly',
+  Intl: 'readonly',
+  ArrayBuffer: 'readonly',
+  SharedArrayBuffer: 'readonly',
+  DataView: 'readonly',
+  Float32Array: 'readonly',
+  Float64Array: 'readonly',
+  Int8Array: 'readonly',
+  Int16Array: 'readonly',
+  Int32Array: 'readonly',
+  Uint8Array: 'readonly',
+  Uint16Array: 'readonly',
+  Uint32Array: 'readonly',
+  Uint8ClampedArray: 'readonly',
+  process: 'readonly',
+  __dirname: 'readonly',
+  __filename: 'readonly',
+  module: 'readonly',
+  require: 'readonly',
+  exports: 'readonly',
+};
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist/**', 'node_modules/**', 'public/**', '.claude/**']),
   {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+      sonarjs,
+    },
     languageOptions: {
-      globals: globals.browser,
+      parser: babelParser,
+      parserOptions: {
+        requireConfigFile: false,
+        babelOptions: {
+          configFile: './babel.config.json',
+        },
+      },
+      globals: browserGlobals,
+    },
+    settings: {
+      react: { version: '19.3' },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...react.configs['jsx-runtime'].rules,
+      ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.configs.recommended.rules,
+      ...sonarjs.configs.recommended.rules,
+
+      'sonarjs/cognitive-complexity': ['error', 5],
+      'sonarjs/no-nested-conditional': 'warn',
+      'sonarjs/no-duplicate-string': ['warn', { threshold: 10 }],
+      'sonarjs/pseudo-random': 'off',
+
+      // tsc owns these when Babel is the parser
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      // TypeScript handles prop types
+      'react/prop-types': 'off',
     },
   },
-])
+]);
