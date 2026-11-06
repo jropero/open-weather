@@ -143,7 +143,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
       }
     };
 
-    fetchOtherLocations();
+    void fetchOtherLocations();
     return () => {
       isMounted = false;
     };
@@ -239,7 +239,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   // SEASONAL TREND (on demand, same data model as LongRangeOutlook)
   // ==========================================
   const trendStates = TREND_LOCATIONS.map((loc) => trends[loc.id]?.status);
-  const trendsLoading = trendStates.some((s) => s === 'loading');
+  const trendsLoading = trendStates.includes('loading');
   const trendErrors = trendStates.filter((s) => s === 'error').length;
   const trendsIdle = trendStates.filter((s) => s === undefined).length;
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
@@ -450,15 +450,11 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
           const activeGambas = Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3));
 
           return (
-            <div
+            <button
               key={location.id}
-              role="button"
-              tabIndex={0}
-              className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+              type="button"
+              className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer text-left w-full"
               onClick={() => setCurrentLocation(location)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') setCurrentLocation(location);
-              }}
             >
               {/* Line 1: Location details & Current conditions */}
               <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
@@ -525,7 +521,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                   {renderTrend(trends[location.id])}
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>

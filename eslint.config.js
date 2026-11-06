@@ -135,9 +135,15 @@ export default defineConfig([
       ...sonarjs.configs.recommended.rules,
 
       'sonarjs/cognitive-complexity': ['error', 5],
-      'sonarjs/no-nested-conditional': 'warn',
+      'sonarjs/no-nested-conditional': 'error',
       'sonarjs/no-duplicate-string': ['warn', { threshold: 10 }],
       'sonarjs/pseudo-random': 'off',
+      'sonarjs/no-ignored-return': 'error',
+      'sonarjs/no-identical-functions': 'error',
+      'sonarjs/no-collapsible-if': 'error',
+      'sonarjs/no-redundant-boolean': 'error',
+      'sonarjs/no-unused-collection': 'error',
+      'sonarjs/prefer-immediate-return': 'error',
 
       // tsc owns these when Babel is the parser
       'no-undef': 'off',
