@@ -57,7 +57,6 @@ export function useEnsembleData(
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
 
     const key = storageKey(lat, lon, variable);
@@ -116,6 +115,7 @@ export function useEnsembleData(
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, weekStart, variable]);
 
   return { data, loading, error };

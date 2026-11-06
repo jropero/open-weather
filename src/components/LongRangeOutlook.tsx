@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAllPeriodRanks } from '../hooks/useAllPeriodRanks';
 import {
   CalendarRange,
@@ -118,10 +118,11 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     };
   };
 
-  const wordFor = (variable: SeasonalVariable, level: number) =>
-    level === 0
-      ? t('seasonal.word.normal')
-      : t(`seasonal.word.${variable}.${level > 0 ? 'above' : 'below'}`);
+  const wordFor = (variable: SeasonalVariable, level: number) => {
+    if (level === 0) return t('seasonal.word.normal');
+    const direction = level > 0 ? 'above' : 'below';
+    return t(`seasonal.word.${variable}.${direction}`);
+  };
 
   const renderHeader = (p: SeasonalPeriod, col: number) => {
     const { main, sub } = periodLabel(p);
@@ -304,6 +305,99 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     );
   };
 
+  let outlookBody: React.ReactNode;
+  if (loading) {
+    outlookBody = (
+      <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-300"></div>
+        <p className="text-sm font-semibold text-slate-200">{t('seasonal.loading')}</p>
+      </div>
+    );
+  } else if (error) {
+    outlookBody = (
+      <div
+        className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2"
+        role="alert"
+      >
+        <span className="text-2xl" aria-hidden="true">
+          ⚠️
+        </span>
+        <p className="text-sm font-semibold text-slate-200">{t('seasonal.error')}</p>
+        <button
+          type="button"
+          onClick={retry}
+          className="mt-1 px-3 py-1 rounded-full bg-white text-slate-900 text-xs font-bold hover:bg-sky-100 transition-colors"
+        >
+          {t('seasonal.retry')}
+        </button>
+      </div>
+    );
+  } else if (!hasAnyData || periods.length === 0 || rows.length === 0) {
+    outlookBody = (
+      <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2">
+        <span className="text-2xl" aria-hidden="true">
+          🛰️
+        </span>
+        <p className="text-sm font-semibold text-slate-200">{t('seasonal.no_data')}</p>
+      </div>
+    );
+  } else {
+    outlookBody = (
+      <>
+        <div className="relative overflow-x-auto -mx-1 px-1 pb-1">
+          <table className="w-full border-separate border-spacing-1">
+            <caption className="sr-only">{`${t('title.long_range')} — ${t('seasonal.tier.' + tier)}`}</caption>
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="sr-only">{t('seasonal.confidence')}</span>
+                </th>
+                {periods.map(renderHeader)}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((variable) => {
+                const Icon = VAR_ICONS[variable];
+                return (
+                  <tr key={variable}>
+                    <th
+                      scope="row"
+                      className="sticky left-0 z-10 bg-slate-800/95 rounded-lg px-1.5 text-left font-normal"
+                    >
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-slate-100 leading-tight max-w-[76px]">
+                        <Icon
+                          size={12}
+                          className="shrink-0 text-slate-300"
+                          aria-hidden="true"
+                        />
+                        {t(`seasonal.var.${variable}`)}
+                      </span>
+                    </th>
+                    {periods.map((p, col) => renderCell(p, col, variable))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {renderDetail()}
+        <div className="mt-3 px-1 flex flex-col gap-1 text-[10px] leading-snug text-slate-300">
+          <p>{t('seasonal.legend')}</p>
+          <p>
+            {t(
+              tier === 'weeks'
+                ? 'seasonal.confidence_note.weeks'
+                : 'seasonal.confidence_note.months',
+            )}
+          </p>
+          {tier === 'seasons' && outlook!.zone === 'tropical' && (
+            <p className="text-amber-100">{t('seasonal.tropical_note')}</p>
+          )}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {drillTarget && (
@@ -367,93 +461,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
               ))}
             </div>
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-300"></div>
-                <p className="text-sm font-semibold text-slate-200">{t('seasonal.loading')}</p>
-              </div>
-            ) : error ? (
-              <div
-                className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2"
-                role="alert"
-              >
-                <span className="text-2xl" aria-hidden="true">
-                  ⚠️
-                </span>
-                <p className="text-sm font-semibold text-slate-200">{t('seasonal.error')}</p>
-                <button
-                  type="button"
-                  onClick={retry}
-                  className="mt-1 px-3 py-1 rounded-full bg-white text-slate-900 text-xs font-bold hover:bg-sky-100 transition-colors"
-                >
-                  {t('seasonal.retry')}
-                </button>
-              </div>
-            ) : !hasAnyData || periods.length === 0 || rows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 text-center gap-2">
-                <span className="text-2xl" aria-hidden="true">
-                  🛰️
-                </span>
-                <p className="text-sm font-semibold text-slate-200">{t('seasonal.no_data')}</p>
-              </div>
-            ) : (
-              <>
-                {/* Heatmap: rows = variables, columns = periods. Scrolls horizontally inside the card on narrow screens.
-                  `relative` makes this the containing block for the absolutely positioned sr-only labels, so they get clipped too. */}
-                <div className="relative overflow-x-auto -mx-1 px-1 pb-1">
-                  <table className="w-full border-separate border-spacing-1">
-                    <caption className="sr-only">{`${t('title.long_range')} — ${t('seasonal.tier.' + tier)}`}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">
-                          <span className="sr-only">{t('seasonal.confidence')}</span>
-                        </th>
-                        {periods.map(renderHeader)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((variable) => {
-                        const Icon = VAR_ICONS[variable];
-                        return (
-                          <tr key={variable}>
-                            <th
-                              scope="row"
-                              className="sticky left-0 z-10 bg-slate-800/95 rounded-lg px-1.5 text-left font-normal"
-                            >
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-100 leading-tight max-w-[76px]">
-                                <Icon
-                                  size={12}
-                                  className="shrink-0 text-slate-300"
-                                  aria-hidden="true"
-                                />
-                                {t(`seasonal.var.${variable}`)}
-                              </span>
-                            </th>
-                            {periods.map((p, col) => renderCell(p, col, variable))}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {renderDetail()}
-
-                <div className="mt-3 px-1 flex flex-col gap-1 text-[10px] leading-snug text-slate-300">
-                  <p>{t('seasonal.legend')}</p>
-                  <p>
-                    {t(
-                      tier === 'weeks'
-                        ? 'seasonal.confidence_note.weeks'
-                        : 'seasonal.confidence_note.months',
-                    )}
-                  </p>
-                  {tier === 'seasons' && outlook!.zone === 'tropical' && (
-                    <p className="text-amber-100">{t('seasonal.tropical_note')}</p>
-                  )}
-                </div>
-              </>
-            )}
+            {outlookBody}
 
             <SeasonalAttribution variant="full" seas5Issue={outlook?.seas5Issue} />
           </>

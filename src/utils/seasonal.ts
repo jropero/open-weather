@@ -90,7 +90,6 @@ function variableList(vars: SeasonalVariable[], withProb: boolean): string {
 const num = (x: unknown): number | null =>
   typeof x === 'number' && Number.isFinite(x) ? x : null;
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 function parseBlock(
   block: Record<string, unknown[]> | undefined,
   withProb: boolean,
@@ -196,16 +195,16 @@ function weeklyConfidence(values: Record<SeasonalVariable, SeasonalValue>, lead:
   const agreement = agreements.length
     ? Math.round(agreements.reduce((a, b) => a + b, 0) / agreements.length)
     : null;
-  let confidence: ConfidenceLevel =
-    agreement === null
-      ? lead < 2
-        ? 'medium'
-        : 'low'
-      : agreement >= 80
-        ? 'high'
-        : agreement >= 65
-          ? 'medium'
-          : 'low';
+  let confidence: ConfidenceLevel;
+  if (agreement === null) {
+    confidence = lead < 2 ? 'medium' : 'low';
+  } else if (agreement >= 80) {
+    confidence = 'high';
+  } else if (agreement >= 65) {
+    confidence = 'medium';
+  } else {
+    confidence = 'low';
+  }
   if (lead >= 2 && confidence === 'high') confidence = 'medium';
   return { agreement, confidence };
 }
@@ -410,7 +409,11 @@ export function classifyAnomaly(
 
   const [near, strong] = THRESHOLDS[variable];
   const mag = Math.abs(score);
-  const level = (mag < near ? 0 : (mag < strong ? 1 : 2) * Math.sign(score)) as AnomalyLevel;
+  let magnitude: number;
+  if (mag < near) magnitude = 0;
+  else if (mag < strong) magnitude = 1;
+  else magnitude = 2;
+  const level = (magnitude === 0 ? 0 : magnitude * Math.sign(score)) as AnomalyLevel;
   return { level, value, unit };
 }
 
@@ -496,5 +499,8 @@ export function getAnomalyClass(
       ? 'bg-white/10 text-white ring-1 ring-inset ring-white/20'
       : 'bg-slate-100 text-slate-700';
   const p = PALETTE[variable];
-  return level === -2 ? p[0] : level === -1 ? p[1] : level === 1 ? p[2] : p[3];
+  if (level === -2) return p[0];
+  if (level === -1) return p[1];
+  if (level === 1) return p[2];
+  return p[3];
 }

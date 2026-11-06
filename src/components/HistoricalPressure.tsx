@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { HistoricalWeather } from '../types/weather';
 import { getWeatherInfo } from '../utils/weatherCodes';
 import { useLanguage } from '../hooks/useLanguage';
@@ -21,6 +22,67 @@ export function HistoricalPressure({
     label: currentLabel,
     colorDark: currentColorDark,
   } = getWeatherInfo(currentWeatherCode, language);
+
+  const isHistLoading = historical.length === 0;
+  const hasHistError = historical.some((h) => h.error || !h.data);
+
+  let histBody: ReactNode;
+  if (isHistLoading) {
+    histBody = (
+      <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+        <p className="text-sm font-semibold text-slate-500">
+          {language === 'en'
+            ? 'Loading historical comparison...'
+            : 'Cargando comparación histórica...'}
+        </p>
+      </div>
+    );
+  } else if (hasHistError) {
+    histBody = (
+      <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
+        <span className="text-2xl">⚠️</span>
+        <p className="text-sm font-semibold text-slate-500">{t('label.info_unavailable')}</p>
+      </div>
+    );
+  } else {
+    histBody = historical.map((h) => {
+      if (!h.data) return null;
+      const {
+        icon: HistIcon,
+        label: histLabel,
+        colorDark: histColorDark,
+      } = getWeatherInfo(h.data.weatherCode, language);
+      return (
+        <div
+          key={h.year}
+          className="flex justify-between items-center pb-3 border-b border-slate-200 last:border-0 last:pb-0"
+        >
+          <div className="flex items-center gap-3">
+            <HistIcon
+              size={24}
+              className={`${histColorDark} icon-glow`}
+              aria-label={histLabel}
+            />
+            <span className="font-bold">
+              {t('label.in')} {h.year}
+            </span>
+          </div>
+          <div className="text-right flex flex-col items-end">
+            <span className="text-2xl font-extrabold text-slate-900">
+              {Math.round(h.data.maxTemp)}°C
+            </span>
+            <div className="flex gap-2 text-xs opacity-80 mt-1 font-medium">
+              <span>
+                {t('label.humidity')}: {Math.round(h.data.humidity)}%
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-500 mt-1 capitalize">{histLabel}</p>
+          </div>
+        </div>
+      );
+    });
+  }
 
   return (
     <section className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-lg mt-4 text-slate-800">
@@ -53,62 +115,7 @@ export function HistoricalPressure({
           </div>
         </div>
 
-        {historical.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
-            <p className="text-sm font-semibold text-slate-500">
-              {language === 'en'
-                ? 'Loading historical comparison...'
-                : 'Cargando comparación histórica...'}
-            </p>
-          </div>
-        ) : historical.some((h) => h.error || !h.data) ? (
-          <div className="flex flex-col items-center justify-center p-6 bg-slate-50/80 rounded-2xl border border-slate-100 text-center gap-2">
-            <span className="text-2xl">⚠️</span>
-            <p className="text-sm font-semibold text-slate-500">
-              {t('label.info_unavailable')}
-            </p>
-          </div>
-        ) : (
-          historical.map((h) => {
-            if (!h.data) return null;
-            const {
-              icon: HistIcon,
-              label: histLabel,
-              colorDark: histColorDark,
-            } = getWeatherInfo(h.data.weatherCode, language);
-            return (
-              <div
-                key={h.year}
-                className="flex justify-between items-center pb-3 border-b border-slate-200 last:border-0 last:pb-0"
-              >
-                <div className="flex items-center gap-3">
-                  <HistIcon
-                    size={24}
-                    className={`${histColorDark} icon-glow`}
-                    aria-label={histLabel}
-                  />
-                  <span className="font-bold">
-                    {t('label.in')} {h.year}
-                  </span>
-                </div>
-                <div className="text-right flex flex-col items-end">
-                  <span className="text-2xl font-extrabold text-slate-900">
-                    {Math.round(h.data.maxTemp)}°C
-                  </span>
-                  <div className="flex gap-2 text-xs opacity-80 mt-1 font-medium">
-                    <span>
-                      {t('label.humidity')}: {Math.round(h.data.humidity)}%
-                    </span>
-                  </div>
-                  <p className="text-xs font-semibold text-slate-500 mt-1 capitalize">
-                    {histLabel}
-                  </p>
-                </div>
-              </div>
-            );
-          })
-        )}
+        {histBody}
       </div>
     </section>
   );

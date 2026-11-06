@@ -50,7 +50,13 @@ const WIND_ICON: Record<GustLevel, string> = {
 const pad = (h: number) => String(h).padStart(2, '0');
 const fmtRange = (r: HourRange) => `${pad(r.from)}–${pad(r.to)}h`;
 const fmtRanges = (rs: HourRange[]) => rs.map(fmtRange).join(', ');
-const fmtSigned = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
+const fmtSigned = (n: number) => {
+  let sign: string;
+  if (n > 0) sign = '+';
+  else if (n < 0) sign = '−';
+  else sign = '';
+  return `${sign}${Math.abs(n)}`;
+};
 const fill = (s: string, vars: Record<string, string | number>) =>
   Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)), s);
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -65,7 +71,9 @@ function feltKey(delta: number, feltMax: number) {
 function umbrellaIcon(u: UmbrellaVerdict) {
   if (u.level === 'none') return '🌂';
   if (u.thunder) return '⛈️';
-  return u.kind === 'snow' ? '❄️' : u.kind === 'rain' ? '☂️' : '🌨️';
+  if (u.kind === 'snow') return '❄️';
+  if (u.kind === 'rain') return '☂️';
+  return '🌨️';
 }
 
 function Row({
@@ -382,11 +390,12 @@ export function TodayTomorrowSummary({
     return rows;
   };
 
-  const healthRowsTomorrow = (): ReactNode => (
-    <>
-      {!tomorrowMigraine ? (
-        <Row icon="🧠" title={t('summary.health.migraine_none')} muted />
-      ) : tomorrowMigraine.score >= 2 ? (
+  const healthRowsTomorrow = (): ReactNode => {
+    let migraineRow: ReactNode;
+    if (!tomorrowMigraine) {
+      migraineRow = <Row icon="🧠" title={t('summary.health.migraine_none')} muted />;
+    } else if (tomorrowMigraine.score >= 2) {
+      migraineRow = (
         <Row
           icon="🧠"
           title={fill(t('summary.health.migraine'), {
@@ -395,27 +404,35 @@ export function TodayTomorrowSummary({
           })}
           detail={tomorrowMigraine.detail}
         />
-      ) : (
+      );
+    } else {
+      migraineRow = (
         <Row
           icon="✅"
           title={t('summary.health.ok_tomorrow')}
           detail={fill(t('summary.health.ok_migraine'), { score: tomorrowMigraine.score })}
         />
-      )}
-      <Row icon="🫁" title={t('summary.health.aq_tomorrow')} muted />
-    </>
-  );
+      );
+    }
+    return (
+      <>
+        {migraineRow}
+        <Row icon="🫁" title={t('summary.health.aq_tomorrow')} muted />
+      </>
+    );
+  };
 
   const dayAfterTomorrowMigraine = getTomorrowMigraine(
     summary.tomorrowDaily,
     summary.dayAfterTomorrowDaily,
     language,
   );
-  const healthRowsDayAfterTomorrow = (): ReactNode => (
-    <>
-      {!dayAfterTomorrowMigraine ? (
-        <Row icon="🧠" title={t('summary.health.migraine_none')} muted />
-      ) : dayAfterTomorrowMigraine.score >= 2 ? (
+  const healthRowsDayAfterTomorrow = (): ReactNode => {
+    let migraineRow: ReactNode;
+    if (!dayAfterTomorrowMigraine) {
+      migraineRow = <Row icon="🧠" title={t('summary.health.migraine_none')} muted />;
+    } else if (dayAfterTomorrowMigraine.score >= 2) {
+      migraineRow = (
         <Row
           icon="🧠"
           title={fill(t('summary.health.migraine'), {
@@ -424,7 +441,9 @@ export function TodayTomorrowSummary({
           })}
           detail={dayAfterTomorrowMigraine.detail}
         />
-      ) : (
+      );
+    } else {
+      migraineRow = (
         <Row
           icon="✅"
           title={t('summary.health.ok_tomorrow')}
@@ -432,10 +451,15 @@ export function TodayTomorrowSummary({
             score: dayAfterTomorrowMigraine.score,
           })}
         />
-      )}
-      <Row icon="🫁" title={t('summary.health.aq_tomorrow')} muted />
-    </>
-  );
+      );
+    }
+    return (
+      <>
+        {migraineRow}
+        <Row icon="🫁" title={t('summary.health.aq_tomorrow')} muted />
+      </>
+    );
+  };
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const nightLine = (note: NightNote | null, labelKey: string): ReactNode => {
@@ -479,38 +503,40 @@ export function TodayTomorrowSummary({
     part: DayPart | null,
     before?: ReactNode,
     after?: ReactNode,
-    // eslint-disable-next-line sonarjs/cognitive-complexity
-  ) => (
-    <section aria-labelledby={`summary-${day}`} className="py-3 first:pt-0">
-      <h3
-        id={`summary-${day}`}
-        className="text-xs uppercase tracking-widest font-bold text-slate-500 mb-1"
-      >
-        {t(`summary.${day}`)}{' '}
-        {part && (
-          <span className="text-slate-400 tabular-nums normal-case tracking-normal">
-            ({fmtRange(part)})
-          </span>
+  ) => {
+    let healthRows: ReactNode;
+    if (day === 'today') healthRows = healthRowsToday();
+    else if (day === 'tomorrow') healthRows = healthRowsTomorrow();
+    else healthRows = healthRowsDayAfterTomorrow();
+
+    return (
+      <section aria-labelledby={`summary-${day}`} className="py-3 first:pt-0">
+        <h3
+          id={`summary-${day}`}
+          className="text-xs uppercase tracking-widest font-bold text-slate-500 mb-1"
+        >
+          {t(`summary.${day}`)}{' '}
+          {part && (
+            <span className="text-slate-400 tabular-nums normal-case tracking-normal">
+              ({fmtRange(part)})
+            </span>
+          )}
+        </h3>
+        {before}
+        {part ? (
+          <ul className="divide-y divide-slate-100">
+            {feltRows(part, day)}
+            {umbrellaRow(part)}
+            {windRow(part)}
+            {healthRows}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-500 py-2">{t('summary.no_data_day')}</p>
         )}
-      </h3>
-      {before}
-      {part ? (
-        <ul className="divide-y divide-slate-100">
-          {feltRows(part, day)}
-          {umbrellaRow(part)}
-          {windRow(part)}
-          {day === 'today'
-            ? healthRowsToday()
-            : day === 'tomorrow'
-              ? healthRowsTomorrow()
-              : healthRowsDayAfterTomorrow()}
-        </ul>
-      ) : (
-        <p className="text-sm text-slate-500 py-2">{t('summary.no_data_day')}</p>
-      )}
-      {after}
-    </section>
-  );
+        {after}
+      </section>
+    );
+  };
 
   const hourOptions = (from: number, to: number) =>
     Array.from({ length: to - from + 1 }, (_, i) => from + i).map((h) => (

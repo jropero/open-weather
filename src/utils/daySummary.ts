@@ -271,17 +271,17 @@ function assessNight(seg: LocalHour[]): NightNote | null {
   // Thresholds as frostType / nightType in App.tsx
   const temps = values(seg, (h) => h.temperature);
   const minTemp = temps.length ? Math.min(...temps) : null;
-  const frost = minTemp === null ? null : minTemp <= 0 ? 'ice' : minTemp <= 2 ? 'frost' : null;
-  const warmNight =
-    minTemp === null
-      ? null
-      : minTemp > 25
-        ? 'ecuatorial'
-        : minTemp >= 25
-          ? 'torrida'
-          : minTemp >= 20
-            ? 'tropical'
-            : null;
+  let frost: 'ice' | 'frost' | null = null;
+  if (minTemp !== null) {
+    if (minTemp <= 0) frost = 'ice';
+    else if (minTemp <= 2) frost = 'frost';
+  }
+  let warmNight: 'ecuatorial' | 'torrida' | 'tropical' | null = null;
+  if (minTemp !== null) {
+    if (minTemp > 25) warmNight = 'ecuatorial';
+    else if (minTemp >= 25) warmNight = 'torrida';
+    else if (minTemp >= 20) warmNight = 'tropical';
+  }
   const thunder = seg.some((h) => isThunder(h.weatherCode));
 
   if (!precip && !thunder && !wind && !frost && !warmNight) return null;
@@ -466,11 +466,14 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
         WIND_WEIGHT[w.level] - offset,
       );
     const score = day === 'today' ? health.todayMigraine : health.tomorrowMigraine;
-    if (score !== null && score >= 2)
-      add(
-        { topic: 'migraine', day, score },
-        (score >= 6 ? 85 : score >= 4 ? 75 : score >= 3 ? 45 : 18) - offset,
-      );
+    if (score !== null && score >= 2) {
+      let migraineWeight: number;
+      if (score >= 6) migraineWeight = 85;
+      else if (score >= 4) migraineWeight = 75;
+      else if (score >= 3) migraineWeight = 45;
+      else migraineWeight = 18;
+      add({ topic: 'migraine', day, score }, migraineWeight - offset);
+    }
   }
 
   if (
@@ -516,16 +519,13 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
   candidates.sort((a, b) => b.w - a.w); // stable: insertion order (today first) breaks ties
   const [first, ...rest] = candidates;
   if (!first) {
-    const day: DayKey | null = s.today
-      ? 'today'
-      : s.tomorrow
-        ? 'tomorrow'
-        : s.dayAfterTomorrow
-          ? 'dayAfterTomorrow'
-          : null;
-    return day
-      ? [{ topic: 'calm', day, felt: (day === 'today' ? s.today : s.tomorrow)?.felt ?? null }]
-      : [];
+    let day: DayKey | null = null;
+    if (s.today) day = 'today';
+    else if (s.tomorrow) day = 'tomorrow';
+    else if (s.dayAfterTomorrow) day = 'dayAfterTomorrow';
+    if (!day) return [];
+    const calmdayFelt = day === 'today' ? s.today : s.tomorrow;
+    return [{ topic: 'calm', day, felt: calmdayFelt?.felt ?? null }];
   }
   const second = rest.find((c) => c.h.topic !== first.h.topic && c.w >= SECONDARY_MIN_WEIGHT);
   return second ? [first.h, second.h] : [first.h];

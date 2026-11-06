@@ -140,24 +140,22 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   // Daily Chart Data
   const dailyChartData = useMemo(
     () =>
-      // eslint-disable-next-line sonarjs/cognitive-complexity
       daily.slice(startIndex, startIndex + 7).map((d, idx) => {
         const actualIdx = daily.findIndex((x) => x.date === d.date);
         const yesterday = actualIdx > 0 ? daily[actualIdx - 1] : d;
         const deltaP = Math.round(d.meanPressure - yesterday.meanPressure);
         const isToday = actualIdx === todayIndex;
+        const todayName = language === 'en' ? 'TODAY' : 'HOY';
+        const locale = language === 'es' ? 'es-ES' : 'en-US';
+        const name = isToday
+          ? todayName
+          : new Date(d.date).toLocaleDateString(locale, { weekday: 'short' });
 
         return {
           idx,
           isToday,
           isPast: todayIndex >= 0 && actualIdx < todayIndex,
-          name: isToday
-            ? language === 'en'
-              ? 'TODAY'
-              : 'HOY'
-            : new Date(d.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-                weekday: 'short',
-              }),
+          name,
           pressure: Math.round(d.meanPressure),
           temp: Math.round((d.maxTemp + d.minTemp) / 2),
           humidity: Math.round(d.humidity),
@@ -291,6 +289,8 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       if (viewMode === 'daily') {
         const d = dailyChartData[idx];
         if (!d) return <g />;
+        const pastFill = d.isPast ? '#94a3b8' : '#e2e8f0';
+        const fill = d.isToday ? '#ffffff' : pastFill;
         return (
           <text
             x={x}
@@ -298,7 +298,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
             textAnchor="middle"
             fontSize={12}
             fontWeight={d.isToday ? 900 : 500}
-            fill={d.isToday ? '#ffffff' : d.isPast ? '#94a3b8' : '#e2e8f0'}
+            fill={fill}
             letterSpacing={d.isToday ? 1.5 : 0}
           >
             {d.isToday ? d.name : capitalize(d.name)}
@@ -309,12 +309,13 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       if (!h) return <g />;
       const isNow = idx === nowHourIdx;
       const isMidnight = h.hour === 0 && !isNow;
-      const anchor =
-        idx === nowHourIdx && idx === 0
-          ? 'start'
-          : idx === hourlyChartData.length - 1
-            ? 'end'
-            : 'middle';
+      const isLast = idx === hourlyChartData.length - 1;
+      const anchorFallback = isLast ? 'end' : 'middle';
+      const anchor = idx === nowHourIdx && idx === 0 ? 'start' : anchorFallback;
+      const hourLabel = isMidnight
+        ? capitalize(h.dayShort)
+        : `${String(h.hour).padStart(2, '0')}h`;
+      const tickLabel = isNow ? t('chart.now') : hourLabel;
       return (
         <text
           x={x}
@@ -324,11 +325,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           fontWeight={isNow || isMidnight ? 800 : 500}
           fill={isNow || isMidnight ? '#ffffff' : '#cbd5e1'}
         >
-          {isNow
-            ? t('chart.now')
-            : isMidnight
-              ? capitalize(h.dayShort)
-              : `${String(h.hour).padStart(2, '0')}h`}
+          {tickLabel}
         </text>
       );
     },
@@ -505,15 +502,13 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const selDaily = viewMode === 'daily' ? targetDays[activeIdx] : undefined;
   const selDailyPoint = viewMode === 'daily' ? dailyChartData[activeIdx] : undefined;
   const selTemp = selHourly ? selHourly.temperature : (sel?.temp ?? 0);
+  const selWind = selHourly ? selHourly.windSpeed : (sel?.wind ?? 0);
+  const selHumidity = selHourly ? selHourly.humidity : (sel?.humidity ?? 0);
   const selComfort =
     sel &&
     (selTemp < 10
-      ? getWindChillIndex(selTemp, selHourly ? selHourly.windSpeed : sel.wind, language)
-      : getThomsDiscomfortIndex(
-          selTemp,
-          selHourly ? selHourly.humidity : sel.humidity,
-          language,
-        ));
+      ? getWindChillIndex(selTemp, selWind, language)
+      : getThomsDiscomfortIndex(selTemp, selHumidity, language));
   const selHumidityBand = getHumidityBand(sel?.humidity ?? 0);
   const selDeltaAlert =
     sel && viewMode === 'daily' ? getPressureDeltaAlert(sel.deltaP, language) : undefined;
@@ -532,43 +527,36 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const lastPressure = hourlyChartData[hourlyChartData.length - 1]?.pressure ?? 0;
   const hourlyDelta =
     activeIdx === nowHourIdx ? lastPressure - nowPressure : (sel?.pressure ?? 0) - nowPressure;
-  const trendArrow = hourlyDelta > 0 ? '↑' : hourlyDelta < 0 ? '↓' : '→';
-  const selHeader =
-    viewMode === 'daily'
-      ? selDaily
-        ? capitalize(
-            new Date(selDaily.date).toLocaleDateString(locale, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'short',
-            }),
-          )
-        : ''
-      : hourlyChartData[activeIdx]
-        ? `${capitalize(hourlyChartData[activeIdx].dayLong)} ${hourlyChartData[activeIdx].name}`
-        : '';
-  const selStatus =
-    viewMode === 'daily'
-      ? selDailyPoint?.isToday
-        ? t('label.today')
-        : selDailyPoint?.isPast
-          ? t('chart.past')
-          : t('chart.forecast')
-      : activeIdx === nowHourIdx
-        ? t('chart.now')
-        : null;
+  const trendDown = hourlyDelta < 0 ? '↓' : '→';
+  const trendArrow = hourlyDelta > 0 ? '↑' : trendDown;
+  const hourlyPoint = hourlyChartData[activeIdx];
+  const dailyHeader = selDaily
+    ? capitalize(
+        new Date(selDaily.date).toLocaleDateString(locale, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'short',
+        }),
+      )
+    : '';
+  const hourlyHeader = hourlyPoint
+    ? `${capitalize(hourlyPoint.dayLong)} ${hourlyPoint.name}`
+    : '';
+  const selHeader = viewMode === 'daily' ? dailyHeader : hourlyHeader;
+  const pastOrForecast = selDailyPoint?.isPast ? t('chart.past') : t('chart.forecast');
+  const dailyStatus = selDailyPoint?.isToday ? t('label.today') : pastOrForecast;
+  const hourlyStatus = activeIdx === nowHourIdx ? t('chart.now') : null;
+  const selStatus = viewMode === 'daily' ? dailyStatus : hourlyStatus;
 
-  /* eslint-disable sonarjs/cognitive-complexity */
+  const hourlyTitle = isEn ? '24-Hour Forecast' : 'Pronóstico por Horas';
+  const sectionTitle = viewMode === 'daily' ? t('title.daily_forecast') : hourlyTitle;
+
   return (
     <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl py-5 px-0.5 sm:p-6 shadow-xl mt-4 overflow-hidden text-white border border-slate-700/50">
       {/* Title & View Switcher */}
       <div className="flex justify-between items-center mb-6 px-4">
         <h3 className="text-sm uppercase tracking-wider opacity-90 font-semibold">
-          {viewMode === 'daily'
-            ? t('title.daily_forecast')
-            : isEn
-              ? '24-Hour Forecast'
-              : 'Pronóstico por Horas'}
+          {sectionTitle}
         </h3>
 
         <div className="bg-white/10 p-0.5 rounded-full flex gap-1 border border-white/5 backdrop-blur-md">
@@ -669,6 +657,22 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
               h.temperature < 10
                 ? getWindChillIndex(h.temperature, h.windSpeed, language)
                 : getThomsDiscomfortIndex(h.temperature, h.humidity, language);
+            const precipFallback =
+              h.precipProbability > 0 ? (
+                <span className="text-[9px] font-bold text-violet-300 mt-0.5">
+                  {h.precipProbability}%
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold opacity-0 mt-0.5">-</span>
+              );
+            const precipBadge =
+              h.snowfall > 0 ? (
+                <span className="text-[9px] font-bold text-cyan-200 mt-0.5">
+                  ❄️ {h.snowfall.toFixed(1)}mm
+                </span>
+              ) : (
+                precipFallback
+              );
 
             return (
               <div
@@ -692,17 +696,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
                 <span className="text-[9px] font-bold text-teal-300">
                   {Math.round(h.windSpeed)} km/h
                 </span>
-                {h.snowfall > 0 ? (
-                  <span className="text-[9px] font-bold text-cyan-200 mt-0.5">
-                    ❄️ {h.snowfall.toFixed(1)}mm
-                  </span>
-                ) : h.precipProbability > 0 ? (
-                  <span className="text-[9px] font-bold text-violet-300 mt-0.5">
-                    {h.precipProbability}%
-                  </span>
-                ) : (
-                  <span className="text-[9px] font-bold opacity-0 mt-0.5">-</span>
-                )}
+                {precipBadge}
 
                 <div
                   className={`mt-2 px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${comfort.bgClass} ${comfort.bgClass.includes('text-white') ? '' : 'text-slate-900'} scale-95 shadow-sm text-center leading-none`}
