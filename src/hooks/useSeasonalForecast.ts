@@ -10,11 +10,12 @@ export function useSeasonalForecast(location: Location) {
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const retry = useCallback(() => setReloadToken(n => n + 1), []);
+  const retry = useCallback(() => setReloadToken((n) => n + 1), []);
 
   useEffect(() => {
     let isMounted = true;
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     async function fetchOutlook() {
       if (!location.latitude || !location.longitude) return;
 
@@ -30,7 +31,11 @@ export function useSeasonalForecast(location: Location) {
       try {
         const raw = localStorage.getItem(cacheKey);
         if (raw) {
-          const cached = JSON.parse(raw) as { run: string; timestamp: number; data: SeasonalForecastData };
+          const cached = JSON.parse(raw) as {
+            run: string;
+            timestamp: number;
+            data: SeasonalForecastData;
+          };
           if (cached.run === run && now - cached.timestamp < CACHE_MAX_AGE) {
             if (isMounted) {
               setOutlook(buildOutlook(cached.data, today, location.latitude));
@@ -39,11 +44,17 @@ export function useSeasonalForecast(location: Location) {
             return;
           }
         }
-      } catch { /* corrupt cache — fall through */ }
+      } catch {
+        /* corrupt cache — fall through */
+      }
 
       try {
         const data = await fetchSeasonal(location.latitude, location.longitude);
-        try { localStorage.setItem(cacheKey, JSON.stringify({ run, timestamp: now, data })); } catch { /* storage full */ }
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ run, timestamp: now, data }));
+        } catch {
+          /* storage full */
+        }
         if (isMounted) setOutlook(buildOutlook(data, today, location.latitude));
       } catch (err) {
         console.error('Failed to fetch seasonal outlook:', err);

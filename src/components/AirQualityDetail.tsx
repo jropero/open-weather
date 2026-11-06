@@ -20,6 +20,7 @@ function aqiBarColor(aqi: number): string {
   return '#9f1239';
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function AirQualityDetail({ aq, timezone, onClose }: Props) {
   const { language } = useLanguage();
   const isEn = language === 'en';
@@ -29,7 +30,9 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
     const el = dialogRef.current;
     if (!el) return;
     el.showModal();
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     el.addEventListener('keydown', onKeyDown);
     return () => el.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
@@ -52,72 +55,91 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
       value: aq.aqiPm25,
       raw: aq.currentPm25,
       unit: 'μg/m³',
-      health: isEn ? 'fine particles · penetrate deep into lungs' : 'partículas finas · penetran en los pulmones',
+      health: isEn
+        ? 'fine particles · penetrate deep into lungs'
+        : 'partículas finas · penetran en los pulmones',
     },
     {
       name: 'PM10',
       value: aq.aqiPm10,
       raw: aq.currentPm10,
       unit: 'μg/m³',
-      health: isEn ? 'coarse particles · irritate nose, throat & lungs' : 'partículas gruesas · irritan nariz, garganta y pulmones',
+      health: isEn
+        ? 'coarse particles · irritate nose, throat & lungs'
+        : 'partículas gruesas · irritan nariz, garganta y pulmones',
     },
     {
       name: 'NO₂',
       value: aq.aqiNo2,
       raw: null,
       unit: null,
-      health: isEn ? 'nitrogen dioxide · irritates airways, worsens asthma' : 'dióxido de nitrógeno · irrita bronquios, agrava el asma',
+      health: isEn
+        ? 'nitrogen dioxide · irritates airways, worsens asthma'
+        : 'dióxido de nitrógeno · irrita bronquios, agrava el asma',
     },
     {
       name: 'O₃',
       value: aq.aqiO3,
       raw: null,
       unit: null,
-      health: isEn ? 'ground-level ozone · damages lung tissue on exposure' : 'ozono troposférico · daña tejido pulmonar en exposición prolongada',
+      health: isEn
+        ? 'ground-level ozone · damages lung tissue on exposure'
+        : 'ozono troposférico · daña tejido pulmonar en exposición prolongada',
     },
     {
       name: 'SO₂',
       value: aq.aqiSo2,
       raw: null,
       unit: null,
-      health: isEn ? 'sulphur dioxide · aggravates respiratory conditions' : 'dióxido de azufre · agrava afecciones respiratorias',
+      health: isEn
+        ? 'sulphur dioxide · aggravates respiratory conditions'
+        : 'dióxido de azufre · agrava afecciones respiratorias',
     },
-  ].filter(p => p.value !== null);
+  ].filter((p) => p.value !== null);
 
   const pollens = [
     { emoji: '🌿', name: isEn ? 'Grass' : 'Gramíneas', value: aq.grassPollen },
-    { emoji: '🌳', name: isEn ? 'Birch' : 'Abedul',    value: aq.birchPollen },
-    { emoji: '🌸', name: isEn ? 'Alder' : 'Aliso',     value: aq.alderPollen },
+    { emoji: '🌳', name: isEn ? 'Birch' : 'Abedul', value: aq.birchPollen },
+    { emoji: '🌸', name: isEn ? 'Alder' : 'Aliso', value: aq.alderPollen },
     { emoji: '🌾', name: isEn ? 'Mugwort' : 'Artemisa', value: aq.mugwortPollen },
-    { emoji: '🫒', name: isEn ? 'Olive' : 'Olivo',     value: aq.olivePollen },
+    { emoji: '🫒', name: isEn ? 'Olive' : 'Olivo', value: aq.olivePollen },
     { emoji: '🌻', name: isEn ? 'Ragweed' : 'Ambrosía', value: aq.ragweedPollen },
-  ].filter(p => p.value !== null && p.value > 0);
+  ].filter((p) => p.value !== null && p.value > 0);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
       ref={dialogRef}
       className="m-0 mt-auto w-full max-w-lg mx-auto rounded-t-2xl bg-white shadow-2xl p-0 backdrop:bg-black/40"
       style={{ border: 'none' }}
-      onClick={(e) => { if (e.target === dialogRef.current) onClose(); }}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) onClose();
+      }}
     >
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-slate-100">
         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500">
           {isEn ? 'Air Quality Detail' : 'Detalle — Calidad del Aire'}
         </h2>
-        <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 transition-colors">
+        <button
+          onClick={onClose}
+          className="p-1 rounded-full hover:bg-slate-100 transition-colors"
+        >
           <X size={18} className="text-slate-400" />
         </button>
       </div>
 
       <div className="px-4 py-3 flex flex-col gap-5 overflow-y-auto max-h-[80vh]">
-
         {chartData.length > 0 && (
           <section>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               {isEn ? '24h AQI trend' : 'Tendencia AQI 24h'}
             </h3>
             <ResponsiveContainer width="100%" height={100}>
-              <BarChart data={chartData} barSize={10} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
+              <BarChart
+                data={chartData}
+                barSize={10}
+                margin={{ top: 2, right: 0, bottom: 0, left: -24 }}
+              >
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 9, fill: '#94a3b8' }}
@@ -127,7 +149,12 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
                 />
                 <YAxis hide domain={[0, 'auto']} />
                 <Tooltip
-                  contentStyle={{ fontSize: 11, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 8,
+                    border: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,.12)',
+                  }}
                   formatter={(v) => {
                     const num = typeof v === 'number' ? v : Number(v ?? 0);
                     const { label } = getAqiInfo(num, language);
@@ -151,8 +178,8 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
               {isEn ? 'Pollutants' : 'Contaminantes'}
             </h3>
             <div className="flex flex-col gap-1.5">
-              {pollutants.map(p => {
-                const pct = Math.min(100, ((p.value!) / 100) * 100);
+              {pollutants.map((p) => {
+                const pct = Math.min(100, (p.value! / 100) * 100);
                 const color = aqiBarColor(p.value!);
                 const levelInfo = getAqiInfo(p.value!, language);
                 return (
@@ -160,14 +187,19 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
                     <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
                       <span className="flex flex-col gap-0">
                         <span>{p.name}</span>
-                        <span className="text-[10px] text-slate-400 font-normal leading-tight">{p.health}</span>
+                        <span className="text-[10px] text-slate-400 font-normal leading-tight">
+                          {p.health}
+                        </span>
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${levelInfo.bgClass}`}>
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${levelInfo.bgClass}`}
+                        >
                           {levelInfo.label}
                         </span>
                         <span className="text-slate-400 font-normal">
-                          {p.value}{p.raw !== null && p.unit ? ` · ${p.raw!.toFixed(1)} ${p.unit}` : ''}
+                          {p.value}
+                          {p.raw !== null && p.unit ? ` · ${p.raw!.toFixed(1)} ${p.unit}` : ''}
                         </span>
                       </span>
                     </div>
@@ -190,15 +222,19 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
               {isEn ? 'Pollen' : 'Polen'}
             </h3>
             <div className="flex flex-col gap-1">
-              {pollens.map(p => {
+              {pollens.map((p) => {
                 const level = getPollenLevel(p.value!, language);
                 if (!level) return null;
                 return (
                   <div key={p.name} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 font-medium">{p.emoji} {p.name}</span>
+                    <span className="text-slate-600 font-medium">
+                      {p.emoji} {p.name}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-400">{Math.round(p.value!)} gr/m³</span>
-                      <span className={`px-2 py-0.5 rounded-full font-bold text-xs ${level.bgClass}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-bold text-xs ${level.bgClass}`}
+                      >
                         {level.label}
                       </span>
                     </div>
@@ -210,7 +246,9 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
         )}
 
         <p className="text-xs text-slate-400 text-center pb-1">
-          {isEn ? 'CAMS European Air Quality · Open-Meteo' : 'CAMS Calidad del Aire Europea · Open-Meteo'}
+          {isEn
+            ? 'CAMS European Air Quality · Open-Meteo'
+            : 'CAMS Calidad del Aire Europea · Open-Meteo'}
         </p>
       </div>
     </dialog>

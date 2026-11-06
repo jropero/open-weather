@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import url('tailwindcss');
 
 @theme {
   --animate-sun: sun-spin 24s linear infinite;
@@ -8,37 +8,79 @@
   --animate-storm: storm-shake 4s ease-in-out infinite;
 
   @keyframes sun-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @keyframes moon-glow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
   }
 
   @keyframes cloud-float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-8px) scale(1.02); }
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+
+    50% {
+      transform: translateY(-8px) scale(1.02);
+    }
   }
 
   @keyframes rain-drop {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(6px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(6px);
+    }
   }
 
   @keyframes storm-shake {
-    0%, 100% { transform: translateX(0); }
-    10% { transform: translateX(-2px) rotate(-2deg); }
-    20% { transform: translateX(2px) rotate(2deg); }
-    30% { transform: translateX(-2px) rotate(-2deg); }
-    40% { transform: translateX(2px) rotate(2deg); }
-    50% { transform: translateX(0); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    10% {
+      transform: translateX(-2px) rotate(-2deg);
+    }
+
+    20% {
+      transform: translateX(2px) rotate(2deg);
+    }
+
+    30% {
+      transform: translateX(-2px) rotate(-2deg);
+    }
+
+    40% {
+      transform: translateX(2px) rotate(2deg);
+    }
+
+    50% {
+      transform: translateX(0);
+    }
   }
 }
 
 body {
   @apply antialiased text-white;
+
   background: linear-gradient(to bottom, #2563eb, #60a5fa);
   min-height: 100vh;
 }
@@ -49,12 +91,13 @@ body:has(dialog[open]) {
 }
 
 .icon-glow {
-  filter: drop-shadow(0 0 6px currentColor);
+  filter: drop-shadow(0 0 6px currentcolor);
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -65,68 +108,141 @@ body:has(dialog[open]) {
   animation: driftFast 18s ease-in-out infinite;
   will-change: transform;
 }
+
 .anim-cloud-slow {
   animation: driftSlow 24s ease-in-out infinite;
   will-change: transform;
 }
+
 .anim-lightning {
   animation: lightningFlash 7s infinite;
 }
+
 .anim-fall {
   animation: fallDown var(--dur) linear infinite;
 }
+
 .anim-cloud-bg {
   animation: driftBg 36s ease-in-out infinite;
   will-change: transform;
 }
+
 .anim-mist {
   animation: mistPulse var(--md, 5s) ease-in-out infinite;
   will-change: opacity, transform;
   transform-origin: 50% 50%;
 }
+
 .anim-wind {
   animation: windStreak var(--wd, 1.8s) ease-in-out infinite;
   will-change: transform, opacity;
 }
 
 @keyframes driftFast {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(80px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(80px);
+  }
 }
+
 @keyframes driftSlow {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-70px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(-70px);
+  }
 }
+
 @keyframes driftBg {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(45px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(45px);
+  }
 }
+
 @keyframes mistPulse {
-  0%, 100% { opacity: var(--mb, 0.35); transform: scaleX(1); }
-  40%       { opacity: calc(var(--mb, 0.35) * 0.55); transform: scaleX(1.04); }
-  70%       { opacity: calc(var(--mb, 0.35) * 0.85); transform: scaleX(0.97); }
+  0%,
+  100% {
+    opacity: var(--mb, 0.35);
+    transform: scaleX(1);
+  }
+
+  40% {
+    opacity: calc(var(--mb, 0.35) * 0.55);
+    transform: scaleX(1.04);
+  }
+
+  70% {
+    opacity: calc(var(--mb, 0.35) * 0.85);
+    transform: scaleX(0.97);
+  }
 }
+
 @keyframes lightningFlash {
-  0%, 40%, 46%, 50%, 100% { opacity: 0; }
-  42%, 48% { opacity: 0.8; }
-  44% { opacity: 0.3; }
+  0%,
+  40%,
+  46%,
+  50%,
+  100% {
+    opacity: 0;
+  }
+
+  42%,
+  48% {
+    opacity: 0.8;
+  }
+
+  44% {
+    opacity: 0.3;
+  }
 }
+
 @keyframes fallDown {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(var(--drift), 800px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(var(--drift), 800px);
+  }
 }
+
 @keyframes windStreak {
-  0%   { transform: translateX(var(--ws, -400px)); opacity: 0; }
-  10%  { opacity: var(--wo, 0.4); }
-  80%  { opacity: var(--wo, 0.4); }
-  100% { transform: translateX(var(--we, 600px)); opacity: 0; }
+  0% {
+    transform: translateX(var(--ws, -400px));
+    opacity: 0;
+  }
+
+  10% {
+    opacity: var(--wo, 0.4);
+  }
+
+  80% {
+    opacity: var(--wo, 0.4);
+  }
+
+  100% {
+    transform: translateX(var(--we, 600px));
+    opacity: 0;
+  }
 }
 
 /* Register --drift as a typed length so GPU can animate it on the compositor thread */
 @property --drift {
   syntax: '<length>';
   inherits: false;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 /* Aurora borealis curtain sway — per-curtain --dur, --ax, --sk set inline */
@@ -136,18 +252,62 @@ body:has(dialog[open]) {
   transform-origin: 50% 100%;
   will-change: transform, opacity;
 }
+
 @keyframes auroraDrift {
-  0%, 100% { transform: translateX(0) skewX(0deg); opacity: 1; }
-  30%       { transform: translateX(var(--ax)) skewX(var(--sk)); opacity: 0.78; }
-  65%       { transform: translateX(calc(var(--ax) * -0.7)) skewX(calc(var(--sk) * -0.6)); opacity: 0.95; }
+  0%,
+  100% {
+    transform: translateX(0) skewX(0deg);
+    opacity: 1;
+  }
+
+  30% {
+    transform: translateX(var(--ax)) skewX(var(--sk));
+    opacity: 0.78;
+  }
+
+  65% {
+    transform: translateX(calc(var(--ax) * -0.7)) skewX(calc(var(--sk) * -0.6));
+    opacity: 0.95;
+  }
 }
-.aurora-fade-in  { animation: auroraFadeIn  1.5s ease-out both; }
-.aurora-fade-out { animation: auroraFadeOut 1.5s ease-in  both; }
-@keyframes auroraFadeIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes auroraFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+.aurora-fade-in {
+  animation: auroraFadeIn 1.5s ease-out both;
+}
+
+.aurora-fade-out {
+  animation: auroraFadeOut 1.5s ease-in both;
+}
+
+@keyframes auroraFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes auroraFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .anim-cloud-fast, .anim-cloud-slow, .anim-cloud-bg, .anim-lightning, .anim-fall, .anim-aurora-drift, .anim-wind, .anim-mist {
+  .anim-cloud-fast,
+  .anim-cloud-slow,
+  .anim-cloud-bg,
+  .anim-lightning,
+  .anim-fall,
+  .anim-aurora-drift,
+  .anim-wind,
+  .anim-mist {
     animation: none;
   }
 }

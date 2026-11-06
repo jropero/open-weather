@@ -24,14 +24,14 @@ export function useGeolocation() {
             name: 'Ubicación Actual',
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            isGPS: true
+            isGPS: true,
           });
         },
         (err) => {
           setLoading(false);
           setError(err.message);
           reject(err);
-        }
+        },
       );
     });
   };

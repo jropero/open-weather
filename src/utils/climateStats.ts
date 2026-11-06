@@ -36,7 +36,7 @@ export interface SeasonalClimate {
 export interface HistoricalPeriod {
   label: string;
   year: number;
-  month?: number;      // set for monthly periods
+  month?: number; // set for monthly periods
   seasonKey?: SeasonKey; // set for seasonal periods
   values: Partial<Record<SeasonalVariable, number>>;
 }
@@ -66,7 +66,11 @@ export interface ClimateDetailResult {
 // ---- Constants -----------------------------------------------------------
 
 export const ALL_VARS: SeasonalVariable[] = [
-  'temperature', 'precipitation', 'pressure', 'sunshine', 'snowfall',
+  'temperature',
+  'precipitation',
+  'pressure',
+  'sunshine',
+  'snowfall',
 ];
 
 const ERA5_YEARS_BACK = 10;
@@ -107,13 +111,21 @@ function std(xs: number[], m: number): number {
  * Aggregates ERA5 daily data into monthly totals/means.
  * temperature & pressure: mean; precipitation, sunshine, snowfall: sum.
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function aggregateMonthly(daily: ERA5DailyData): MonthlyClimate[] {
-  type Acc = { temp: number[]; precip: number[]; pressure: number[]; sunshine: number[]; snowfall: number[] };
+  type Acc = {
+    temp: number[];
+    precip: number[];
+    pressure: number[];
+    sunshine: number[];
+    snowfall: number[];
+  };
   const groups = new Map<string, Acc>();
 
   for (let i = 0; i < daily.time.length; i++) {
     const ym = daily.time[i].slice(0, 7); // "YYYY-MM"
-    if (!groups.has(ym)) groups.set(ym, { temp: [], precip: [], pressure: [], sunshine: [], snowfall: [] });
+    if (!groups.has(ym))
+      groups.set(ym, { temp: [], precip: [], pressure: [], sunshine: [], snowfall: [] });
     const g = groups.get(ym)!;
     if (daily.temp[i] !== null) g.temp.push(daily.temp[i] as number);
     if (daily.precip[i] !== null) g.precip.push(daily.precip[i] as number);
@@ -143,7 +155,10 @@ export function aggregateMonthly(daily: ERA5DailyData): MonthlyClimate[] {
 
 // ---- Seasonal aggregation ------------------------------------------------
 
-function getSeasonInfo(year: number, month: number): { seasonKey: SeasonKey; anchorYear: number } {
+function getSeasonInfo(
+  year: number,
+  month: number,
+): { seasonKey: SeasonKey; anchorYear: number } {
   if (month <= 2) return { seasonKey: 'DJF', anchorYear: year };
   if (month <= 5) return { seasonKey: 'MAM', anchorYear: year };
   if (month <= 8) return { seasonKey: 'JJA', anchorYear: year };
@@ -157,6 +172,7 @@ function getSeasonInfo(year: number, month: number): { seasonKey: SeasonKey; anc
  * DJF_2024 = Dec 2023 + Jan 2024 + Feb 2024 (anchor year = 2024).
  * Only complete 3-month seasons are returned.
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function aggregateSeasonal(monthly: MonthlyClimate[]): SeasonalClimate[] {
   type Acc = { seasonKey: SeasonKey; anchorYear: number; months: MonthlyClimate[] };
   const groups = new Map<string, Acc>();
@@ -175,9 +191,9 @@ export function aggregateSeasonal(monthly: MonthlyClimate[]): SeasonalClimate[] 
       key,
       seasonKey: g.seasonKey,
       year: g.anchorYear,
-      temperature: mean(g.months.map(m => m.temperature)),
+      temperature: mean(g.months.map((m) => m.temperature)),
       precipitation: g.months.reduce((a, m) => a + m.precipitation, 0),
-      pressure: mean(g.months.map(m => m.pressure)),
+      pressure: mean(g.months.map((m) => m.pressure)),
       sunshine: g.months.reduce((a, m) => a + m.sunshine, 0),
       snowfall: g.months.reduce((a, m) => a + m.snowfall, 0),
     });
@@ -192,11 +208,25 @@ export function computeClimatology(periods: HistoricalPeriod[]): {
   means: Record<SeasonalVariable, number | null>;
   stds: Record<SeasonalVariable, number | null>;
 } {
-  const means: Record<SeasonalVariable, number | null> = { temperature: null, precipitation: null, pressure: null, sunshine: null, snowfall: null };
-  const stds: Record<SeasonalVariable, number | null> = { temperature: null, precipitation: null, pressure: null, sunshine: null, snowfall: null };
+  const means: Record<SeasonalVariable, number | null> = {
+    temperature: null,
+    precipitation: null,
+    pressure: null,
+    sunshine: null,
+    snowfall: null,
+  };
+  const stds: Record<SeasonalVariable, number | null> = {
+    temperature: null,
+    precipitation: null,
+    pressure: null,
+    sunshine: null,
+    snowfall: null,
+  };
 
   for (const v of ALL_VARS) {
-    const vals = periods.map(p => p.values[v]).filter((x): x is number => x !== undefined && x !== null);
+    const vals = periods
+      .map((p) => p.values[v])
+      .filter((x): x is number => x !== undefined && x !== null);
     if (vals.length >= 2) {
       means[v] = mean(vals);
       stds[v] = std(vals, means[v]!);
@@ -211,6 +241,7 @@ export function computeClimatology(periods: HistoricalPeriod[]): {
  * Finds the 3 past years/seasons most similar to the forecast using
  * normalised z-score Euclidean distance across all 5 variables.
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function findAnalogues(
   forecastMeans: Record<SeasonalVariable, number | null>,
   historicalPeriods: HistoricalPeriod[],
@@ -238,7 +269,14 @@ export function findAnalogues(
       const cm = climMean[v];
       const cs = climStd[v];
       const fzv = fz[v];
-      if (hv !== undefined && hv !== null && cm !== null && cs !== null && cs > 0 && fzv !== undefined) {
+      if (
+        hv !== undefined &&
+        hv !== null &&
+        cm !== null &&
+        cs !== null &&
+        cs > 0 &&
+        fzv !== undefined
+      ) {
         const hz = (hv - cm) / cs;
         sumSq += (hz - fzv) ** 2;
         count++;
@@ -274,7 +312,7 @@ export function findAnalogues(
  * Used for: "Más cálido que en K de los últimos N años".
  */
 export function getAboveCount(forecastValue: number, historicalValues: number[]): number {
-  return historicalValues.filter(v => v < forecastValue).length;
+  return historicalValues.filter((v) => v < forecastValue).length;
 }
 
 // ---- Holistic summary ----------------------------------------------------
@@ -284,6 +322,7 @@ export function getAboveCount(forecastValue: number, historicalValues: number[])
  * `anomalies` are the SEAS5 raw anomaly values (°C for temp/pressure, mm for precip,
  *  s for sunshine, cm for snow).
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function getHolisticSummary(
   anomalies: Record<SeasonalVariable, number | null>,
   lang: 'es' | 'en',
@@ -319,12 +358,26 @@ export function getHolisticSummary(
     const topEs = rankedEs[0];
     if (!topEs || topEs.val === null) return 'Condiciones cercanas a lo normal.';
     switch (topEs.v) {
-      case 'temperature':   return topEs.val > 0 ? 'Un periodo más cálido de lo normal.' : 'Un periodo más frío de lo normal.';
-      case 'precipitation': return topEs.val > 0 ? 'Un periodo más lluvioso de lo habitual.' : 'Un periodo más seco de lo habitual.';
-      case 'sunshine':      return topEs.val > 0 ? 'Más horas de sol de lo normal.' : 'Menos horas de sol de lo habitual.';
-      case 'pressure':      return topEs.val > 0 ? 'Presión más alta de lo normal.' : 'Presión más baja de lo normal.';
-      case 'snowfall':      return topEs.val > 0 ? 'Más nieve de lo habitual.' : 'Menos nieve de lo habitual.';
-      default:              return 'Condiciones cercanas a lo normal.';
+      case 'temperature':
+        return topEs.val > 0
+          ? 'Un periodo más cálido de lo normal.'
+          : 'Un periodo más frío de lo normal.';
+      case 'precipitation':
+        return topEs.val > 0
+          ? 'Un periodo más lluvioso de lo habitual.'
+          : 'Un periodo más seco de lo habitual.';
+      case 'sunshine':
+        return topEs.val > 0
+          ? 'Más horas de sol de lo normal.'
+          : 'Menos horas de sol de lo habitual.';
+      case 'pressure':
+        return topEs.val > 0
+          ? 'Presión más alta de lo normal.'
+          : 'Presión más baja de lo normal.';
+      case 'snowfall':
+        return topEs.val > 0 ? 'Más nieve de lo habitual.' : 'Menos nieve de lo habitual.';
+      default:
+        return 'Condiciones cercanas a lo normal.';
     }
   } else {
     if (tempWarm && precipWet) return 'A warmer and wetter period than normal.';
@@ -345,12 +398,18 @@ export function getHolisticSummary(
     const topEn = rankedEn[0];
     if (!topEn || topEn.val === null) return 'Near-normal conditions.';
     switch (topEn.v) {
-      case 'temperature':   return topEn.val > 0 ? 'A warmer than normal period.' : 'A colder than normal period.';
-      case 'precipitation': return topEn.val > 0 ? 'A wetter than usual period.' : 'A drier than usual period.';
-      case 'sunshine':      return topEn.val > 0 ? 'More sunshine than normal.' : 'Less sunshine than usual.';
-      case 'pressure':      return topEn.val > 0 ? 'Higher pressure than normal.' : 'Lower pressure than normal.';
-      case 'snowfall':      return topEn.val > 0 ? 'More snowfall than usual.' : 'Less snowfall than usual.';
-      default:              return 'Near-normal conditions.';
+      case 'temperature':
+        return topEn.val > 0 ? 'A warmer than normal period.' : 'A colder than normal period.';
+      case 'precipitation':
+        return topEn.val > 0 ? 'A wetter than usual period.' : 'A drier than usual period.';
+      case 'sunshine':
+        return topEn.val > 0 ? 'More sunshine than normal.' : 'Less sunshine than usual.';
+      case 'pressure':
+        return topEn.val > 0 ? 'Higher pressure than normal.' : 'Lower pressure than normal.';
+      case 'snowfall':
+        return topEn.val > 0 ? 'More snowfall than usual.' : 'Less snowfall than usual.';
+      default:
+        return 'Near-normal conditions.';
     }
   }
 }

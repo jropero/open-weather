@@ -77,7 +77,7 @@ export interface SummaryHour {
 // Waking hours in the location's local time; `end` is exclusive (07–23 covers the 07:00…22:00 hour slots)
 export interface WakingWindow {
   start: number; // 0–23
-  end: number;   // start+1 … 24
+  end: number; // start+1 … 24
 }
 
 export interface AirQualityData {
@@ -106,7 +106,7 @@ export interface WeatherData {
   daily: DailyWeather[];
   hourly: HourlyWeather[];
   summaryHours: SummaryHour[]; // current hour −25 h … +74 h (covers today, tomorrow and day-after-tomorrow in any timezone)
-  timezone: string | null;     // IANA timezone of the location, from the timezone=auto daily response
+  timezone: string | null; // IANA timezone of the location, from the timezone=auto daily response
   historical: HistoricalWeather[];
   pressureTrend: PressureTrend | null;
   airQuality: AirQualityData | null;
@@ -114,15 +114,16 @@ export interface WeatherData {
 
 // --- Long-range outlook (Open-Meteo Seasonal API: ECMWF EC46 weekly + SEAS5 monthly) ---
 
-export type SeasonalVariable = 'temperature' | 'precipitation' | 'pressure' | 'sunshine' | 'snowfall';
+export type SeasonalVariable =
+  'temperature' | 'precipitation' | 'pressure' | 'sunshine' | 'snowfall';
 export type SeasonKey = 'DJF' | 'MAM' | 'JJA' | 'SON';
 export type SeasonName = 'winter' | 'spring' | 'summer' | 'autumn';
 export type ClimateZone = 'north' | 'south' | 'tropical';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 export interface SeasonalValue {
-  mean: number | null;      // period mean (temp °C, pressure hPa) or period total (precip mm, sunshine s, snow cm)
-  anomaly: number | null;   // forecast minus the model's hindcast climatology, same unit as mean
+  mean: number | null; // period mean (temp °C, pressure hPa) or period total (precip mm, sunshine s, snow cm)
+  anomaly: number | null; // forecast minus the model's hindcast climatology, same unit as mean
   probAbove: number | null; // % of ensemble members with anomaly > 0 (weekly temp/precip/pressure only)
 }
 
@@ -139,7 +140,7 @@ export interface SeasonalForecastData {
 export interface SeasonInfo {
   key: SeasonKey;
   kind: 'rest' | 'next';
-  months: string[];       // start dates of the months that have data
+  months: string[]; // start dates of the months that have data
   monthsExpected: number; // months the column should cover (rest of season can be < 3)
 }
 

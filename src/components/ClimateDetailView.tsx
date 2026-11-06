@@ -1,36 +1,77 @@
 import { useEffect, useRef } from 'react';
-import { ComposedChart, Bar, Cell, LabelList, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer } from 'recharts';
-import { X, Thermometer, CloudRain, Gauge, Sun, Snowflake, type LucideIcon } from 'lucide-react';
+import {
+  ComposedChart,
+  Bar,
+  Cell,
+  LabelList,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  X,
+  Thermometer,
+  CloudRain,
+  Gauge,
+  Sun,
+  Snowflake,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Location, SeasonalPeriod, SeasonalVariable, SeasonKey } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
 import { useHistoricalClimate } from '../hooks/useHistoricalClimate';
-import { getHolisticSummary, ALL_VARS, type ClimateDetailResult, type AnalogueYear } from '../utils/climateStats';
+import {
+  getHolisticSummary,
+  ALL_VARS,
+  type ClimateDetailResult,
+  type AnalogueYear,
+} from '../utils/climateStats';
 import { getClimateZone, getSeasonName } from '../utils/seasonal';
 
 // ---- Meta ----------------------------------------------------------------
 
 const VAR_ICONS: Record<SeasonalVariable, LucideIcon> = {
-  temperature: Thermometer, precipitation: CloudRain, pressure: Gauge, sunshine: Sun, snowfall: Snowflake,
+  temperature: Thermometer,
+  precipitation: CloudRain,
+  pressure: Gauge,
+  sunshine: Sun,
+  snowfall: Snowflake,
 };
 
 const VAR_COLORS: Record<SeasonalVariable, string> = {
-  temperature: '#fca5a5', precipitation: '#7dd3fc', pressure: '#c084fc',
-  sunshine: '#fbbf24',   snowfall: '#a5f3fc',
+  temperature: '#fca5a5',
+  precipitation: '#7dd3fc',
+  pressure: '#c084fc',
+  sunshine: '#fbbf24',
+  snowfall: '#a5f3fc',
 };
 
 const VAR_NAMES_ES: Record<SeasonalVariable, string> = {
-  temperature: 'Temp.', precipitation: 'Precip.', pressure: 'Presión', sunshine: 'Sol', snowfall: 'Nieve',
+  temperature: 'Temp.',
+  precipitation: 'Precip.',
+  pressure: 'Presión',
+  sunshine: 'Sol',
+  snowfall: 'Nieve',
 };
 const VAR_NAMES_EN: Record<SeasonalVariable, string> = {
-  temperature: 'Temp.', precipitation: 'Precip.', pressure: 'Pressure', sunshine: 'Sun', snowfall: 'Snow',
+  temperature: 'Temp.',
+  precipitation: 'Precip.',
+  pressure: 'Pressure',
+  sunshine: 'Sun',
+  snowfall: 'Snow',
 };
 
-const ADJ: Record<SeasonalVariable, { aboveEs: string; belowEs: string; aboveEn: string; belowEn: string }> = {
-  temperature:   { aboveEs: 'cálido',    belowEs: 'frío',      aboveEn: 'warmer',  belowEn: 'cooler'  },
-  precipitation: { aboveEs: 'lluvioso',  belowEs: 'seco',      aboveEn: 'wetter',  belowEn: 'drier'   },
-  pressure:      { aboveEs: 'alto',      belowEs: 'bajo',      aboveEn: 'higher',  belowEn: 'lower'   },
-  sunshine:      { aboveEs: 'soleado',   belowEs: 'gris',      aboveEn: 'sunnier', belowEn: 'greyer'  },
-  snowfall:      { aboveEs: 'nevoso',    belowEs: 'sin nieve', aboveEn: 'snowier', belowEn: 'drier'   },
+const ADJ: Record<
+  SeasonalVariable,
+  { aboveEs: string; belowEs: string; aboveEn: string; belowEn: string }
+> = {
+  temperature: { aboveEs: 'cálido', belowEs: 'frío', aboveEn: 'warmer', belowEn: 'cooler' },
+  precipitation: { aboveEs: 'lluvioso', belowEs: 'seco', aboveEn: 'wetter', belowEn: 'drier' },
+  pressure: { aboveEs: 'alto', belowEs: 'bajo', aboveEn: 'higher', belowEn: 'lower' },
+  sunshine: { aboveEs: 'soleado', belowEs: 'gris', aboveEn: 'sunnier', belowEn: 'greyer' },
+  snowfall: { aboveEs: 'nevoso', belowEs: 'sin nieve', aboveEn: 'snowier', belowEn: 'drier' },
 };
 
 // ---- Helpers -------------------------------------------------------------
@@ -38,14 +79,20 @@ const ADJ: Record<SeasonalVariable, { aboveEs: string; belowEs: string; aboveEn:
 function formatValue(variable: SeasonalVariable, x: number | null): string {
   if (x === null) return '—';
   switch (variable) {
-    case 'temperature':   return `${x.toFixed(1)} °C`;
-    case 'precipitation': return `${Math.round(x)} mm`;
-    case 'pressure':      return `${x.toFixed(1)} hPa`;
-    case 'sunshine':      return `${Math.round(x / 3600)} h`;
-    case 'snowfall':      return `${x.toFixed(1)} cm`;
+    case 'temperature':
+      return `${x.toFixed(1)} °C`;
+    case 'precipitation':
+      return `${Math.round(x)} mm`;
+    case 'pressure':
+      return `${x.toFixed(1)} hPa`;
+    case 'sunshine':
+      return `${Math.round(x / 3600)} h`;
+    case 'snowfall':
+      return `${x.toFixed(1)} cm`;
   }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function getSummaryEmoji(anomalies: Record<SeasonalVariable, number | null>): string {
   const t = anomalies.temperature ?? 0;
   const p = anomalies.precipitation ?? 0;
@@ -62,6 +109,7 @@ function getSummaryEmoji(anomalies: Record<SeasonalVariable, number | null>): st
 
 // ---- Comparison label (plain language "above/below N of last M years") ----
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function comparisonLabel(
   variable: SeasonalVariable,
   aboveCount: number | null,
@@ -100,10 +148,21 @@ function comparisonLabel(
 
 // ---- Mini bar chart -------------------------------------------------------
 
-type BarEntry = { year: string; value: number | null; isForecast: boolean; trendValue?: number | null };
+type BarEntry = {
+  year: string;
+  value: number | null;
+  isForecast: boolean;
+  trendValue?: number | null;
+};
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function MiniBarChart({
-  years, values, forecastValue, climMean, color, variable,
+  years,
+  values,
+  forecastValue,
+  climMean,
+  color,
+  variable,
 }: {
   years: number[];
   values: (number | null)[];
@@ -116,11 +175,16 @@ function MiniBarChart({
 
   const fmtBarValue = (x: number): string => {
     switch (variable) {
-      case 'temperature':   return x.toFixed(1);
-      case 'precipitation': return String(Math.round(x));
-      case 'pressure':      return String(Math.round(x));
-      case 'sunshine':      return String(Math.round(x / 3600));
-      case 'snowfall':      return x.toFixed(1);
+      case 'temperature':
+        return x.toFixed(1);
+      case 'precipitation':
+        return String(Math.round(x));
+      case 'pressure':
+        return String(Math.round(x));
+      case 'sunshine':
+        return String(Math.round(x / 3600));
+      case 'snowfall':
+        return x.toFixed(1);
     }
   };
 
@@ -135,30 +199,44 @@ function MiniBarChart({
   }
 
   // Linear regression over historical bars only
-  const histData = data.filter(d => !d.isForecast && d.value !== null);
+  const histData = data.filter((d) => !d.isForecast && d.value !== null);
   const n = histData.length;
   if (n >= 2) {
     const xMean = (n - 1) / 2;
     const yMean = histData.reduce((s, d) => s + (d.value as number), 0) / n;
     const denom = histData.reduce((s, _, i) => s + (i - xMean) ** 2, 0);
-    const slope = denom !== 0
-      ? histData.reduce((s, d, i) => s + (i - xMean) * ((d.value as number) - yMean), 0) / denom
-      : 0;
+    const slope =
+      denom !== 0
+        ? histData.reduce((s, d, i) => s + (i - xMean) * ((d.value as number) - yMean), 0) /
+          denom
+        : 0;
     const intercept = yMean - slope * xMean;
-    histData.forEach((d, i) => { d.trendValue = intercept + slope * i; });
+    histData.forEach((d, i) => {
+      d.trendValue = intercept + slope * i;
+    });
   }
 
-  const allValues = data.map(d => d.value).filter((v): v is number => v !== null);
+  const allValues = data.map((d) => d.value).filter((v): v is number => v !== null);
   const minVal = allValues.length ? Math.min(...allValues) : 0;
   const maxVal = allValues.length ? Math.max(...allValues) : 1;
   const padding = (maxVal - minVal) * 0.05 || 0.5;
-  const domainMin = Math.min(minVal - padding, climMean !== null ? climMean - padding : minVal - padding);
-  const domainMax = Math.max(maxVal + padding, climMean !== null ? climMean + padding : maxVal + padding);
+  const domainMin = Math.min(
+    minVal - padding,
+    climMean !== null ? climMean - padding : minVal - padding,
+  );
+  const domainMax = Math.max(
+    maxVal + padding,
+    climMean !== null ? climMean + padding : maxVal + padding,
+  );
 
   return (
     <div className="flex-1 min-w-0" style={{ height: 80 }}>
       <ResponsiveContainer width="100%" height={80}>
-        <ComposedChart data={data} margin={{ top: 14, right: 2, left: 2, bottom: 0 }} barCategoryGap="10%">
+        <ComposedChart
+          data={data}
+          margin={{ top: 14, right: 2, left: 2, bottom: 0 }}
+          barCategoryGap="10%"
+        >
           <XAxis
             dataKey="year"
             tick={{ fontSize: 8, fill: '#64748b' }}
@@ -168,11 +246,7 @@ function MiniBarChart({
           />
           <YAxis hide domain={[domainMin, domainMax]} />
           {climMean !== null && (
-            <ReferenceLine
-              y={climMean}
-              stroke="rgba(255,255,255,0.25)"
-              strokeDasharray="3 3"
-            />
+            <ReferenceLine y={climMean} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" />
           )}
           <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
             {data.map((entry, index) => (
@@ -193,7 +267,12 @@ function MiniBarChart({
               dataKey="value"
               position="top"
               content={(props) => {
-                const { x, y, width, value } = props as { x: number; y: number; width: number; value: number | null };
+                const { x, y, width, value } = props as {
+                  x: number;
+                  y: number;
+                  width: number;
+                  value: number | null;
+                };
                 if (value === null || value === undefined) return null;
                 return (
                   <text
@@ -226,15 +305,28 @@ function MiniBarChart({
 
 // ---- Analogue label ------------------------------------------------------
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function formatAnalogueLabel(a: AnalogueYear, locale: string): string {
   if (a.month !== undefined) {
     return new Date(Date.UTC(a.year, a.month - 1, 1)).toLocaleDateString(locale, {
-      month: 'short', year: 'numeric', timeZone: 'UTC',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
     });
   }
   if (a.seasonKey) {
-    const abbrsEs: Record<SeasonKey, string> = { DJF: 'Inv', MAM: 'Prim', JJA: 'Ver', SON: 'Oto' };
-    const abbrsEn: Record<SeasonKey, string> = { DJF: 'Win', MAM: 'Spr', JJA: 'Sum', SON: 'Aut' };
+    const abbrsEs: Record<SeasonKey, string> = {
+      DJF: 'Inv',
+      MAM: 'Prim',
+      JJA: 'Ver',
+      SON: 'Oto',
+    };
+    const abbrsEn: Record<SeasonKey, string> = {
+      DJF: 'Win',
+      MAM: 'Spr',
+      JJA: 'Sum',
+      SON: 'Aut',
+    };
     const abbrs = locale.startsWith('es') ? abbrsEs : abbrsEn;
     const prefix = abbrs[a.seasonKey];
     if (a.seasonKey === 'DJF') return `${prefix} ${a.year - 1}–${String(a.year).slice(2)}`;
@@ -256,10 +348,12 @@ function SkeletonStrip() {
 
 // ---- Strips section ------------------------------------------------------
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'en' }) {
+  /* eslint-disable sonarjs/cognitive-complexity */
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {ALL_VARS.map(v => {
+      {ALL_VARS.map((v) => {
         const fv = result.forecastValues[v];
         const above = result.aboveCount[v];
         const cm = result.climMeans[v];
@@ -274,7 +368,9 @@ function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'e
             <div className="flex items-center gap-2">
               <div className="w-14 flex items-center gap-1 shrink-0">
                 <Icon size={11} className="shrink-0 text-slate-400" aria-hidden />
-                <span className="text-[10px] text-slate-300 font-medium leading-tight">{varName}</span>
+                <span className="text-[10px] text-slate-300 font-medium leading-tight">
+                  {varName}
+                </span>
               </div>
 
               {hasData ? (
@@ -302,7 +398,10 @@ function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'e
                 <p className="text-[9px] text-slate-600 leading-snug">
                   {lang === 'es' ? 'S5 ajustado' : 'S5 adjusted'}: {formatValue(v, fv)}
                   {cm !== null && (
-                    <> · {lang === 'es' ? 'Media ERA5' : 'ERA5 avg'}: {formatValue(v, cm)}</>
+                    <>
+                      {' '}
+                      · {lang === 'es' ? 'Media ERA5' : 'ERA5 avg'}: {formatValue(v, cm)}
+                    </>
                   )}
                 </p>
               </div>
@@ -312,6 +411,7 @@ function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'e
       })}
     </div>
   );
+  /* eslint-enable sonarjs/cognitive-complexity */
 }
 
 // ---- Main component ------------------------------------------------------
@@ -322,6 +422,7 @@ interface Props {
   onClose: () => void;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function ClimateDetailView({ location, period, onClose }: Props) {
   const { language, t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -345,7 +446,9 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
   const periodLabel = (): string => {
     if (!isSeasonal) {
       return new Date(`${period.start}T00:00:00Z`).toLocaleDateString(locale, {
-        month: 'long', year: 'numeric', timeZone: 'UTC',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
       });
     }
     const seasonKey = period.season!.key;
@@ -353,36 +456,41 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
     const seasonName = getSeasonName(seasonKey, zone);
     const name = seasonName ? t(`seasonal.season.${seasonName}`) : t('seasonal.next.tropical');
     const startYear = Number(period.start.slice(0, 4));
-    const endYear   = Number(period.end.slice(0, 4));
-    const yearStr = startYear !== endYear
-      ? `${startYear}–${String(endYear).slice(2)}`
-      : String(startYear);
+    const endYear = Number(period.end.slice(0, 4));
+    const yearStr =
+      startYear !== endYear ? `${startYear}–${String(endYear).slice(2)}` : String(startYear);
     return `${name} ${yearStr}`;
   };
 
   const anomalies: Record<SeasonalVariable, number | null> = {
-    temperature:   period.values.temperature.anomaly,
+    temperature: period.values.temperature.anomaly,
     precipitation: period.values.precipitation.anomaly,
-    pressure:      period.values.pressure.anomaly,
-    sunshine:      period.values.sunshine.anomaly,
-    snowfall:      period.values.snowfall.anomaly,
+    pressure: period.values.pressure.anomaly,
+    sunshine: period.values.sunshine.anomaly,
+    snowfall: period.values.snowfall.anomaly,
   };
 
-  const summary      = getHolisticSummary(anomalies, lang);
+  const summary = getHolisticSummary(anomalies, lang);
   const summaryEmoji = getSummaryEmoji(anomalies);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) e.currentTarget.close();
+      }}
       className="open:flex flex-col w-full max-w-none sm:max-w-2xl max-h-[92dvh] m-0 mt-auto sm:m-auto p-0 rounded-t-3xl sm:rounded-3xl bg-slate-950 text-white shadow-2xl overflow-hidden backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
       {/* Header */}
       <header className="flex items-start justify-between gap-3 px-5 py-4 bg-slate-900 shrink-0 border-b border-white/10">
         <div className="min-w-0">
           <h2 className="text-base font-bold leading-tight text-white">
-            {(() => { const s = periodLabel(); return s.charAt(0).toUpperCase() + s.slice(1); })()}
+            {(() => {
+              const s = periodLabel();
+              return s.charAt(0).toUpperCase() + s.slice(1);
+            })()}
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">{location.name}</p>
         </div>
@@ -400,20 +508,28 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-5">
         {/* Holistic summary */}
         <div className="mt-4 rounded-2xl bg-white/10 border border-white/10 px-4 py-3 flex items-start gap-3">
-          <span className="text-2xl leading-none shrink-0" aria-hidden>{summaryEmoji}</span>
+          <span className="text-2xl leading-none shrink-0" aria-hidden>
+            {summaryEmoji}
+          </span>
           <p className="text-sm text-slate-100 leading-snug">{summary}</p>
         </div>
 
         {loading ? (
           <div className="mt-4 flex flex-col gap-3">
             <div className="animate-pulse flex gap-2">
-              {[0, 1, 2].map(i => <div key={i} className="flex-1 h-12 bg-white/10 rounded-xl" />)}
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex-1 h-12 bg-white/10 rounded-xl" />
+              ))}
             </div>
-            {ALL_VARS.map(v => <SkeletonStrip key={v} />)}
+            {ALL_VARS.map((v) => (
+              <SkeletonStrip key={v} />
+            ))}
           </div>
         ) : error ? (
           <div className="mt-4 flex flex-col items-center gap-2 py-6" role="alert">
-            <span className="text-2xl" aria-hidden>⚠️</span>
+            <span className="text-2xl" aria-hidden>
+              ⚠️
+            </span>
             <p className="text-sm text-slate-300 text-center">{t('climate.error')}</p>
           </div>
         ) : result ? (
@@ -424,21 +540,23 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
               <div className="flex gap-2">
                 {result.analogues.length === 0 ? (
                   <p className="text-xs text-slate-500">—</p>
-                ) : result.analogues.map((a, i) => (
-                  <div key={i} className="flex-1 min-w-0">
-                    <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
-                      <span className="text-sm font-bold text-white block leading-tight">
-                        {formatAnalogueLabel(a, locale)}
-                      </span>
+                ) : (
+                  result.analogues.map((a, i) => (
+                    <div key={i} className="flex-1 min-w-0">
+                      <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
+                        <span className="text-sm font-bold text-white block leading-tight">
+                          {formatAnalogueLabel(a, locale)}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-400 rounded-full"
+                          style={{ width: `${Math.round(a.similarity * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-400 rounded-full"
-                        style={{ width: `${Math.round(a.similarity * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <p className="mt-2 text-[10px] text-slate-500">{t('climate.analogues.note')}</p>
             </div>

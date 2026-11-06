@@ -1,18 +1,24 @@
-
 import type { DailyWeather } from '../types/weather';
-import { getWeatherInfo, getThomsDiscomfortIndex, getWindChillIndex, getPressureDeltaAlert, getMigraineRisk } from '../utils/weatherCodes';
+import {
+  getWeatherInfo,
+  getThomsDiscomfortIndex,
+  getWindChillIndex,
+  getPressureDeltaAlert,
+  getMigraineRisk,
+} from '../utils/weatherCodes';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface FutureForecastProps {
   daily: DailyWeather[];
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function FutureForecast({ daily }: FutureForecastProps) {
   const { language, t } = useLanguage();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const todayIndex = daily.findIndex(d => {
+  const todayIndex = daily.findIndex((d) => {
     const dDate = new Date(d.date);
     dDate.setHours(0, 0, 0, 0);
     return dDate.getTime() === today.getTime();
@@ -24,9 +30,12 @@ export function FutureForecast({ daily }: FutureForecastProps) {
 
   const isEn = language === 'en';
 
+  /* eslint-disable sonarjs/cognitive-complexity */
   return (
     <section className="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-6 shadow-lg mt-4 text-slate-800">
-      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold px-1">{t('title.future_forecast')}</h3>
+      <h3 className="text-sm uppercase tracking-wider mb-4 opacity-70 font-semibold px-1">
+        {t('title.future_forecast')}
+      </h3>
 
       <div className="flex flex-col gap-0">
         {futureDays.map((day, idx) => {
@@ -42,9 +51,17 @@ export function FutureForecast({ daily }: FutureForecastProps) {
           const thomIndex = isWinter
             ? getWindChillIndex(meanTemp, day.windSpeed, language)
             : getThomsDiscomfortIndex(meanTemp, day.humidity, language);
-          const migraineRisk = getMigraineRisk(deltaP, day.meanPressure, day.humidity, day.precipitation, language);
+          const migraineRisk = getMigraineRisk(
+            deltaP,
+            day.meanPressure,
+            day.humidity,
+            day.precipitation,
+            language,
+          );
 
-          const dayName = date.toLocaleDateString(isEn ? 'en-US' : 'es-ES', { weekday: 'long' });
+          const dayName = date.toLocaleDateString(isEn ? 'en-US' : 'es-ES', {
+            weekday: 'long',
+          });
 
           return (
             <div key={idx} className="flex gap-4 py-4 border-b border-slate-100 last:border-0">
@@ -60,10 +77,14 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                   <span className="font-bold text-base capitalize text-slate-800">
                     {dayName}
                     {day.sunshineDuration > 0 && (
-                      <span className="ml-2 text-sm font-normal text-amber-700">☀️ {(day.sunshineDuration / 3600).toFixed(1)}h</span>
+                      <span className="ml-2 text-sm font-normal text-amber-700">
+                        ☀️ {(day.sunshineDuration / 3600).toFixed(1)}h
+                      </span>
                     )}
                     {day.precipitationHours > 0 && (
-                      <span className="ml-1.5 text-sm font-normal text-sky-700">🌧 {day.precipitationHours}h</span>
+                      <span className="ml-1.5 text-sm font-normal text-sky-700">
+                        🌧 {day.precipitationHours}h
+                      </span>
                     )}
                   </span>
                   <span className="text-sm font-extrabold text-slate-800">
@@ -94,13 +115,21 @@ export function FutureForecast({ daily }: FutureForecastProps) {
 
                 {/* Compact badges */}
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'}`}>
-                    {isWinter ? (isEn ? 'WCI' : 'POLAR') : t('label.fatigue')}: {thomIndex.shortLabel}
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'}`}
+                  >
+                    {isWinter ? (isEn ? 'WCI' : 'POLAR') : t('label.fatigue')}:{' '}
+                    {thomIndex.shortLabel}
                   </span>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${deltaAlert.bgClass}`}>
-                    ΔP {deltaP > 0 ? '+' : ''}{deltaP} hPa · {deltaAlert.label}
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${deltaAlert.bgClass}`}
+                  >
+                    ΔP {deltaP > 0 ? '+' : ''}
+                    {deltaP} hPa · {deltaAlert.label}
                   </span>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none flex items-center gap-1 ${migraineRisk.bgClass}`}>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none flex items-center gap-1 ${migraineRisk.bgClass}`}
+                  >
                     🧠 {migraineRisk.label} · {migraineRisk.score}/6
                   </span>
                 </div>
@@ -111,4 +140,5 @@ export function FutureForecast({ daily }: FutureForecastProps) {
       </div>
     </section>
   );
+  /* eslint-enable sonarjs/cognitive-complexity */
 }

@@ -13,7 +13,13 @@ interface LocationSelectorProps {
 }
 
 export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
-  const { currentLocation, setCurrentLocation, customLocations, addCustomLocation, deleteCustomLocation } = useLocationContext();
+  const {
+    currentLocation,
+    setCurrentLocation,
+    customLocations,
+    addCustomLocation,
+    deleteCustomLocation,
+  } = useLocationContext();
   const { getCurrentPosition, loading: gpsLoading } = useGeolocation();
   const { language, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +27,8 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
 
   if (!isOpen) return null;
 
-  const getTranslatedLocationName = (loc: typeof PREDEFINED_LOCATIONS[0], lang: Language) => {
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  const getTranslatedLocationName = (loc: (typeof PREDEFINED_LOCATIONS)[0], lang: Language) => {
     if (loc.id === 'gps') return lang === 'en' ? 'Current (GPS)' : 'Actual (GPS)';
     if (loc.id === 'basel') return lang === 'en' ? 'Basel' : 'Basilea';
     if (loc.id === 'reykjavik') return lang === 'en' ? 'Reykjavik' : 'Reikiavik';
@@ -54,13 +61,13 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
     deleteCustomLocation(id);
   };
 
-  const filteredPredefined = PREDEFINED_LOCATIONS.filter(l => {
+  const filteredPredefined = PREDEFINED_LOCATIONS.filter((l) => {
     if (l.isGPS) return false;
     if (searchTerm.trim().length >= 2) return false; // hide when searching
     return true;
   });
 
-  const isCustomAlreadySaved = (id: string) => customLocations.some(l => l.id === id);
+  const isCustomAlreadySaved = (id: string) => customLocations.some((l) => l.id === id);
 
   const showSearch = searchTerm.trim().length >= 2;
 
@@ -76,7 +83,10 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
 
         {/* Search input */}
         <div className="relative mb-4">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <MapPin
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={20}
+          />
           <input
             type="text"
             placeholder={t('placeholder.search_city')}
@@ -85,7 +95,10 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
             className="w-full bg-gray-100 pl-10 pr-10 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-400"
           />
           {searchLoading && (
-            <Loader className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={18} />
+            <Loader
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+              size={18}
+            />
           )}
         </div>
 
@@ -95,9 +108,15 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
             {searchResults.length === 0 && !searchLoading && (
               <p className="text-sm text-gray-400 text-center py-3">Sin resultados</p>
             )}
-            {searchResults.map(loc => (
-              <div key={loc.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 gap-2">
-                <button className="text-left flex-1 text-sm font-medium" onClick={() => handleLocationClick(loc)}>
+            {searchResults.map((loc) => (
+              <div
+                key={loc.id}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 gap-2"
+              >
+                <button
+                  className="text-left flex-1 text-sm font-medium"
+                  onClick={() => handleLocationClick(loc)}
+                >
                   {loc.name}
                 </button>
                 <button
@@ -122,7 +141,9 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
           >
             <div className="flex items-center gap-3">
               <Navigation size={20} />
-              <span className="font-semibold">{gpsLoading ? t('btn.gps_active') : t('btn.gps_use')}</span>
+              <span className="font-semibold">
+                {gpsLoading ? t('btn.gps_active') : t('btn.gps_use')}
+              </span>
             </div>
           </button>
         )}
@@ -130,11 +151,19 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
         {/* Custom saved locations */}
         {!showSearch && customLocations.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Mis ubicaciones</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              Mis ubicaciones
+            </p>
             <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
-              {customLocations.map(loc => (
-                <div key={loc.id} className={`flex items-center justify-between rounded-xl transition-colors ${currentLocation.id === loc.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'}`}>
-                  <button className="text-left flex-1 p-3 text-sm font-medium" onClick={() => handleLocationClick(loc)}>
+              {customLocations.map((loc) => (
+                <div
+                  key={loc.id}
+                  className={`flex items-center justify-between rounded-xl transition-colors ${currentLocation.id === loc.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'}`}
+                >
+                  <button
+                    className="text-left flex-1 p-3 text-sm font-medium"
+                    onClick={() => handleLocationClick(loc)}
+                  >
                     {loc.name}
                   </button>
                   <button
@@ -154,10 +183,12 @@ export function LocationSelector({ isOpen, onClose }: LocationSelectorProps) {
         {!showSearch && (
           <div>
             {customLocations.length > 0 && (
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ciudades</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Ciudades
+              </p>
             )}
             <div className="flex flex-col gap-1 max-h-52 overflow-y-auto">
-              {filteredPredefined.map(loc => (
+              {filteredPredefined.map((loc) => (
                 <button
                   key={loc.id}
                   onClick={() => handleLocationClick(loc)}

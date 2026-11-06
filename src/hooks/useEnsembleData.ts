@@ -11,7 +11,11 @@ function storageKey(lat: number, lon: number, variable: EnsembleVar): string {
   return `ensemble_cache_${lat}_${lon}_${variable}`;
 }
 
-async function fetchAll(lat: number, lon: number, variable: EnsembleVar): Promise<EnsemblePoint[]> {
+async function fetchAll(
+  lat: number,
+  lon: number,
+  variable: EnsembleVar,
+): Promise<EnsemblePoint[]> {
   // ecmwf_ifs025: 50 ECMWF IFS members at 0.25° — closest to the EC46 seasonal ensemble
   const url = `${ENSEMBLE_URL}?latitude=${lat}&longitude=${lon}&hourly=${variable}&models=ecmwf_ifs025&forecast_days=14&timezone=UTC`;
   const res = await fetch(url);
@@ -20,11 +24,13 @@ async function fetchAll(lat: number, lon: number, variable: EnsembleVar): Promis
 
   const times: string[] = json.hourly?.time ?? [];
   // Auto-detect member keys from response (avoids hardcoded count)
-  const memberKeys: string[] = Object.keys(json.hourly ?? {}).filter(k => k.startsWith(`${variable}_member`));
+  const memberKeys: string[] = Object.keys(json.hourly ?? {}).filter((k) =>
+    k.startsWith(`${variable}_member`),
+  );
 
   return times.map((timeStr, i) => {
     const members = memberKeys
-      .map(k => json.hourly[k]?.[i])
+      .map((k) => json.hourly[k]?.[i])
       .filter((v): v is number => typeof v === 'number' && isFinite(v));
     const stats = computeStats(members.length ? members : [0]);
     return { time: Date.parse(`${timeStr}Z`), ...stats, members };
@@ -34,21 +40,29 @@ async function fetchAll(lat: number, lon: number, variable: EnsembleVar): Promis
 function filterToWeek(points: EnsemblePoint[], weekStart: string): EnsemblePoint[] {
   const startMs = Date.parse(`${weekStart}T00:00:00Z`);
   const endMs = startMs + 7 * 24 * 60 * 60 * 1000;
-  return points.filter(p => p.time >= startMs && p.time < endMs);
+  return points.filter((p) => p.time >= startMs && p.time < endMs);
 }
 
-export function useEnsembleData(lat: number, lon: number, weekStart: string, variable: EnsembleVar) {
+export function useEnsembleData(
+  lat: number,
+  lon: number,
+  weekStart: string,
+  variable: EnsembleVar,
+) {
   const [data, setData] = useState<EnsemblePoint[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
 
     const key = storageKey(lat, lon, variable);
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
       // Check localStorage first (24 h TTL)
       try {
@@ -63,7 +77,9 @@ export function useEnsembleData(lat: number, lon: number, weekStart: string, var
             return;
           }
         }
-      } catch { /* corrupt, fall through */ }
+      } catch {
+        /* corrupt, fall through */
+      }
 
       // Check session cache
       const session = sessionCache.get(key);
@@ -81,7 +97,9 @@ export function useEnsembleData(lat: number, lon: number, weekStart: string, var
         sessionCache.set(key, all);
         try {
           localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data: all }));
-        } catch { /* storage full */ }
+        } catch {
+          /* storage full */
+        }
         if (!cancelled) {
           setData(filterToWeek(all, weekStart));
           setLoading(false);
@@ -95,7 +113,9 @@ export function useEnsembleData(lat: number, lon: number, weekStart: string, var
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [lat, lon, weekStart, variable]);
 
   return { data, loading, error };

@@ -1,4 +1,19 @@
-import { X, BookOpen, Activity, FileText, Database, ExternalLink, Brain, Thermometer, Gauge, BarChart3, AlertTriangle, Wind, Leaf, Bell } from 'lucide-react';
+import {
+  X,
+  BookOpen,
+  Activity,
+  FileText,
+  Database,
+  ExternalLink,
+  Brain,
+  Thermometer,
+  Gauge,
+  BarChart3,
+  AlertTriangle,
+  Wind,
+  Leaf,
+  Bell,
+} from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface HelpModalProps {
@@ -6,6 +21,7 @@ interface HelpModalProps {
   onClose: () => void;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   const { language } = useLanguage();
 
@@ -16,7 +32,6 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
       <div className="bg-white text-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-8 duration-300">
-
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-slate-900 text-white">
           <div className="flex items-center gap-2.5">
@@ -41,7 +56,6 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
         {/* Content (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 text-sm leading-relaxed text-slate-600">
-
           {/* Section 1: Intro */}
           <section className="space-y-2">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
@@ -59,16 +73,19 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <section className="space-y-4">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <Brain size={18} className="text-indigo-500" />
-              {isEn ? 'Clinical & Mathematical Calculations' : 'Cálculos Clínicos y Matemáticos'}
+              {isEn
+                ? 'Clinical & Mathematical Calculations'
+                : 'Cálculos Clínicos y Matemáticos'}
             </h3>
 
             <div className="grid gap-4 sm:grid-cols-2">
-
               {/* Thom's Index */}
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Thermometer size={14} className="text-amber-500" />
-                  {isEn ? "Thom's Discomfort Index (FAT.)" : "Índice de Disconfort de Thom (FAT.)"}
+                  {isEn
+                    ? "Thom's Discomfort Index (FAT.)"
+                    : 'Índice de Disconfort de Thom (FAT.)'}
                 </h4>
                 <p className="text-xs text-slate-500">
                   {isEn
@@ -79,10 +96,22 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   DI = T - (0.55 - 0.0055 * RH) * (T - 14.5)
                 </div>
                 <ul className="text-[10px] space-y-1 text-slate-600 mt-1">
-                  <li><strong>&lt; 21:</strong> {isEn ? 'Comfortable (No stress)' : 'Confortable (Sin estrés)'}</li>
-                  <li><strong>21 - 24:</strong> {isEn ? 'Under 50% feel discomfort' : 'Menos del 50% siente disconfort'}</li>
-                  <li><strong>24 - 27:</strong> {isEn ? 'Over 50% feel discomfort' : 'Más del 50% siente disconfort'}</li>
-                  <li><strong>&gt; 27:</strong> {isEn ? 'Severe cardiovascular stress' : 'Estrés cardiovascular severo'}</li>
+                  <li>
+                    <strong>&lt; 21:</strong>{' '}
+                    {isEn ? 'Comfortable (No stress)' : 'Confortable (Sin estrés)'}
+                  </li>
+                  <li>
+                    <strong>21 - 24:</strong>{' '}
+                    {isEn ? 'Under 50% feel discomfort' : 'Menos del 50% siente disconfort'}
+                  </li>
+                  <li>
+                    <strong>24 - 27:</strong>{' '}
+                    {isEn ? 'Over 50% feel discomfort' : 'Más del 50% siente disconfort'}
+                  </li>
+                  <li>
+                    <strong>&gt; 27:</strong>{' '}
+                    {isEn ? 'Severe cardiovascular stress' : 'Estrés cardiovascular severo'}
+                  </li>
                 </ul>
               </div>
 
@@ -90,7 +119,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Wind size={14} className="text-sky-500" />
-                  {isEn ? "Wind Chill Index (WCI / POLAR)" : "Índice de Frío Polar (WCI / POLAR)"}
+                  {isEn
+                    ? 'Wind Chill Index (WCI / POLAR)'
+                    : 'Índice de Frío Polar (WCI / POLAR)'}
                 </h4>
                 <p className="text-xs text-slate-500">
                   {isEn
@@ -101,11 +132,21 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   WCI = 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16
                 </div>
                 <ul className="text-[10px] space-y-1 text-slate-600 mt-1">
-                  <li><strong>&gt; 0°C:</strong> {isEn ? 'Cool' : 'Fresco'}</li>
-                  <li><strong>0 → −10°C:</strong> {isEn ? 'Cold' : 'Frío'}</li>
-                  <li><strong>−10 → −25°C:</strong> {isEn ? 'Very Cold' : 'Muy Frío'}</li>
-                  <li><strong>−25 → −40°C:</strong> {isEn ? 'Severe Cold' : 'Frío Severo'}</li>
-                  <li><strong>&lt; −40°C:</strong> {isEn ? 'Extreme Cold' : 'Frío Extremo'}</li>
+                  <li>
+                    <strong>&gt; 0°C:</strong> {isEn ? 'Cool' : 'Fresco'}
+                  </li>
+                  <li>
+                    <strong>0 → −10°C:</strong> {isEn ? 'Cold' : 'Frío'}
+                  </li>
+                  <li>
+                    <strong>−10 → −25°C:</strong> {isEn ? 'Very Cold' : 'Muy Frío'}
+                  </li>
+                  <li>
+                    <strong>−25 → −40°C:</strong> {isEn ? 'Severe Cold' : 'Frío Severo'}
+                  </li>
+                  <li>
+                    <strong>&lt; −40°C:</strong> {isEn ? 'Extreme Cold' : 'Frío Extremo'}
+                  </li>
                 </ul>
               </div>
 
@@ -113,7 +154,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Gauge size={14} className="text-red-500" />
-                  {isEn ? "24h Pressure Delta (ΔP)" : "Variación de Presión 24h (ΔP)"}
+                  {isEn ? '24h Pressure Delta (ΔP)' : 'Variación de Presión 24h (ΔP)'}
                 </h4>
                 <p className="text-xs text-slate-500">
                   {isEn
@@ -122,13 +163,22 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </p>
                 <ul className="text-[10px] space-y-1 text-slate-600 mt-2">
                   <li>
-                    <strong className="text-blue-600">ΔP &le; -3 hPa:</strong> {isEn ? 'Moderate Drop. Minor headache risk.' : 'Caída Moderada. Riesgo leve de dolores.'}
+                    <strong className="text-blue-600">ΔP &le; -3 hPa:</strong>{' '}
+                    {isEn
+                      ? 'Moderate Drop. Minor headache risk.'
+                      : 'Caída Moderada. Riesgo leve de dolores.'}
                   </li>
                   <li>
-                    <strong className="text-red-600">ΔP &le; -5 hPa:</strong> {isEn ? 'Severe Drop. High meteoropathic risk (joints, headaches).' : 'Caída Severa. Riesgo alto (dolor articular, migraña).'}
+                    <strong className="text-red-600">ΔP &le; -5 hPa:</strong>{' '}
+                    {isEn
+                      ? 'Severe Drop. High meteoropathic risk (joints, headaches).'
+                      : 'Caída Severa. Riesgo alto (dolor articular, migraña).'}
                   </li>
                   <li>
-                    <strong className="text-amber-600">ΔP &ge; +3 hPa:</strong> {isEn ? 'Rapid Rise. Can compress inner ear fluids.' : 'Subida Rápida. Puede comprimir fluidos del oído interno.'}
+                    <strong className="text-amber-600">ΔP &ge; +3 hPa:</strong>{' '}
+                    {isEn
+                      ? 'Rapid Rise. Can compress inner ear fluids.'
+                      : 'Subida Rápida. Puede comprimir fluidos del oído interno.'}
                   </li>
                 </ul>
               </div>
@@ -137,7 +187,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <AlertTriangle size={14} className="text-orange-500" />
-                  {isEn ? "Storm Potential (CAPE)" : "Potencial de Tormenta (CAPE)"}
+                  {isEn ? 'Storm Potential (CAPE)' : 'Potencial de Tormenta (CAPE)'}
                 </h4>
                 <p className="text-xs text-slate-500">
                   {isEn
@@ -145,10 +195,25 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     : 'La Energía Potencial Convectiva Disponible (J/kg) mide la flotabilidad atmosférica para el desarrollo de tormentas. Un CAPE alto amplifica los factores de migraña (+1 pt cuando > 1000 J/kg).'}
                 </p>
                 <ul className="text-[10px] space-y-1 text-slate-600 mt-1">
-                  <li><strong>50–300 J/kg:</strong> {isEn ? 'Slight (isolated storms possible)' : 'Leve (tormentas aisladas posibles)'}</li>
-                  <li><strong>300–1000 J/kg:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
-                  <li><strong>1000–2500 J/kg:</strong> {isEn ? 'Strong (organized storms)' : 'Fuerte (tormentas organizadas)'}</li>
-                  <li><strong>&gt; 2500 J/kg:</strong> {isEn ? 'Extreme (severe storm risk)' : 'Extremo (riesgo de tormentas severas)'}</li>
+                  <li>
+                    <strong>50–300 J/kg:</strong>{' '}
+                    {isEn
+                      ? 'Slight (isolated storms possible)'
+                      : 'Leve (tormentas aisladas posibles)'}
+                  </li>
+                  <li>
+                    <strong>300–1000 J/kg:</strong> {isEn ? 'Moderate' : 'Moderado'}
+                  </li>
+                  <li>
+                    <strong>1000–2500 J/kg:</strong>{' '}
+                    {isEn ? 'Strong (organized storms)' : 'Fuerte (tormentas organizadas)'}
+                  </li>
+                  <li>
+                    <strong>&gt; 2500 J/kg:</strong>{' '}
+                    {isEn
+                      ? 'Extreme (severe storm risk)'
+                      : 'Extremo (riesgo de tormentas severas)'}
+                  </li>
                 </ul>
               </div>
 
@@ -156,26 +221,38 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2 sm:col-span-2">
                 <h4 className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                   <Activity size={14} className="text-purple-500" />
-                  {isEn ? "Short-term Trends (3h & 6h — Pressure & Temperature)" : "Tendencias a Corto Plazo (3h y 6h — Presión y Temperatura)"}
+                  {isEn
+                    ? 'Short-term Trends (3h & 6h — Pressure & Temperature)'
+                    : 'Tendencias a Corto Plazo (3h y 6h — Presión y Temperatura)'}
                 </h4>
                 <p className="text-xs text-slate-500">
                   {isEn
-                    ? "Two sets of pills are shown: pressure deltas and temperature deltas over the next 3 and 6 hours. The 6-hour pressure drop is highlighted by Katsuki et al. (2023) as the single strongest predictor of headache onset."
+                    ? 'Two sets of pills are shown: pressure deltas and temperature deltas over the next 3 and 6 hours. The 6-hour pressure drop is highlighted by Katsuki et al. (2023) as the single strongest predictor of headache onset.'
                     : 'Se muestran dos conjuntos de pastillas: deltas de presión y deltas de temperatura a 3 y 6 horas. La caída de presión en 6h fue identificada por Katsuki et al. (2023) como el factor predictivo individual más potente para el inicio de cefaleas.'}
                 </p>
                 <ul className="text-[10px] space-y-1.5 text-slate-600 mt-1">
                   <li>
-                    <strong>{isEn ? "Pressure 3h:" : "Presión 3h:"}</strong> {isEn ? "Immediate barometric change. Drop ≤ -2 hPa = rapid change warning (orange)." : "Cambio barométrico inmediato. Caída ≤ -2 hPa = aviso de cambio rápido (naranja)."}
+                    <strong>{isEn ? 'Pressure 3h:' : 'Presión 3h:'}</strong>{' '}
+                    {isEn
+                      ? 'Immediate barometric change. Drop ≤ -2 hPa = rapid change warning (orange).'
+                      : 'Cambio barométrico inmediato. Caída ≤ -2 hPa = aviso de cambio rápido (naranja).'}
                   </li>
                   <li>
-                    <strong className="text-amber-600">{isEn ? "Pressure 6h ⚡ (Critical):" : "Presión 6h ⚡ (Crítico):"}</strong> {isEn ? "Drops ≤ -3 hPa trigger the ⚡ warning; ≤ -5 hPa = red alert (severe barometric collapse)." : "Caídas ≤ -3 hPa activan la alerta ⚡; ≤ -5 hPa = alerta roja (colapso barométrico severo)."}
+                    <strong className="text-amber-600">
+                      {isEn ? 'Pressure 6h ⚡ (Critical):' : 'Presión 6h ⚡ (Crítico):'}
+                    </strong>{' '}
+                    {isEn
+                      ? 'Drops ≤ -3 hPa trigger the ⚡ warning; ≤ -5 hPa = red alert (severe barometric collapse).'
+                      : 'Caídas ≤ -3 hPa activan la alerta ⚡; ≤ -5 hPa = alerta roja (colapso barométrico severo).'}
                   </li>
                   <li>
-                    <strong>{isEn ? "Temperature 3h / 6h:" : "Temperatura 3h / 6h:"}</strong> {isEn ? "Forecasted temperature variation. A rise ≥ +3 °C in 6h triggers the 🔥 heat surge alert." : "Variación de temperatura prevista. Una subida ≥ +3 °C en 6h activa la alerta 🔥 de pico de calor."}
+                    <strong>{isEn ? 'Temperature 3h / 6h:' : 'Temperatura 3h / 6h:'}</strong>{' '}
+                    {isEn
+                      ? 'Forecasted temperature variation. A rise ≥ +3 °C in 6h triggers the 🔥 heat surge alert.'
+                      : 'Variación de temperatura prevista. Una subida ≥ +3 °C en 6h activa la alerta 🔥 de pico de calor.'}
                   </li>
                 </ul>
               </div>
-
             </div>
           </section>
 
@@ -191,33 +268,62 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 : 'La sección principal muestra alertas contextuales cuando las condiciones atmosféricas o térmicas superan umbrales clínicamente relevantes. Pueden aparecer varias alertas a la vez.'}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">🌙 {isEn ? 'Warm Night Alert' : 'Alerta de Noche Cálida'}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
+                  🌙 {isEn ? 'Warm Night Alert' : 'Alerta de Noche Cálida'}
+                </span>
                 <ul className="text-[10px] text-slate-600 space-y-1">
-                  <li><strong>{isEn ? 'Tropical (🌙):' : 'Tropical (🌙):'}</strong> {isEn ? 'Min. overnight ≥ 20 °C. Impairs sleep.' : 'Mín. nocturna ≥ 20 °C. Dificulta el sueño.'}</li>
-                  <li><strong>{isEn ? 'Tórrida (🔥):' : 'Tórrida (🔥):'}</strong> {isEn ? 'Min. ≥ 25 °C. Extreme heat stress.' : 'Mín. ≥ 25 °C. Estrés térmico extremo.'}</li>
-                  <li><strong>{isEn ? 'Ecuatorial (🌊):' : 'Ecuatorial (🌊):'}</strong> {isEn ? 'Min. > 25 °C. Clinical heat hazard.' : 'Mín. > 25 °C. Peligro clínico de calor.'}</li>
+                  <li>
+                    <strong>{'Tropical (🌙):'}</strong>{' '}
+                    {isEn
+                      ? 'Min. overnight ≥ 20 °C. Impairs sleep.'
+                      : 'Mín. nocturna ≥ 20 °C. Dificulta el sueño.'}
+                  </li>
+                  <li>
+                    <strong>{'Tórrida (🔥):'}</strong>{' '}
+                    {isEn
+                      ? 'Min. ≥ 25 °C. Extreme heat stress.'
+                      : 'Mín. ≥ 25 °C. Estrés térmico extremo.'}
+                  </li>
+                  <li>
+                    <strong>{'Ecuatorial (🌊):'}</strong>{' '}
+                    {isEn
+                      ? 'Min. > 25 °C. Clinical heat hazard.'
+                      : 'Mín. > 25 °C. Peligro clínico de calor.'}
+                  </li>
                 </ul>
               </div>
 
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-700">🧊 {isEn ? 'Frost / Ice Alert' : 'Alerta de Helada / Hielo'}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-700">
+                  🧊 {isEn ? 'Frost / Ice Alert' : 'Alerta de Helada / Hielo'}
+                </span>
                 <ul className="text-[10px] text-slate-600 space-y-1">
-                  <li><strong>{isEn ? 'Frost (🌨️):' : 'Helada (🌨️):'}</strong> {isEn ? 'Min. overnight ≤ 2 °C or dew point ≤ 0 °C. Surface freezing risk.' : 'Mín. nocturna ≤ 2 °C o punto de rocío ≤ 0 °C. Riesgo de congelación superficial.'}</li>
-                  <li><strong>{isEn ? 'Ice (🧊):' : 'Hielo (🧊):'}</strong> {isEn ? 'Min. overnight ≤ 0 °C. Sub-zero temperatures confirmed.' : 'Mín. nocturna ≤ 0 °C. Temperaturas bajo cero confirmadas.'}</li>
+                  <li>
+                    <strong>{isEn ? 'Frost (🌨️):' : 'Helada (🌨️):'}</strong>{' '}
+                    {isEn
+                      ? 'Min. overnight ≤ 2 °C or dew point ≤ 0 °C. Surface freezing risk.'
+                      : 'Mín. nocturna ≤ 2 °C o punto de rocío ≤ 0 °C. Riesgo de congelación superficial.'}
+                  </li>
+                  <li>
+                    <strong>{isEn ? 'Ice (🧊):' : 'Hielo (🧊):'}</strong>{' '}
+                    {isEn
+                      ? 'Min. overnight ≤ 0 °C. Sub-zero temperatures confirmed.'
+                      : 'Mín. nocturna ≤ 0 °C. Temperaturas bajo cero confirmadas.'}
+                  </li>
                 </ul>
               </div>
 
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5 sm:col-span-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">🌧️ {isEn ? 'Precipitation Onset Alert' : 'Alerta de Inicio de Precipitación'}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">
+                  🌧️ {isEn ? 'Precipitation Onset Alert' : 'Alerta de Inicio de Precipitación'}
+                </span>
                 <p className="text-[10px] text-slate-600">
                   {isEn
                     ? 'Detects the next hourly slot with ≥ 0.1 mm precipitation and shows type (rain 🌧️ / freezing rain 🌨️ / snow ❄️), time to onset, and rain intensity label (light/moderate/heavy/violent based on mm/h rate). Below the onset pill, three accumulation badges show forecast rain for the next 3h, 6h, and 24h.'
                     : 'Detecta el próximo intervalo horario con ≥ 0,1 mm de precipitación y muestra tipo (lluvia 🌧️ / lluvia helada 🌨️ / nieve ❄️), tiempo hasta el inicio e intensidad (leve/moderada/fuerte/torrencial según mm/h). Bajo la pastilla de inicio, tres badges muestran la acumulación prevista a 3h, 6h y 24h.'}
                 </p>
               </div>
-
             </div>
           </section>
 
@@ -233,39 +339,69 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 : 'Datos de la API de Calidad del Aire de Open-Meteo (modelo europeo CAMS). Se muestra solo cuando hay datos AQI disponibles para tu ubicación.'}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">AQI — {isEn ? 'Air Quality Index' : 'Índice de Calidad del Aire'}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
+                  AQI — {isEn ? 'Air Quality Index' : 'Índice de Calidad del Aire'}
+                </span>
                 <p className="text-[10px] text-slate-600">
                   {isEn
                     ? 'European AQI (0–100+). Combines PM2.5, PM10, NO₂, O₃, SO₂, CO concentrations. PM2.5 and PM10 particulate values (μg/m³) are shown separately.'
                     : 'ICA europeo (0–100+). Combina concentraciones de PM2.5, PM10, NO₂, O₃, SO₂, CO. Los valores de partículas PM2.5 y PM10 (μg/m³) se muestran por separado.'}
                 </p>
                 <ul className="text-[10px] text-slate-600 space-y-0.5 mt-1">
-                  <li><strong className="text-emerald-600">0–20:</strong> {isEn ? 'Good' : 'Bueno'}</li>
-                  <li><strong className="text-yellow-600">21–40:</strong> {isEn ? 'Fair' : 'Aceptable'}</li>
-                  <li><strong className="text-orange-500">41–60:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
-                  <li><strong className="text-red-600">61–80:</strong> {isEn ? 'Poor' : 'Malo'}</li>
-                  <li><strong className="text-purple-600">81–100:</strong> {isEn ? 'Very Poor' : 'Muy Malo'}</li>
-                  <li><strong className="text-rose-900">100+:</strong> {isEn ? 'Extreme' : 'Extremo'}</li>
+                  <li>
+                    <strong className="text-emerald-600">0–20:</strong>{' '}
+                    {isEn ? 'Good' : 'Bueno'}
+                  </li>
+                  <li>
+                    <strong className="text-yellow-600">21–40:</strong>{' '}
+                    {isEn ? 'Fair' : 'Aceptable'}
+                  </li>
+                  <li>
+                    <strong className="text-orange-500">41–60:</strong>{' '}
+                    {isEn ? 'Moderate' : 'Moderado'}
+                  </li>
+                  <li>
+                    <strong className="text-red-600">61–80:</strong> {isEn ? 'Poor' : 'Malo'}
+                  </li>
+                  <li>
+                    <strong className="text-purple-600">81–100:</strong>{' '}
+                    {isEn ? 'Very Poor' : 'Muy Malo'}
+                  </li>
+                  <li>
+                    <strong className="text-rose-900">100+:</strong>{' '}
+                    {isEn ? 'Extreme' : 'Extremo'}
+                  </li>
                 </ul>
               </div>
 
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-700">🌿 {isEn ? 'Pollen Levels' : 'Niveles de Polen'}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-700">
+                  🌿 {isEn ? 'Pollen Levels' : 'Niveles de Polen'}
+                </span>
                 <p className="text-[10px] text-slate-600">
                   {isEn
                     ? 'Six pollen species tracked: Grass 🌿, Birch 🌳, Alder 🌸, Mugwort 🌾, Olive 🫒, Ragweed 🌻. Only species with values > 0 are shown.'
                     : 'Se monitorizan seis especies: Gramíneas 🌿, Abedul 🌳, Aliso 🌸, Artemisa 🌾, Olivo 🫒, Ambrosía 🌻. Solo se muestran las especies con valores > 0.'}
                 </p>
                 <ul className="text-[10px] text-slate-600 space-y-0.5 mt-1">
-                  <li><strong className="text-emerald-600">≤ 10:</strong> {isEn ? 'Low' : 'Bajo'}</li>
-                  <li><strong className="text-yellow-600">11–50:</strong> {isEn ? 'Moderate' : 'Moderado'}</li>
-                  <li><strong className="text-orange-500">51–200:</strong> {isEn ? 'High' : 'Alto'}</li>
-                  <li><strong className="text-red-600">&gt; 200:</strong> {isEn ? 'Very High' : 'Muy Alto'}</li>
+                  <li>
+                    <strong className="text-emerald-600">≤ 10:</strong> {isEn ? 'Low' : 'Bajo'}
+                  </li>
+                  <li>
+                    <strong className="text-yellow-600">11–50:</strong>{' '}
+                    {isEn ? 'Moderate' : 'Moderado'}
+                  </li>
+                  <li>
+                    <strong className="text-orange-500">51–200:</strong>{' '}
+                    {isEn ? 'High' : 'Alto'}
+                  </li>
+                  <li>
+                    <strong className="text-red-600">&gt; 200:</strong>{' '}
+                    {isEn ? 'Very High' : 'Muy Alto'}
+                  </li>
                 </ul>
               </div>
-
             </div>
           </section>
 
@@ -275,7 +411,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <FileText size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="font-extrabold text-slate-900 text-sm">
-                  {isEn ? 'Scientific Basis: Katsuki et al. (2023)' : 'Base Científica: Katsuki et al. (2023)'}
+                  {isEn
+                    ? 'Scientific Basis: Katsuki et al. (2023)'
+                    : 'Base Científica: Katsuki et al. (2023)'}
                 </h4>
                 <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-0.5">
                   DOI: 10.1111/head.14482
@@ -311,28 +449,73 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             {/* Gain table */}
             <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
               <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider mb-2">
-                {isEn ? 'Key Risk Factors (Feature Importance)' : 'Factores de Riesgo Clave (Importancia)'}
+                {isEn
+                  ? 'Key Risk Factors (Feature Importance)'
+                  : 'Factores de Riesgo Clave (Importancia)'}
               </h5>
               <div className="space-y-1.5">
                 {[
-                  { factor: isEn ? 'Pressure drop 6h before event' : 'Caída de presión 6h antes', gain: 11.7, barWidth: '100%', color: 'bg-red-500' },
-                  { factor: isEn ? 'Higher humidity' : 'Humedad relativa alta', gain: 7.1, barWidth: '61%', color: 'bg-sky-500' },
-                  { factor: isEn ? 'Low pressure (next day)' : 'Presión baja (día siguiente)', gain: 6.7, barWidth: '57%', color: 'bg-indigo-400' },
-                  { factor: isEn ? 'High AM pressure (pre-drop)' : 'Presión alta matinal (pre-caída)', gain: 4.6, barWidth: '39%', color: 'bg-amber-400' },
-                  { factor: isEn ? 'Low absolute pressure' : 'Presión absoluta baja', gain: 3.9, barWidth: '33%', color: 'bg-purple-400' },
-                  { factor: isEn ? 'More rainfall' : 'Mayor precipitación', gain: 3.1, barWidth: '26%', color: 'bg-emerald-400' },
+                  {
+                    factor: isEn
+                      ? 'Pressure drop 6h before event'
+                      : 'Caída de presión 6h antes',
+                    gain: 11.7,
+                    barWidth: '100%',
+                    color: 'bg-red-500',
+                  },
+                  {
+                    factor: isEn ? 'Higher humidity' : 'Humedad relativa alta',
+                    gain: 7.1,
+                    barWidth: '61%',
+                    color: 'bg-sky-500',
+                  },
+                  {
+                    factor: isEn ? 'Low pressure (next day)' : 'Presión baja (día siguiente)',
+                    gain: 6.7,
+                    barWidth: '57%',
+                    color: 'bg-indigo-400',
+                  },
+                  {
+                    factor: isEn
+                      ? 'High AM pressure (pre-drop)'
+                      : 'Presión alta matinal (pre-caída)',
+                    gain: 4.6,
+                    barWidth: '39%',
+                    color: 'bg-amber-400',
+                  },
+                  {
+                    factor: isEn ? 'Low absolute pressure' : 'Presión absoluta baja',
+                    gain: 3.9,
+                    barWidth: '33%',
+                    color: 'bg-purple-400',
+                  },
+                  {
+                    factor: isEn ? 'More rainfall' : 'Mayor precipitación',
+                    gain: 3.1,
+                    barWidth: '26%',
+                    color: 'bg-emerald-400',
+                  },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-[10px] text-slate-700 w-[55%] truncate font-medium">{item.factor}</span>
+                    <span className="text-[10px] text-slate-700 w-[55%] truncate font-medium">
+                      {item.factor}
+                    </span>
                     <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                      <div className={`${item.color} h-full rounded-full`} style={{ width: item.barWidth }} />
+                      <div
+                        className={`${item.color} h-full rounded-full`}
+                        style={{ width: item.barWidth }}
+                      />
                     </div>
-                    <span className="text-[10px] font-bold text-slate-800 w-7 text-right">{item.gain}</span>
+                    <span className="text-[10px] font-bold text-slate-800 w-7 text-right">
+                      {item.gain}
+                    </span>
                   </div>
                 ))}
               </div>
               <p className="text-[9px] text-slate-400 mt-2 italic">
-                {isEn ? 'Gain = relative contribution of each feature in predicting headache occurrence (p < 0.001).' : 'Gain = contribución relativa de cada factor en la predicción de cefaleas (p < 0,001).'}
+                {isEn
+                  ? 'Gain = relative contribution of each feature in predicting headache occurrence (p < 0.001).'
+                  : 'Gain = contribución relativa de cada factor en la predicción de cefaleas (p < 0,001).'}
               </p>
             </div>
 
@@ -340,7 +523,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
               <h5 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <AlertTriangle size={13} className="text-amber-500" />
-                {isEn ? 'How We Apply This in Our Scoring (0–6 pts)' : 'Cómo Aplicamos Esto en Nuestra Puntuación (0–6 pts)'}
+                {isEn
+                  ? 'How We Apply This in Our Scoring (0–6 pts)'
+                  : 'Cómo Aplicamos Esto en Nuestra Puntuación (0–6 pts)'}
               </h5>
               <p className="text-[11px] text-slate-600 mb-2">
                 {isEn
@@ -349,19 +534,45 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </p>
               <ul className="text-[10px] space-y-1.5 text-slate-600">
                 <li>
-                  <strong className="text-red-600">{isEn ? 'Pressure drop' : 'Caída de presión'} (ΔP):</strong> {isEn ? 'Weighted highest (+3 pts for ≤ −5 hPa, +1 for ≤ −3 hPa), reflecting the paper\'s top gain of 11.7.' : 'Peso más alto (+3 pts para ≤ −5 hPa, +1 para ≤ −3 hPa), reflejando la ganancia máxima del paper (11,7).'}
+                  <strong className="text-red-600">
+                    {isEn ? 'Pressure drop' : 'Caída de presión'} (ΔP):
+                  </strong>{' '}
+                  {isEn
+                    ? "Weighted highest (+3 pts for ≤ −5 hPa, +1 for ≤ −3 hPa), reflecting the paper's top gain of 11.7."
+                    : 'Peso más alto (+3 pts para ≤ −5 hPa, +1 para ≤ −3 hPa), reflejando la ganancia máxima del paper (11,7).'}
                 </li>
                 <li>
-                  <strong className="text-sky-600">{isEn ? 'Humidity' : 'Humedad'} (&gt; 70%):</strong> {isEn ? '+1 pt. Reflects gain of 7.1. Threshold of 70% is a standard clinical convention for "high humidity".' : '+1 pt. Refleja ganancia de 7,1. El umbral de 70% es una convención clínica estándar para «humedad alta».'}
+                  <strong className="text-sky-600">
+                    {isEn ? 'Humidity' : 'Humedad'} (&gt; 70%):
+                  </strong>{' '}
+                  {isEn
+                    ? '+1 pt. Reflects gain of 7.1. Threshold of 70% is a standard clinical convention for "high humidity".'
+                    : '+1 pt. Refleja ganancia de 7,1. El umbral de 70% es una convención clínica estándar para «humedad alta».'}
                 </li>
                 <li>
-                  <strong className="text-purple-600">{isEn ? 'Low pressure' : 'Presión baja'} (&lt; 1010 hPa):</strong> {isEn ? '+1 pt. Reflects gain of 3.9. NIH literature associates 1003–1007 hPa with peak migraine frequency.' : '+1 pt. Refleja ganancia de 3,9. La literatura NIH asocia 1003–1007 hPa con la máxima frecuencia de migrañas.'}
+                  <strong className="text-purple-600">
+                    {isEn ? 'Low pressure' : 'Presión baja'} (&lt; 1010 hPa):
+                  </strong>{' '}
+                  {isEn
+                    ? '+1 pt. Reflects gain of 3.9. NIH literature associates 1003–1007 hPa with peak migraine frequency.'
+                    : '+1 pt. Refleja ganancia de 3,9. La literatura NIH asocia 1003–1007 hPa con la máxima frecuencia de migrañas.'}
                 </li>
                 <li>
-                  <strong className="text-emerald-600">{isEn ? 'Precipitation' : 'Precipitación'} (&gt; 0 mm):</strong> {isEn ? '+1 pt. Reflects gain of 3.1. Any active rainfall counts as a trigger factor.' : '+1 pt. Refleja ganancia de 3,1. Cualquier lluvia activa se considera factor desencadenante.'}
+                  <strong className="text-emerald-600">
+                    {isEn ? 'Precipitation' : 'Precipitación'} (&gt; 0 mm):
+                  </strong>{' '}
+                  {isEn
+                    ? '+1 pt. Reflects gain of 3.1. Any active rainfall counts as a trigger factor.'
+                    : '+1 pt. Refleja ganancia de 3,1. Cualquier lluvia activa se considera factor desencadenante.'}
                 </li>
                 <li>
-                  <strong className="text-orange-500">{isEn ? 'Storm instability' : 'Inestabilidad convectiva'} (CAPE &gt; 1000 J/kg):</strong> {isEn ? '+1 pt. Extended criterion: convective systems generate rapid pressure oscillations that compound headache triggers.' : '+1 pt. Criterio extendido: los sistemas convectivos generan oscilaciones de presión rápidas que amplifican los desencadenantes de migraña.'}
+                  <strong className="text-orange-500">
+                    {isEn ? 'Storm instability' : 'Inestabilidad convectiva'} (CAPE &gt; 1000
+                    J/kg):
+                  </strong>{' '}
+                  {isEn
+                    ? '+1 pt. Extended criterion: convective systems generate rapid pressure oscillations that compound headache triggers.'
+                    : '+1 pt. Criterio extendido: los sistemas convectivos generan oscilaciones de presión rápidas que amplifican los desencadenantes de migraña.'}
                 </li>
               </ul>
               <p className="text-[10px] text-slate-500 mt-2.5 italic">
@@ -388,7 +599,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <section className="space-y-2">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <Database size={18} className="text-sky-500" />
-              {isEn ? 'Atmospheric Memory & Copernicus ERA5' : 'Memoria Atmosférica y Copernicus ERA5'}
+              {isEn
+                ? 'Atmospheric Memory & Copernicus ERA5'
+                : 'Memoria Atmosférica y Copernicus ERA5'}
             </h3>
             <p>
               {isEn
@@ -396,14 +609,12 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 : 'Para retroceder a los años 1949, 1973 y 2003, la aplicación consulta el reanálisis global Copernicus ERA5 (Centro Europeo de Previsiones Meteorológicas a Plazo Medio). Mediante modelos físicos avanzados y lecturas de satélites/estaciones, ERA5 reconstruye la presión y temperatura exactas en cualquier coordenada desde 1940.'}
             </p>
           </section>
-
         </div>
 
         {/* Footer */}
         <div className="p-4 sm:p-5 bg-slate-50 border-t border-gray-100 text-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
           <span>🌤️ Open-Weather Biometeorological Tracker &copy; 2026</span>
         </div>
-
       </div>
     </div>
   );

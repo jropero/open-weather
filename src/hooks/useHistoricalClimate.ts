@@ -42,11 +42,11 @@ async function fetchERA5(lat: number, lon: number): Promise<ERA5DailyData> {
   const time: string[] = d.time ?? [];
   return {
     time,
-    temp:     (d.temperature_2m_mean ?? []).map(nullify),
-    precip:   (d.precipitation_sum   ?? []).map(nullify),
+    temp: (d.temperature_2m_mean ?? []).map(nullify),
+    precip: (d.precipitation_sum ?? []).map(nullify),
     pressure: (d.surface_pressure_mean ?? []).map(nullify),
-    sunshine: (d.sunshine_duration   ?? []).map(nullify),
-    snowfall: (d.snowfall_sum        ?? []).map(nullify),
+    sunshine: (d.sunshine_duration ?? []).map(nullify),
+    snowfall: (d.snowfall_sum ?? []).map(nullify),
   };
 }
 
@@ -60,12 +60,16 @@ async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5D
         return cached.daily;
       }
     }
-  } catch { /* corrupt — fall through */ }
+  } catch {
+    /* corrupt — fall through */
+  }
 
   const daily = await fetchERA5(lat, lon);
   try {
     localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), daily }));
-  } catch { /* storage full */ }
+  } catch {
+    /* storage full */
+  }
   return daily;
 }
 
@@ -73,12 +77,24 @@ async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5D
 
 function monthlyLabel(year: number, month: number, locale: string): string {
   return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(locale, {
-    month: 'short', year: 'numeric', timeZone: 'UTC',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
-const SEASON_ABBR_ES: Record<SeasonKey, string> = { DJF: 'Inv', MAM: 'Prim', JJA: 'Ver', SON: 'Oto' };
-const SEASON_ABBR_EN: Record<SeasonKey, string> = { DJF: 'Win', MAM: 'Spr', JJA: 'Sum', SON: 'Aut' };
+const SEASON_ABBR_ES: Record<SeasonKey, string> = {
+  DJF: 'Inv',
+  MAM: 'Prim',
+  JJA: 'Ver',
+  SON: 'Oto',
+};
+const SEASON_ABBR_EN: Record<SeasonKey, string> = {
+  DJF: 'Win',
+  MAM: 'Spr',
+  JJA: 'Sum',
+  SON: 'Aut',
+};
 
 function seasonLabel(seasonKey: SeasonKey, anchorYear: number, locale: string): string {
   const abbrs = locale.startsWith('es') ? SEASON_ABBR_ES : SEASON_ABBR_EN;
@@ -89,12 +105,16 @@ function seasonLabel(seasonKey: SeasonKey, anchorYear: number, locale: string): 
   return `${prefix} ${anchorYear}`;
 }
 
-function buildMonthlyResult(allMonthly: ReturnType<typeof aggregateMonthly>, period: SeasonalPeriod, locale: string): ClimateDetailResult {
+function buildMonthlyResult(
+  allMonthly: ReturnType<typeof aggregateMonthly>,
+  period: SeasonalPeriod,
+  locale: string,
+): ClimateDetailResult {
   const targetMonth = Number(period.start.slice(5, 7));
 
-  const sameMonth = allMonthly.filter(m => m.month === targetMonth);
+  const sameMonth = allMonthly.filter((m) => m.month === targetMonth);
 
-  const historicalPeriods: HistoricalPeriod[] = sameMonth.map(m => ({
+  const historicalPeriods: HistoricalPeriod[] = sameMonth.map((m) => ({
     label: monthlyLabel(m.year, m.month, locale),
     year: m.year,
     month: m.month,
@@ -107,16 +127,24 @@ function buildMonthlyResult(allMonthly: ReturnType<typeof aggregateMonthly>, per
     },
   }));
 
-  return buildResult(historicalPeriods, period, sameMonth.map(m => m.year));
+  return buildResult(
+    historicalPeriods,
+    period,
+    sameMonth.map((m) => m.year),
+  );
 }
 
-function buildSeasonalResult(allMonthly: ReturnType<typeof aggregateMonthly>, period: SeasonalPeriod, locale: string): ClimateDetailResult {
+function buildSeasonalResult(
+  allMonthly: ReturnType<typeof aggregateMonthly>,
+  period: SeasonalPeriod,
+  locale: string,
+): ClimateDetailResult {
   const allSeasonal = aggregateSeasonal(allMonthly);
   const targetKey = period.season?.key as SeasonKey;
 
-  const sameSeason = allSeasonal.filter(s => s.seasonKey === targetKey);
+  const sameSeason = allSeasonal.filter((s) => s.seasonKey === targetKey);
 
-  const historicalPeriods: HistoricalPeriod[] = sameSeason.map(s => ({
+  const historicalPeriods: HistoricalPeriod[] = sameSeason.map((s) => ({
     label: seasonLabel(s.seasonKey, s.year, locale),
     year: s.year,
     seasonKey: s.seasonKey,
@@ -129,7 +157,11 @@ function buildSeasonalResult(allMonthly: ReturnType<typeof aggregateMonthly>, pe
     },
   }));
 
-  return buildResult(historicalPeriods, period, sameSeason.map(s => s.year));
+  return buildResult(
+    historicalPeriods,
+    period,
+    sameSeason.map((s) => s.year),
+  );
 }
 
 function buildResult(
@@ -148,25 +180,33 @@ function buildResult(
     return anomaly !== null && base !== null ? base + anomaly : null;
   };
   const forecastValues: Record<SeasonalVariable, number | null> = {
-    temperature:   adj('temperature'),
+    temperature: adj('temperature'),
     precipitation: adj('precipitation'),
-    pressure:      null, // surface_pressure vs pressure_msl — incompatible units
-    sunshine:      adj('sunshine'),
-    snowfall:      adj('snowfall'),
+    pressure: null, // surface_pressure vs pressure_msl — incompatible units
+    sunshine: adj('sunshine'),
+    snowfall: adj('snowfall'),
   };
 
   const analogues = findAnalogues(forecastValues, historicalPeriods, means, stds);
 
   const aboveCount: Record<SeasonalVariable, number | null> = {
-    temperature: null, precipitation: null, pressure: null, sunshine: null, snowfall: null,
+    temperature: null,
+    precipitation: null,
+    pressure: null,
+    sunshine: null,
+    snowfall: null,
   };
   const stripValues: Record<SeasonalVariable, (number | null)[]> = {
-    temperature: [], precipitation: [], pressure: [], sunshine: [], snowfall: [],
+    temperature: [],
+    precipitation: [],
+    pressure: [],
+    sunshine: [],
+    snowfall: [],
   };
 
   for (const v of ALL_VARS) {
     const fv = forecastValues[v];
-    const hvals = historicalPeriods.map(hp => hp.values[v] ?? null);
+    const hvals = historicalPeriods.map((hp) => hp.values[v] ?? null);
     stripValues[v] = hvals;
     if (fv !== null) {
       const nonNull = hvals.filter((x): x is number => x !== null);
@@ -203,12 +243,16 @@ export function useHistoricalClimate(
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResult(null);
 
     const key = cacheKey(lat, lon);
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
       try {
         const era5 = await getERA5Data(lat, lon, key);
@@ -229,7 +273,9 @@ export function useHistoricalClimate(
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, periodKey, locale]);
 

@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Wind, Gauge, Thermometer, CloudRain } from 'lucide-react';
 import {
-  ComposedChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer,
-  ZIndexLayer, useXAxisScale, useYAxisScale,
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ResponsiveContainer,
+  ZIndexLayer,
+  useXAxisScale,
+  useYAxisScale,
 } from 'recharts';
 import type { XAxisTickContentProps } from 'recharts';
 import type { Location, SeasonalPeriod, SeasonalVariable } from '../types/weather';
@@ -28,16 +35,34 @@ interface EnsembleVarMeta {
 }
 
 const VARS: EnsembleVarMeta[] = [
-  { key: 'temperature_2m', labelEs: 'Temperatura', labelEn: 'Temperature', unit: '°C',   color: '#fca5a5' },
-  { key: 'precipitation',  labelEs: 'Precipitación', labelEn: 'Precipitation', unit: 'mm', color: '#7dd3fc' },
-  { key: 'pressure_msl',   labelEs: 'Presión',      labelEn: 'Pressure',  unit: 'hPa',  color: '#c084fc' },
-  { key: 'wind_speed_10m', labelEs: 'Viento',       labelEn: 'Wind',      unit: 'km/h', color: '#6ee7b7' },
+  {
+    key: 'temperature_2m',
+    labelEs: 'Temperatura',
+    labelEn: 'Temperature',
+    unit: '°C',
+    color: '#fca5a5',
+  },
+  {
+    key: 'precipitation',
+    labelEs: 'Precipitación',
+    labelEn: 'Precipitation',
+    unit: 'mm',
+    color: '#7dd3fc',
+  },
+  {
+    key: 'pressure_msl',
+    labelEs: 'Presión',
+    labelEn: 'Pressure',
+    unit: 'hPa',
+    color: '#c084fc',
+  },
+  { key: 'wind_speed_10m', labelEs: 'Viento', labelEn: 'Wind', unit: 'km/h', color: '#6ee7b7' },
 ];
 
 const VAR_ICONS = {
   temperature_2m: Thermometer,
-  precipitation:  CloudRain,
-  pressure_msl:   Gauge,
+  precipitation: CloudRain,
+  pressure_msl: Gauge,
   wind_speed_10m: Wind,
 };
 
@@ -58,6 +83,7 @@ function SpaghettiLayer({ points, color }: { points: EnsemblePoint[]; color: str
   const xScale = useXAxisScale();
   const yScale = useYAxisScale('main');
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   const paths = useMemo(() => {
     if (!xScale || !yScale || !points.length) return [];
     const n = points[0].members.length;
@@ -90,7 +116,12 @@ function SpaghettiLayer({ points, color }: { points: EnsemblePoint[]; color: str
 }
 
 function BandLayer({
-  points, getLow, getHigh, fill, opacity, zIndex,
+  points,
+  getLow,
+  getHigh,
+  fill,
+  opacity,
+  zIndex,
 }: {
   points: EnsemblePoint[];
   getLow: (p: EnsemblePoint) => number;
@@ -102,6 +133,7 @@ function BandLayer({
   const xScale = useXAxisScale();
   const yScale = useYAxisScale('main');
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   const d = useMemo(() => {
     if (!xScale || !yScale || !points.length) return '';
     let path = '';
@@ -132,21 +164,31 @@ function BandLayer({
 
 // ---
 
-export function EnsembleDetailView({ location, period, weekIndex, initialVariable, lowConfidence, onClose }: Props) {
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export function EnsembleDetailView({
+  location,
+  period,
+  weekIndex,
+  initialVariable,
+  lowConfidence,
+  onClose,
+}: Props) {
   const { language, t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [variable, setVariable] = useState<EnsembleVar>(SEASONAL_TO_ENSEMBLE[initialVariable]);
 
-  const { data: points, loading, error } = useEnsembleData(
-    location.latitude, location.longitude, period.start, variable
-  );
+  const {
+    data: points,
+    loading,
+    error,
+  } = useEnsembleData(location.latitude, location.longitude, period.start, variable);
 
   useEffect(() => {
     const el = dialogRef.current;
     if (el && !el.open) el.showModal();
   }, []);
 
-  const varMeta = VARS.find(v => v.key === variable)!;
+  const varMeta = VARS.find((v) => v.key === variable)!;
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
 
   const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
@@ -156,51 +198,82 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
 
   const classification = useMemo(
     () => (points && points.length ? classifySpread(points, variable) : null),
-    [points, variable]
+    [points, variable],
   );
 
   // Chart data (just index + mean for Recharts' built-in Line)
   const chartData = useMemo(
     () => (points ?? []).map((pt, i) => ({ i, mean: pt.mean })),
-    [points]
+    [points],
   );
 
   // Y-axis domain
   const { yDomain, midnightIndices, xTicks } = useMemo(() => {
-    if (!points || !points.length) return { yDomain: [0, 10] as [number, number], midnightIndices: [], xTicks: [] };
+    if (!points || !points.length)
+      return { yDomain: [0, 10] as [number, number], midnightIndices: [], xTicks: [] };
     const nonNegative = variable === 'precipitation' || variable === 'wind_speed_10m';
-    const allVals = points.flatMap(p => [p.p10, p.p90]);
+    const allVals = points.flatMap((p) => [p.p10, p.p90]);
     const lo = nonNegative ? 0 : Math.floor(Math.min(...allVals)) - 1;
     const hi = Math.ceil(Math.max(...allVals)) + 1;
     const midnights: number[] = [];
     points.forEach((pt, i) => {
       if (new Date(pt.time).getUTCHours() === 0) midnights.push(i);
     });
-    return { yDomain: [lo, hi] as [number, number], midnightIndices: midnights, xTicks: midnights };
+    return {
+      yDomain: [lo, hi] as [number, number],
+      midnightIndices: midnights,
+      xTicks: midnights,
+    };
   }, [points]);
 
-  const renderXTick = useCallback(({ x: rawX, y: rawY, payload }: XAxisTickContentProps) => {
-    const idx = Number(payload.value);
-    const pt = points?.[idx];
-    if (!pt) return <g />;
-    const dayName = new Date(pt.time).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' });
-    return (
-      <text x={Number(rawX)} y={Number(rawY) + 13} textAnchor="middle" fontSize={10} fill="#94a3b8">
-        {capitalize(dayName)}
-      </text>
-    );
-  }, [points, locale]);
+  const renderXTick = useCallback(
+    ({ x: rawX, y: rawY, payload }: XAxisTickContentProps) => {
+      const idx = Number(payload.value);
+      const pt = points?.[idx];
+      if (!pt) return <g />;
+      const dayName = new Date(pt.time).toLocaleDateString(locale, {
+        weekday: 'short',
+        timeZone: 'UTC',
+      });
+      return (
+        <text
+          x={Number(rawX)}
+          y={Number(rawY) + 13}
+          textAnchor="middle"
+          fontSize={10}
+          fill="#94a3b8"
+        >
+          {capitalize(dayName)}
+        </text>
+      );
+    },
+    [points, locale],
+  );
 
   const spreadBadge = () => {
     if (!classification) return null;
     const configs = {
-      agree:    { text: t('ensemble.spread.agree'),    bg: 'bg-emerald-800/60 text-emerald-200', icon: '✓' },
-      disagree: { text: t('ensemble.spread.disagree'), bg: 'bg-amber-800/60 text-amber-200',     icon: '⚡' },
-      bimodal:  { text: t('ensemble.spread.bimodal'),  bg: 'bg-violet-800/60 text-violet-200',   icon: '⑂' },
+      agree: {
+        text: t('ensemble.spread.agree'),
+        bg: 'bg-emerald-800/60 text-emerald-200',
+        icon: '✓',
+      },
+      disagree: {
+        text: t('ensemble.spread.disagree'),
+        bg: 'bg-amber-800/60 text-amber-200',
+        icon: '⚡',
+      },
+      bimodal: {
+        text: t('ensemble.spread.bimodal'),
+        bg: 'bg-violet-800/60 text-violet-200',
+        icon: '⑂',
+      },
     };
     const cfg = configs[classification.label];
     return (
-      <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${cfg.bg}`}>
+      <div
+        className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${cfg.bg}`}
+      >
         <span className="text-base leading-none">{cfg.icon}</span>
         <span>{cfg.text}</span>
       </div>
@@ -232,7 +305,8 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
           mirror
           domain={yDomain}
           tickFormatter={(v: number) => {
-            if (variable === 'precipitation' || variable === 'wind_speed_10m') return String(Math.round(v));
+            if (variable === 'precipitation' || variable === 'wind_speed_10m')
+              return String(Math.round(v));
             return v % 1 === 0 ? String(v) : v.toFixed(1);
           }}
           tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }}
@@ -241,7 +315,7 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
           width={40}
         />
 
-        {midnightIndices.map(idx => (
+        {midnightIndices.map((idx) => (
           <ReferenceLine key={idx} x={idx} yAxisId="main" stroke="rgba(255,255,255,0.08)" />
         ))}
 
@@ -249,10 +323,24 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
         <SpaghettiLayer points={points} color={varMeta.color} />
 
         {/* p10–p90 band */}
-        <BandLayer points={points} getLow={getP10} getHigh={getP90} fill={varMeta.color} opacity={0.10} zIndex={2} />
+        <BandLayer
+          points={points}
+          getLow={getP10}
+          getHigh={getP90}
+          fill={varMeta.color}
+          opacity={0.1}
+          zIndex={2}
+        />
 
         {/* p25–p75 band */}
-        <BandLayer points={points} getLow={getP25} getHigh={getP75} fill={varMeta.color} opacity={0.22} zIndex={3} />
+        <BandLayer
+          points={points}
+          getLow={getP25}
+          getHigh={getP75}
+          fill={varMeta.color}
+          opacity={0.22}
+          zIndex={3}
+        />
 
         {/* Ensemble mean */}
         <Line
@@ -265,14 +353,28 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
         />
       </>
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, xTicks, yDomain, midnightIndices, varMeta, renderXTick, getP10, getP25, getP75, getP90]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    points,
+    xTicks,
+    yDomain,
+    midnightIndices,
+    varMeta,
+    renderXTick,
+    getP10,
+    getP25,
+    getP75,
+    getP90,
+  ]);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) e.currentTarget.close();
+      }}
       className="open:flex flex-col w-full max-w-none sm:max-w-2xl max-h-[92dvh] m-0 mt-auto sm:m-auto p-0 rounded-t-3xl sm:rounded-3xl bg-slate-950 text-white shadow-2xl overflow-hidden backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
       {/* Header */}
@@ -293,7 +395,7 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
 
       {/* Variable switcher */}
       <div className="flex gap-1 px-4 pt-4 pb-2 shrink-0">
-        {VARS.map(v => {
+        {VARS.map((v) => {
           const Icon = VAR_ICONS[v.key];
           const label = language === 'en' ? v.labelEn : v.labelEs;
           const active = v.key === variable;
@@ -349,7 +451,10 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
                 <span className="text-[10px] font-semibold text-slate-500">{varMeta.unit}</span>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart data={chartData} margin={{ top: 8, right: 48, left: 16, bottom: 0 }}>
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 8, right: 48, left: 16, bottom: 0 }}
+                >
                   {chartLayers}
                 </ComposedChart>
               </ResponsiveContainer>
@@ -358,19 +463,31 @@ export function EnsembleDetailView({ location, period, weekIndex, initialVariabl
             {/* Legend */}
             <div className="flex items-center gap-4 px-1 mt-2 text-[10px] text-slate-500">
               <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-0.5 rounded-full opacity-20" style={{ backgroundColor: varMeta.color }} />
+                <span
+                  className="inline-block w-4 h-0.5 rounded-full opacity-20"
+                  style={{ backgroundColor: varMeta.color }}
+                />
                 <span>{t('ensemble.legend.members')}</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-2 rounded-sm opacity-30" style={{ backgroundColor: varMeta.color }} />
+                <span
+                  className="inline-block w-4 h-2 rounded-sm opacity-30"
+                  style={{ backgroundColor: varMeta.color }}
+                />
                 <span>p10–p90</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-2 rounded-sm opacity-60" style={{ backgroundColor: varMeta.color }} />
+                <span
+                  className="inline-block w-4 h-2 rounded-sm opacity-60"
+                  style={{ backgroundColor: varMeta.color }}
+                />
                 <span>p25–p75</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-4 h-0.5 rounded-full" style={{ backgroundColor: varMeta.color }} />
+                <span
+                  className="inline-block w-4 h-0.5 rounded-full"
+                  style={{ backgroundColor: varMeta.color }}
+                />
                 <span>{t('ensemble.legend.mean')}</span>
               </span>
             </div>
