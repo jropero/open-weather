@@ -626,12 +626,19 @@ function WeatherDashboard() {
 
             <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
               {/* Left Progress Bar: Migraine Risk */}
-              <button
-                type="button"
-                className="relative flex flex-col items-center gap-1 cursor-pointer bg-transparent border-0 p-0 text-white"
+              <div
+                role="button"
+                tabIndex={0}
+                className="relative flex flex-col items-center gap-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActivePopover(activePopover === 'migraine' ? null : 'migraine');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                    setActivePopover(activePopover === 'migraine' ? null : 'migraine');
+                  }
                 }}
               >
                 {/* Custom Popover */}
@@ -677,18 +684,25 @@ function WeatherDashboard() {
                   />
                 </div>
                 <span className="text-[11px] font-black">{currentMigraineRisk.score}</span>
-              </button>
+              </div>
 
               {/* Temperature Display */}
               <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
 
               {/* Right Progress Bar: Fatigue Level */}
-              <button
-                type="button"
-                className="relative flex flex-col items-center gap-1 cursor-pointer bg-transparent border-0 p-0 text-white"
+              <div
+                role="button"
+                tabIndex={0}
+                className="relative flex flex-col items-center gap-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActivePopover(activePopover === 'fatigue' ? null : 'fatigue');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                    setActivePopover(activePopover === 'fatigue' ? null : 'fatigue');
+                  }
                 }}
               >
                 {/* Custom Popover */}
@@ -757,7 +771,7 @@ function WeatherDashboard() {
                     </span>
                   </>
                 )}
-              </button>
+              </div>
             </div>
 
             <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>

@@ -22,6 +22,7 @@
     "keyframes-name-pattern": null,
     "no-descending-specificity": null,
     "declaration-no-important": true,
-    "at-rule-prelude-no-invalid": null
+    "at-rule-prelude-no-invalid": null,
+    "import-notation": null
   }
 }
