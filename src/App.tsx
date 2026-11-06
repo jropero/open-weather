@@ -66,8 +66,8 @@ function WeatherDashboard() {
   const rainNext3h = React.useMemo(() => {
     if (!data?.hourly.length) return 0;
     let sum = 0;
-    for (let i = 0; i < Math.min(3, data.hourly.length); i++) {
-      sum += data.hourly[i].precipitation || 0;
+    for (const h of data.hourly.slice(0, 3)) {
+      sum += h.precipitation || 0;
     }
     return Math.round(sum * 10) / 10;
   }, [data]);
@@ -75,8 +75,8 @@ function WeatherDashboard() {
   const rainNext6h = React.useMemo(() => {
     if (!data?.hourly.length) return 0;
     let sum = 0;
-    for (let i = 0; i < Math.min(6, data.hourly.length); i++) {
-      sum += data.hourly[i].precipitation || 0;
+    for (const h of data.hourly.slice(0, 6)) {
+      sum += h.precipitation || 0;
     }
     return Math.round(sum * 10) / 10;
   }, [data]);
@@ -84,8 +84,8 @@ function WeatherDashboard() {
   const rainNext24h = React.useMemo(() => {
     if (!data?.hourly.length) return 0;
     let sum = 0;
-    for (let i = 0; i < data.hourly.length; i++) {
-      sum += data.hourly[i].precipitation || 0;
+    for (const h of data.hourly) {
+      sum += h.precipitation || 0;
     }
     return Math.round(sum * 10) / 10;
   }, [data]);
@@ -140,8 +140,7 @@ function WeatherDashboard() {
     // eslint-disable-next-line sonarjs/cognitive-complexity
   } | null => {
     if (!data?.hourly.length) return null;
-    for (let i = 0; i < data.hourly.length; i++) {
-      const h = data.hourly[i];
+    for (const h of data.hourly) {
       if (h.precipitation >= 0.1) {
         const onsetTime = new Date(h.time + 'Z').getTime();
         const minutesFromNow = Math.max(0, Math.round((onsetTime - now) / 60000));
@@ -627,19 +626,12 @@ function WeatherDashboard() {
 
             <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
               {/* Left Progress Bar: Migraine Risk */}
-              <div
-                role="button"
-                tabIndex={0}
-                className="relative flex flex-col items-center gap-1 cursor-pointer"
+              <button
+                type="button"
+                className="relative flex flex-col items-center gap-1 cursor-pointer bg-transparent border-0 p-0 text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActivePopover(activePopover === 'migraine' ? null : 'migraine');
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.stopPropagation();
-                    setActivePopover(activePopover === 'migraine' ? null : 'migraine');
-                  }
                 }}
               >
                 {/* Custom Popover */}
@@ -685,25 +677,18 @@ function WeatherDashboard() {
                   />
                 </div>
                 <span className="text-[11px] font-black">{currentMigraineRisk.score}</span>
-              </div>
+              </button>
 
               {/* Temperature Display */}
               <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
 
               {/* Right Progress Bar: Fatigue Level */}
-              <div
-                role="button"
-                tabIndex={0}
-                className="relative flex flex-col items-center gap-1 cursor-pointer"
+              <button
+                type="button"
+                className="relative flex flex-col items-center gap-1 cursor-pointer bg-transparent border-0 p-0 text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActivePopover(activePopover === 'fatigue' ? null : 'fatigue');
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.stopPropagation();
-                    setActivePopover(activePopover === 'fatigue' ? null : 'fatigue');
-                  }
                 }}
               >
                 {/* Custom Popover */}
@@ -772,7 +757,7 @@ function WeatherDashboard() {
                     </span>
                   </>
                 )}
-              </div>
+              </button>
             </div>
 
             <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
