@@ -42,7 +42,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chart.hum_humid': 'Húmeda',
     'chart.hum_saturated': 'Saturada',
     'chart.hint': 'Toca o desliza sobre el gráfico para ver los detalles de cada punto.',
-    'chart.scale_note': 'Escala roja (derecha): presión en hPa. Las demás series usan su propia escala; los valores exactos aparecen en el panel superior.',
+    'chart.scale_note':
+      'Escala roja (derecha): presión en hPa. Las demás series usan su propia escala; los valores exactos aparecen en el panel superior.',
     'label.clinical_breakdown': 'Desgloses Clínicos y Matemáticos',
     'label.fatigue_calc': 'Cálculo de Fatiga (Thom)',
     'label.migraine_doi': 'Riesgo de Migraña (DOI: 10.1111/head.14482)',
@@ -98,7 +99,8 @@ const translations: Record<Language, Record<string, string>> = {
     'seasonal.rest.autumn': 'Resto del otoño',
     'seasonal.rest.tropical': 'Resto del trimestre',
     'seasonal.next.tropical': 'Próximo trimestre',
-    'seasonal.tropical_note': 'Zona tropical: en lugar de estaciones se muestran bloques de 3 meses (dic–feb, mar–may, jun–ago, sep–nov).',
+    'seasonal.tropical_note':
+      'Zona tropical: en lugar de estaciones se muestran bloques de 3 meses (dic–feb, mar–may, jun–ago, sep–nov).',
     'seasonal.coverage': '{n}/{m} meses',
     'seasonal.coverage_partial': 'Datos incompletos: el modelo aún no cubre toda la estación',
     'seasonal.season_ending': 'Termina en {n} días: ver «Próximas semanas»',
@@ -113,17 +115,25 @@ const translations: Record<Language, Record<string, string>> = {
     'seasonal.detail.forecast': 'Previsión',
     'seasonal.detail.normal': 'Normal del modelo',
     'seasonal.detail.prob_above': '{n}% de los miembros por encima de lo normal',
-    'seasonal.legend': 'Color y signo = diferencia con lo normal (climatología del modelo, 20–30 años). Previsión de área (~36 km), sin corrección de sesgo.',
-    'seasonal.confidence_note.weeks': 'Fiabilidad semanal: acuerdo de los 51 miembros del conjunto sobre el signo de la anomalía (temperatura, precipitación, presión). Desde la semana 3, como máximo media.',
-    'seasonal.confidence_note.months': 'Fiabilidad mensual y estacional: el modelo no publica probabilidades para estos periodos, así que se basa solo en la distancia: mes actual y siguiente, media; después, baja.',
+    'seasonal.legend':
+      'Color y signo = diferencia con lo normal (climatología del modelo, 20–30 años). Previsión de área (~36 km), sin corrección de sesgo.',
+    'seasonal.confidence_note.weeks':
+      'Fiabilidad semanal: acuerdo de los 51 miembros del conjunto sobre el signo de la anomalía (temperatura, precipitación, presión). Desde la semana 3, como máximo media.',
+    'seasonal.confidence_note.months':
+      'Fiabilidad mensual y estacional: el modelo no publica probabilidades para estos periodos, así que se basa solo en la distancia: mes actual y siguiente, media; después, baja.',
     'seasonal.attr.data': 'Datos meteorológicos de Open-Meteo.com',
-    'seasonal.attr.models': 'Modelos ECMWF EC46 (semanas, diario) y SEAS5 (meses, emisión {issue})',
-    'seasonal.attr.ecmwf': 'Este servicio se basa en datos y productos del Centro Europeo de Previsiones Meteorológicas a Plazo Medio (ECMWF).',
+    'seasonal.attr.models':
+      'Modelos ECMWF EC46 (semanas, diario) y SEAS5 (meses, emisión {issue})',
+    'seasonal.attr.ecmwf':
+      'Este servicio se basa en datos y productos del Centro Europeo de Previsiones Meteorológicas a Plazo Medio (ECMWF).',
     'seasonal.attr.licence': 'Datos del ECMWF publicados bajo licencia',
-    'seasonal.attr.disclaimer': 'El ECMWF no acepta ninguna responsabilidad por errores u omisiones en los datos.',
-    'seasonal.attr.modified': 'Modificado: estaciones agregadas a partir de los valores mensuales de SEAS5.',
+    'seasonal.attr.disclaimer':
+      'El ECMWF no acepta ninguna responsabilidad por errores u omisiones en los datos.',
+    'seasonal.attr.modified':
+      'Modificado: estaciones agregadas a partir de los valores mensuales de SEAS5.',
     'seasonal.compact.title': 'Tendencia estacional',
-    'seasonal.compact.hint': 'Próxima estación frente a lo normal: temperatura y precipitación.',
+    'seasonal.compact.hint':
+      'Próxima estación frente a lo normal: temperatura y precipitación.',
     'seasonal.compact.load': 'Cargar tendencia estacional',
     'seasonal.compact.loading': 'Cargando tendencia...',
     'seasonal.compact.error': 'Tendencia no disponible',
@@ -240,18 +250,26 @@ const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.agree': 'Los modelos se ponen de acuerdo',
     'ensemble.spread.disagree': 'Los modelos discrepan',
     'ensemble.spread.bimodal': 'Dos escenarios posibles',
-    'ensemble.spread.agree.detail': 'Los modelos individuales (miembros del conjunto) convergen en un resultado similar. La previsión tiene buena coherencia.',
-    'ensemble.spread.disagree.detail': 'Los modelos individuales divergen ampliamente. Existe incertidumbre significativa en la previsión para esta semana.',
-    'ensemble.spread.bimodal.detail': 'Los modelos se dividen en dos grupos con resultados muy distintos. Puede producirse cualquiera de los dos escenarios.',
-    'ensemble.footnote': 'Cada línea fina representa un modelo individual del conjunto ECMWF IFS (hasta 50 modelos individuales). La banda sombreada muestra el rango central (p10–p90 y p25–p75); la línea gruesa, la media del conjunto.',
+    'ensemble.spread.agree.detail':
+      'Los modelos individuales (miembros del conjunto) convergen en un resultado similar. La previsión tiene buena coherencia.',
+    'ensemble.spread.disagree.detail':
+      'Los modelos individuales divergen ampliamente. Existe incertidumbre significativa en la previsión para esta semana.',
+    'ensemble.spread.bimodal.detail':
+      'Los modelos se dividen en dos grupos con resultados muy distintos. Puede producirse cualquiera de los dos escenarios.',
+    'ensemble.footnote':
+      'Cada línea fina representa un modelo individual del conjunto ECMWF IFS (hasta 50 modelos individuales). La banda sombreada muestra el rango central (p10–p90 y p25–p75); la línea gruesa, la media del conjunto.',
     'ensemble.disabled': 'Datos de conjunto solo disponibles para las 2 primeras semanas',
-    'ensemble.low_confidence': '⚠ Semana {week}: señal orientativa. La incertidumbre del ensemble es alta más allá de 14 días.',
+    'ensemble.low_confidence':
+      '⚠ Semana {week}: señal orientativa. La incertidumbre del ensemble es alta más allá de 14 días.',
     'climate.analogues.label': 'Se parece más a:',
-    'climate.analogues.note': 'Años con clima más parecido al previsto, según las 5 variables combinadas.',
+    'climate.analogues.note':
+      'Años con clima más parecido al previsto, según las 5 variables combinadas.',
     'climate.no_forecast': 'Sin previsión',
     'climate.error': 'No se pudieron cargar los datos históricos. Inténtalo de nuevo.',
-    'climate.footnote': 'Barras blancas: valores ERA5 reales {start}–{end}. Barra de color (S5): previsión SEAS5. Más brillante = por encima de la media ERA5.',
-    'climate.footnote.bias': 'Nota metodológica: la anomalía SEAS5 se calcula respecto a su climatología 1993–2016, aplicada aquí sobre la media ERA5 2016–2025 (periodo más cálido). Esto puede sobreestimar el valor ajustado en ~0,5–1,5 °C.',
+    'climate.footnote':
+      'Barras blancas: valores ERA5 reales {start}–{end}. Barra de color (S5): previsión SEAS5. Más brillante = por encima de la media ERA5.',
+    'climate.footnote.bias':
+      'Nota metodológica: la anomalía SEAS5 se calcula respecto a su climatología 1993–2016, aplicada aquí sobre la media ERA5 2016–2025 (periodo más cálido). Esto puede sobreestimar el valor ajustado en ~0,5–1,5 °C.',
   },
   en: {
     'title.pressure_humidity': 'Pressure & Humidity',
@@ -293,7 +311,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chart.hum_humid': 'Humid',
     'chart.hum_saturated': 'Saturated',
     'chart.hint': 'Tap or drag across the chart to see the details of each point.',
-    'chart.scale_note': 'Red scale (right): pressure in hPa. The other series use their own scale; exact values are shown in the panel above.',
+    'chart.scale_note':
+      'Red scale (right): pressure in hPa. The other series use their own scale; exact values are shown in the panel above.',
     'label.clinical_breakdown': 'Clinical & Mathematical Breakdowns',
     'label.fatigue_calc': 'Fatigue Calculation (Thom)',
     'label.migraine_doi': 'Migraine Risk (DOI: 10.1111/head.14482)',
@@ -307,7 +326,7 @@ const translations: Record<Language, Record<string, string>> = {
     'label.wind_chill_warning': 'Wind chill effect',
     'label.wind_calm': 'Calm',
     'label.night_tropical': 'Tropical Night',
-    'label.night_tropical_desc': 'Min temp won\'t drop below 20°C',
+    'label.night_tropical_desc': "Min temp won't drop below 20°C",
     'label.night_torrida': 'Torrid Night',
     'label.night_torrida_desc': 'Min temp up to 25°C',
     'label.night_ecuatorial': 'Equatorial Night',
@@ -349,9 +368,11 @@ const translations: Record<Language, Record<string, string>> = {
     'seasonal.rest.autumn': 'Rest of autumn',
     'seasonal.rest.tropical': 'Rest of quarter',
     'seasonal.next.tropical': 'Next quarter',
-    'seasonal.tropical_note': 'Tropical location: 3-month blocks (Dec–Feb, Mar–May, Jun–Aug, Sep–Nov) are shown instead of seasons.',
+    'seasonal.tropical_note':
+      'Tropical location: 3-month blocks (Dec–Feb, Mar–May, Jun–Aug, Sep–Nov) are shown instead of seasons.',
     'seasonal.coverage': '{n}/{m} months',
-    'seasonal.coverage_partial': 'Incomplete data: the model does not cover the whole season yet',
+    'seasonal.coverage_partial':
+      'Incomplete data: the model does not cover the whole season yet',
     'seasonal.season_ending': 'Ends in {n} days: see “Next weeks”',
     'seasonal.loading': 'Loading outlook...',
     'seasonal.error': 'The long-range outlook is unavailable right now.',
@@ -364,14 +385,20 @@ const translations: Record<Language, Record<string, string>> = {
     'seasonal.detail.forecast': 'Forecast',
     'seasonal.detail.normal': 'Model normal',
     'seasonal.detail.prob_above': '{n}% of members above normal',
-    'seasonal.legend': 'Colour and sign = difference from normal (model climatology, 20–30 years). Area forecast (~36 km), not bias-corrected.',
-    'seasonal.confidence_note.weeks': 'Weekly confidence: agreement of the 51 ensemble members on the sign of the anomaly (temperature, precipitation, pressure). From week 3 on, medium at most.',
-    'seasonal.confidence_note.months': 'Monthly and seasonal confidence: the model publishes no probabilities for these periods, so it is based on lead time only: current and next month, medium; later, low.',
+    'seasonal.legend':
+      'Colour and sign = difference from normal (model climatology, 20–30 years). Area forecast (~36 km), not bias-corrected.',
+    'seasonal.confidence_note.weeks':
+      'Weekly confidence: agreement of the 51 ensemble members on the sign of the anomaly (temperature, precipitation, pressure). From week 3 on, medium at most.',
+    'seasonal.confidence_note.months':
+      'Monthly and seasonal confidence: the model publishes no probabilities for these periods, so it is based on lead time only: current and next month, medium; later, low.',
     'seasonal.attr.data': 'Weather data by Open-Meteo.com',
-    'seasonal.attr.models': 'ECMWF EC46 (weeks, daily) and SEAS5 (months, {issue} issue) models',
-    'seasonal.attr.ecmwf': 'This service is based on data and products of the European Centre for Medium-Range Weather Forecasts (ECMWF).',
+    'seasonal.attr.models':
+      'ECMWF EC46 (weeks, daily) and SEAS5 (months, {issue} issue) models',
+    'seasonal.attr.ecmwf':
+      'This service is based on data and products of the European Centre for Medium-Range Weather Forecasts (ECMWF).',
     'seasonal.attr.licence': 'This ECMWF data is published under',
-    'seasonal.attr.disclaimer': 'ECMWF does not accept any liability whatsoever for any error or omission in the data.',
+    'seasonal.attr.disclaimer':
+      'ECMWF does not accept any liability whatsoever for any error or omission in the data.',
     'seasonal.attr.modified': 'Modified: seasons aggregated from SEAS5 monthly values.',
     'seasonal.compact.title': 'Seasonal trend',
     'seasonal.compact.hint': 'Next season vs. normal: temperature and precipitation.',
@@ -480,7 +507,8 @@ const translations: Record<Language, Record<string, string>> = {
     'summary.window.title': 'My waking hours',
     'summary.window.from': 'From',
     'summary.window.to': 'To',
-    'summary.window.hint': 'Only these hours count for the verdicts; night is shown separately.',
+    'summary.window.hint':
+      'Only these hours count for the verdicts; night is shown separately.',
     'summary.window.reset': 'Reset to 07–23h',
     'ensemble.week': 'Week',
     'ensemble.loading': 'Loading ensemble models...',
@@ -491,19 +519,27 @@ const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.agree': 'Models agree',
     'ensemble.spread.disagree': 'Models disagree',
     'ensemble.spread.bimodal': 'Two possible scenarios',
-    'ensemble.spread.agree.detail': 'The individual ensemble members converge on a similar outcome. The forecast has good coherence.',
-    'ensemble.spread.disagree.detail': 'The individual members diverge widely. There is significant uncertainty in the forecast for this week.',
-    'ensemble.spread.bimodal.detail': 'The models split into two distinct clusters. Either outcome is plausible.',
-    'ensemble.footnote': 'Each thin line is one individual model run from the ECMWF IFS ensemble (up to 50 members). The shaded bands show the central range (p10–p90 and p25–p75); the thick line is the ensemble mean.',
+    'ensemble.spread.agree.detail':
+      'The individual ensemble members converge on a similar outcome. The forecast has good coherence.',
+    'ensemble.spread.disagree.detail':
+      'The individual members diverge widely. There is significant uncertainty in the forecast for this week.',
+    'ensemble.spread.bimodal.detail':
+      'The models split into two distinct clusters. Either outcome is plausible.',
+    'ensemble.footnote':
+      'Each thin line is one individual model run from the ECMWF IFS ensemble (up to 50 members). The shaded bands show the central range (p10–p90 and p25–p75); the thick line is the ensemble mean.',
     'ensemble.disabled': 'Ensemble data only available for the first 2 weeks',
-    'ensemble.low_confidence': '⚠ Week {week}: indicative only. Ensemble uncertainty is high beyond 14 days.',
+    'ensemble.low_confidence':
+      '⚠ Week {week}: indicative only. Ensemble uncertainty is high beyond 14 days.',
     'climate.analogues.label': 'Most similar to:',
-    'climate.analogues.note': 'Years with climate most similar to the forecast, across all 5 combined variables.',
+    'climate.analogues.note':
+      'Years with climate most similar to the forecast, across all 5 combined variables.',
     'climate.no_forecast': 'No forecast',
     'climate.error': 'Could not load historical data. Please try again.',
-    'climate.footnote': 'White bars: actual ERA5 values {start}–{end}. Coloured bar (S5): SEAS5 forecast. Brighter = above the ERA5 mean.',
-    'climate.footnote.bias': 'Methodological note: SEAS5 anomaly is computed against its 1993–2016 hindcast climatology, applied here over the 2016–2025 ERA5 mean (a warmer period). This may overestimate the adjusted value by ~0.5–1.5 °C.',
-  }
+    'climate.footnote':
+      'White bars: actual ERA5 values {start}–{end}. Coloured bar (S5): SEAS5 forecast. Brighter = above the ERA5 mean.',
+    'climate.footnote.bias':
+      'Methodological note: SEAS5 anomaly is computed against its 1993–2016 hindcast climatology, applied here over the 2016–2025 ERA5 mean (a warmer period). This may overestimate the adjusted value by ~0.5–1.5 °C.',
+  },
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

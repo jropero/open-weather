@@ -1,12 +1,26 @@
 import type {
-  ClimateZone, ConfidenceLevel, SeasonalForecastData, SeasonalOutlook, SeasonalPeriod,
-  SeasonalRawPeriod, SeasonalValue, SeasonalVariable, SeasonKey, SeasonName,
+  ClimateZone,
+  ConfidenceLevel,
+  SeasonalForecastData,
+  SeasonalOutlook,
+  SeasonalPeriod,
+  SeasonalRawPeriod,
+  SeasonalValue,
+  SeasonalVariable,
+  SeasonKey,
+  SeasonName,
 } from '../types/weather';
 
 const SEASONAL_URL = 'https://seasonal-api.open-meteo.com/v1/seasonal';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const SEASONAL_VARIABLES: SeasonalVariable[] = ['temperature', 'precipitation', 'pressure', 'sunshine', 'snowfall'];
+export const SEASONAL_VARIABLES: SeasonalVariable[] = [
+  'temperature',
+  'precipitation',
+  'pressure',
+  'sunshine',
+  'snowfall',
+];
 
 const API_PREFIX: Record<SeasonalVariable, string> = {
   temperature: 'temperature_2m',
@@ -21,7 +35,11 @@ const PROB_VARIABLES: SeasonalVariable[] = ['temperature', 'precipitation', 'pre
 
 // Weekly/monthly precip, sunshine and snow are period totals; temp and pressure are period means
 const IS_TOTAL: Record<SeasonalVariable, boolean> = {
-  temperature: false, precipitation: true, pressure: false, sunshine: true, snowfall: true,
+  temperature: false,
+  precipitation: true,
+  pressure: false,
+  sunshine: true,
+  snowfall: true,
 };
 
 // --- Date helpers (plain YYYY-MM-DD strings, UTC arithmetic) ---
@@ -31,12 +49,18 @@ const toDateStr = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const addDays = (d: string, n: number) => toDateStr(toMs(d) + n * DAY_MS);
 const daysBetween = (a: string, b: string) => Math.round((toMs(b) - toMs(a)) / DAY_MS);
 const monthIndex = (d: string) => Number(d.slice(0, 4)) * 12 + Number(d.slice(5, 7)) - 1;
-const monthStart = (idx: number) => `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, '0')}-01`;
-const monthEnd = (d: string) => toDateStr(Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)), 0));
+const monthStart = (idx: number) =>
+  `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, '0')}-01`;
+const monthEnd = (d: string) =>
+  toDateStr(Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)), 0));
 
 // Calendar date at the location (falls back to the device timezone)
 export function getLocalToday(timezone?: string, now = Date.now()): string {
-  const opts: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+  const opts: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  };
   try {
     return new Intl.DateTimeFormat('en-CA', { ...opts, timeZone: timezone }).format(now);
   } catch {
@@ -53,19 +77,27 @@ export function getExpectedRun(now = Date.now()): string {
 // --- Fetch & parse ---
 
 function variableList(vars: SeasonalVariable[], withProb: boolean): string {
-  return vars.flatMap(v => {
-    const p = API_PREFIX[v];
-    const fields = [`${p}_mean`, `${p}_anomaly`];
-    if (withProb && PROB_VARIABLES.includes(v)) fields.push(`${p}_anomaly_gt0`);
-    return fields;
-  }).join(',');
+  return vars
+    .flatMap((v) => {
+      const p = API_PREFIX[v];
+      const fields = [`${p}_mean`, `${p}_anomaly`];
+      if (withProb && PROB_VARIABLES.includes(v)) fields.push(`${p}_anomaly_gt0`);
+      return fields;
+    })
+    .join(',');
 }
 
-const num = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+const num = (x: unknown): number | null =>
+  typeof x === 'number' && Number.isFinite(x) ? x : null;
 
-function parseBlock(block: Record<string, unknown[]> | undefined, withProb: boolean): SeasonalRawPeriod[] {
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function parseBlock(
+  block: Record<string, unknown[]> | undefined,
+  withProb: boolean,
+): SeasonalRawPeriod[] {
   if (!block || !Array.isArray(block.time)) return [];
   const periods: SeasonalRawPeriod[] = [];
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   block.time.forEach((start, i) => {
     if (typeof start !== 'string') return;
     let hasData = false;
@@ -94,7 +126,10 @@ function parseBlock(block: Record<string, unknown[]> | undefined, withProb: bool
 export async function fetchSeasonal(
   latitude: number,
   longitude: number,
-  { vars = SEASONAL_VARIABLES, weekly = true }: { vars?: SeasonalVariable[]; weekly?: boolean } = {}
+  {
+    vars = SEASONAL_VARIABLES,
+    weekly = true,
+  }: { vars?: SeasonalVariable[]; weekly?: boolean } = {},
 ): Promise<SeasonalForecastData> {
   const weeklyParam = weekly ? `&weekly=${variableList(vars, true)}` : '';
   const url = `${SEASONAL_URL}?latitude=${latitude}&longitude=${longitude}${weeklyParam}&monthly=${variableList(vars, false)}&forecast_days=215`;
@@ -114,9 +149,32 @@ export function getClimateZone(latitude: number): ClimateZone {
   return latitude < 0 ? 'south' : 'north';
 }
 
-const SEASON_BY_MONTH: SeasonKey[] = ['DJF', 'DJF', 'MAM', 'MAM', 'MAM', 'JJA', 'JJA', 'JJA', 'SON', 'SON', 'SON', 'DJF'];
-const NORTH_NAMES: Record<SeasonKey, SeasonName> = { DJF: 'winter', MAM: 'spring', JJA: 'summer', SON: 'autumn' };
-const SOUTH_NAMES: Record<SeasonKey, SeasonName> = { DJF: 'summer', MAM: 'autumn', JJA: 'winter', SON: 'spring' };
+const SEASON_BY_MONTH: SeasonKey[] = [
+  'DJF',
+  'DJF',
+  'MAM',
+  'MAM',
+  'MAM',
+  'JJA',
+  'JJA',
+  'JJA',
+  'SON',
+  'SON',
+  'SON',
+  'DJF',
+];
+const NORTH_NAMES: Record<SeasonKey, SeasonName> = {
+  DJF: 'winter',
+  MAM: 'spring',
+  JJA: 'summer',
+  SON: 'autumn',
+};
+const SOUTH_NAMES: Record<SeasonKey, SeasonName> = {
+  DJF: 'summer',
+  MAM: 'autumn',
+  JJA: 'winter',
+  SON: 'spring',
+};
 
 // null for tropical locations: the widget shows the 3-month block (e.g. "dic–feb") instead
 export function getSeasonName(key: SeasonKey, zone: ClimateZone): SeasonName | null {
@@ -130,17 +188,24 @@ const LEVEL_RANK: Record<ConfidenceLevel, number> = { low: 0, medium: 1, high: 2
 
 // Weekly: share of the 51 EC46 members agreeing on the anomaly sign (avg of temp/precip/pressure).
 // Week 3+ is capped at medium — sub-seasonal skill drops sharply even when members agree.
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function weeklyConfidence(values: Record<SeasonalVariable, SeasonalValue>, lead: number) {
-  const agreements = PROB_VARIABLES
-    .map(v => values[v].probAbove)
+  const agreements = PROB_VARIABLES.map((v) => values[v].probAbove)
     .filter((p): p is number => p !== null)
-    .map(p => Math.max(p, 100 - p));
+    .map((p) => Math.max(p, 100 - p));
   const agreement = agreements.length
     ? Math.round(agreements.reduce((a, b) => a + b, 0) / agreements.length)
     : null;
-  let confidence: ConfidenceLevel = agreement === null
-    ? (lead < 2 ? 'medium' : 'low')
-    : agreement >= 80 ? 'high' : agreement >= 65 ? 'medium' : 'low';
+  let confidence: ConfidenceLevel =
+    agreement === null
+      ? lead < 2
+        ? 'medium'
+        : 'low'
+      : agreement >= 80
+        ? 'high'
+        : agreement >= 65
+          ? 'medium'
+          : 'low';
   if (lead >= 2 && confidence === 'high') confidence = 'medium';
   return { agreement, confidence };
 }
@@ -160,31 +225,41 @@ function aggregate(months: SeasonalPeriod[]): Record<SeasonalVariable, SeasonalV
   for (const v of SEASONAL_VARIABLES) {
     const combine = (pick: (s: SeasonalValue) => number | null): number | null => {
       if (!months.length) return null;
-      const xs = months.map(m => pick(m.values[v]));
-      if (xs.some(x => x === null)) return null;
+      const xs = months.map((m) => pick(m.values[v]));
+      if (xs.some((x) => x === null)) return null;
       return IS_TOTAL[v]
         ? (xs as number[]).reduce((a, b) => a + b, 0)
         : (xs as number[]).reduce((a, x, i) => a + x * months[i].days, 0) / totalDays;
     };
-    values[v] = { mean: combine(s => s.mean), anomaly: combine(s => s.anomaly), probAbove: null };
+    values[v] = {
+      mean: combine((s) => s.mean),
+      anomaly: combine((s) => s.anomaly),
+      probAbove: null,
+    };
   }
   return values;
 }
 
 function emptyValues(): Record<SeasonalVariable, SeasonalValue> {
   const values = {} as Record<SeasonalVariable, SeasonalValue>;
-  for (const v of SEASONAL_VARIABLES) values[v] = { mean: null, anomaly: null, probAbove: null };
+  for (const v of SEASONAL_VARIABLES)
+    values[v] = { mean: null, anomaly: null, probAbove: null };
   return values;
 }
 
 function seasonColumn(
-  kind: 'rest' | 'next', startIdx: number, expectedIdx: number[], months: SeasonalPeriod[], today: string
+  kind: 'rest' | 'next',
+  startIdx: number,
+  expectedIdx: number[],
+  months: SeasonalPeriod[],
+  today: string,
 ): SeasonalPeriod {
-  const covered = months.filter(m => expectedIdx.includes(monthIndex(m.start)));
+  const covered = months.filter((m) => expectedIdx.includes(monthIndex(m.start)));
   const end = monthEnd(monthStart(startIdx + 2));
   const start = kind === 'rest' ? today : monthStart(startIdx);
   const confidence = covered.reduce<ConfidenceLevel>(
-    (min, m) => (LEVEL_RANK[m.confidence] < LEVEL_RANK[min] ? m.confidence : min), 'medium'
+    (min, m) => (LEVEL_RANK[m.confidence] < LEVEL_RANK[min] ? m.confidence : min),
+    'medium',
   );
   return {
     start,
@@ -197,13 +272,17 @@ function seasonColumn(
     season: {
       key: SEASON_BY_MONTH[startIdx % 12],
       kind,
-      months: covered.map(m => m.start),
+      months: covered.map((m) => m.start),
       monthsExpected: expectedIdx.length,
     },
   };
 }
 
-export function buildOutlook(data: SeasonalForecastData, today: string, latitude: number): SeasonalOutlook {
+export function buildOutlook(
+  data: SeasonalForecastData,
+  today: string,
+  latitude: number,
+): SeasonalOutlook {
   // Weeks: EC46 week 1 starts last Monday — kept and flagged as in progress (it is the most skilful week)
   const weeks: SeasonalPeriod[] = data.weekly
     .map((p, lead) => ({
@@ -214,12 +293,12 @@ export function buildOutlook(data: SeasonalForecastData, today: string, latitude
       values: p.values,
       ...weeklyConfidence(p.values, lead),
     }))
-    .filter(p => p.end >= today);
+    .filter((p) => p.end >= today);
 
   // Months: SEAS5 starts at its issue month, which can be entirely in the past (1st–5th of a month)
   const todayIdx = monthIndex(today);
   const months: SeasonalPeriod[] = data.monthly
-    .map(p => {
+    .map((p) => {
       const end = monthEnd(p.start);
       return {
         start: p.start,
@@ -231,12 +310,13 @@ export function buildOutlook(data: SeasonalForecastData, today: string, latitude
         agreement: null,
       };
     })
-    .filter(p => daysBetween(today, p.end) + 1 > (p.inProgress ? MIN_REMAINING_DAYS : 0));
+    .filter((p) => daysBetween(today, p.end) + 1 > (p.inProgress ? MIN_REMAINING_DAYS : 0));
 
   // Seasons: meteorological 3-month blocks; Dec belongs to the following DJF
   const month = Number(today.slice(5, 7));
   const seasonStartIdx = todayIdx - ((month % 12) % 3);
-  const firstShownIdx = months.length && monthIndex(months[0].start) === todayIdx ? todayIdx : todayIdx + 1;
+  const firstShownIdx =
+    months.length && monthIndex(months[0].start) === todayIdx ? todayIdx : todayIdx + 1;
   const restIdx: number[] = [];
   for (let i = firstShownIdx; i <= seasonStartIdx + 2; i++) restIdx.push(i);
   const nextStartIdx = seasonStartIdx + 3;
@@ -246,7 +326,13 @@ export function buildOutlook(data: SeasonalForecastData, today: string, latitude
     months,
     seasons: [
       seasonColumn('rest', seasonStartIdx, restIdx, months, today),
-      seasonColumn('next', nextStartIdx, [nextStartIdx, nextStartIdx + 1, nextStartIdx + 2], months, today),
+      seasonColumn(
+        'next',
+        nextStartIdx,
+        [nextStartIdx, nextStartIdx + 1, nextStartIdx + 2],
+        months,
+        today,
+      ),
     ],
     zone: getClimateZone(latitude),
     today,
@@ -261,14 +347,14 @@ export type AnomalyLevel = -2 | -1 | 0 | 1 | 2;
 export interface AnomalyDisplay {
   level: AnomalyLevel;
   value: string; // signed number, e.g. "+1.5"
-  unit: string;  // "°", "%", "mm", "hPa", "h", "cm"
+  unit: string; // "°", "%", "mm", "hPa", "h", "cm"
 }
 
 // Floors (per day) for the relative scale, so near-zero climatologies don't explode into ±500 %
 const REL_FLOOR_PER_DAY: Partial<Record<SeasonalVariable, number>> = {
   precipitation: 0.5, // mm
-  sunshine: 1800,     // s (0.5 h)
-  snowfall: 0.3,      // cm
+  sunshine: 1800, // s (0.5 h)
+  snowfall: 0.3, // cm
 };
 
 // [near-normal limit, strong limit] — absolute for temp (K) & pressure (hPa), relative (%) otherwise
@@ -286,7 +372,12 @@ const signed = (x: number, digits: number) => {
   return `${x > 0 ? '+' : '−'}${r.toFixed(digits)}`;
 };
 
-export function classifyAnomaly(variable: SeasonalVariable, v: SeasonalValue, days: number): AnomalyDisplay | null {
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export function classifyAnomaly(
+  variable: SeasonalVariable,
+  v: SeasonalValue,
+  days: number,
+): AnomalyDisplay | null {
   if (v.anomaly === null) return null;
   const a = v.anomaly;
   let score: number;
@@ -327,11 +418,16 @@ export function classifyAnomaly(variable: SeasonalVariable, v: SeasonalValue, da
 export function formatAbsolute(variable: SeasonalVariable, x: number | null): string {
   if (x === null) return '—';
   switch (variable) {
-    case 'temperature': return `${x.toFixed(1)} °C`;
-    case 'precipitation': return `${Math.round(x)} mm`;
-    case 'pressure': return `${x.toFixed(1)} hPa`;
-    case 'sunshine': return `${Math.round(x / 3600)} h`;
-    case 'snowfall': return `${x.toFixed(1)} cm`;
+    case 'temperature':
+      return `${x.toFixed(1)} °C`;
+    case 'precipitation':
+      return `${Math.round(x)} mm`;
+    case 'pressure':
+      return `${x.toFixed(1)} hPa`;
+    case 'sunshine':
+      return `${Math.round(x / 3600)} h`;
+    case 'snowfall':
+      return `${x.toFixed(1)} cm`;
   }
 }
 
@@ -340,11 +436,14 @@ export function formatAbsolute(variable: SeasonalVariable, x: number | null): st
  * snow signal (forecast or normal ≥ 0.05 cm/day ≈ 1.5 cm/month), which hides it in
  * Santo Domingo or Auckland.
  */
-export function hasMeaningfulRow(variable: SeasonalVariable, periods: SeasonalPeriod[]): boolean {
-  const withData = periods.filter(p => p.values[variable].anomaly !== null);
+export function hasMeaningfulRow(
+  variable: SeasonalVariable,
+  periods: SeasonalPeriod[],
+): boolean {
+  const withData = periods.filter((p) => p.values[variable].anomaly !== null);
   if (!withData.length) return false;
   if (variable !== 'snowfall') return true;
-  return withData.some(p => {
+  return withData.some((p) => {
     const { mean, anomaly } = p.values.snowfall;
     if (mean === null || anomaly === null) return false;
     return Math.max(mean, mean - anomaly) / p.days >= 0.05;
@@ -354,15 +453,48 @@ export function hasMeaningfulRow(variable: SeasonalVariable, periods: SeasonalPe
 // Diverging palette per variable: [strong below, mild below, near, mild above, strong above].
 // Text colour per step keeps WCAG AA contrast on the cell background.
 const PALETTE: Record<SeasonalVariable, [string, string, string, string]> = {
-  temperature: ['bg-blue-600 text-white', 'bg-sky-300 text-slate-900', 'bg-orange-300 text-slate-900', 'bg-red-600 text-white'],
-  precipitation: ['bg-amber-700 text-white', 'bg-amber-200 text-slate-900', 'bg-emerald-300 text-slate-900', 'bg-emerald-700 text-white'],
-  pressure: ['bg-pink-700 text-white', 'bg-pink-300 text-slate-900', 'bg-indigo-300 text-slate-900', 'bg-indigo-600 text-white'],
-  sunshine: ['bg-slate-500 text-white', 'bg-slate-300 text-slate-900', 'bg-yellow-200 text-slate-900', 'bg-yellow-400 text-slate-900'],
-  snowfall: ['bg-stone-600 text-white', 'bg-stone-300 text-slate-900', 'bg-cyan-200 text-slate-900', 'bg-cyan-400 text-slate-900'],
+  temperature: [
+    'bg-blue-600 text-white',
+    'bg-sky-300 text-slate-900',
+    'bg-orange-300 text-slate-900',
+    'bg-red-600 text-white',
+  ],
+  precipitation: [
+    'bg-amber-700 text-white',
+    'bg-amber-200 text-slate-900',
+    'bg-emerald-300 text-slate-900',
+    'bg-emerald-700 text-white',
+  ],
+  pressure: [
+    'bg-pink-700 text-white',
+    'bg-pink-300 text-slate-900',
+    'bg-indigo-300 text-slate-900',
+    'bg-indigo-600 text-white',
+  ],
+  sunshine: [
+    'bg-slate-500 text-white',
+    'bg-slate-300 text-slate-900',
+    'bg-yellow-200 text-slate-900',
+    'bg-yellow-400 text-slate-900',
+  ],
+  snowfall: [
+    'bg-stone-600 text-white',
+    'bg-stone-300 text-slate-900',
+    'bg-cyan-200 text-slate-900',
+    'bg-cyan-400 text-slate-900',
+  ],
 };
 
-export function getAnomalyClass(variable: SeasonalVariable, level: AnomalyLevel, surface: 'dark' | 'light' = 'dark'): string {
-  if (level === 0) return surface === 'dark' ? 'bg-white/10 text-white ring-1 ring-inset ring-white/20' : 'bg-slate-100 text-slate-700';
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export function getAnomalyClass(
+  variable: SeasonalVariable,
+  level: AnomalyLevel,
+  surface: 'dark' | 'light' = 'dark',
+): string {
+  if (level === 0)
+    return surface === 'dark'
+      ? 'bg-white/10 text-white ring-1 ring-inset ring-white/20'
+      : 'bg-slate-100 text-slate-700';
   const p = PALETTE[variable];
   return level === -2 ? p[0] : level === -1 ? p[1] : level === 1 ? p[2] : p[3];
 }

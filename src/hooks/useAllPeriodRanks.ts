@@ -16,6 +16,7 @@ function cacheKey(lat: number, lon: number): string {
   return `climate_hist_v2_${lat}_${lon}`;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5DailyData> {
   try {
     const raw = localStorage.getItem(key);
@@ -25,7 +26,9 @@ async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5D
         return cached.daily;
       }
     }
-  } catch { /* corrupt — fall through */ }
+  } catch {
+    /* corrupt — fall through */
+  }
 
   const startDate = getERA5StartDate();
   const endDate = getERA5EndDate();
@@ -45,15 +48,17 @@ async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5D
   const time: string[] = d.time ?? [];
   const daily: ERA5DailyData = {
     time,
-    temp:     (d.temperature_2m_mean   ?? []).map(nullify),
-    precip:   (d.precipitation_sum     ?? []).map(nullify),
+    temp: (d.temperature_2m_mean ?? []).map(nullify),
+    precip: (d.precipitation_sum ?? []).map(nullify),
     pressure: (d.surface_pressure_mean ?? []).map(nullify),
-    sunshine: (d.sunshine_duration     ?? []).map(nullify),
-    snowfall: (d.snowfall_sum          ?? []).map(nullify),
+    sunshine: (d.sunshine_duration ?? []).map(nullify),
+    snowfall: (d.snowfall_sum ?? []).map(nullify),
   };
   try {
     localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), daily }));
-  } catch { /* storage full */ }
+  } catch {
+    /* storage full */
+  }
   return daily;
 }
 
@@ -67,14 +72,17 @@ export function useAllPeriodRanks(
   periods: SeasonalPeriod[],
   isSeasonal: boolean,
 ): Map<string, { above: number; total: number }> | null {
-  const [ranks, setRanks] = useState<Map<string, { above: number; total: number }> | null>(null);
+  const [ranks, setRanks] = useState<Map<string, { above: number; total: number }> | null>(
+    null,
+  );
 
-  const periodsKey = periods.map(p => p.start).join(',');
+  const periodsKey = periods.map((p) => p.start).join(',');
 
   useEffect(() => {
     if (!periods.length) return;
     let cancelled = false;
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
       try {
         const key = cacheKey(lat, lon);
@@ -91,10 +99,10 @@ export function useAllPeriodRanks(
             if (!seasonKey) continue;
             const periodKey = `${period.start}_seas`;
 
-            const sameSeason = allSeasonal.filter(s => s.seasonKey === seasonKey);
+            const sameSeason = allSeasonal.filter((s) => s.seasonKey === seasonKey);
             if (!sameSeason.length) continue;
 
-            const histTemps = sameSeason.map(s => s.temperature);
+            const histTemps = sameSeason.map((s) => s.temperature);
             const climMean = histTemps.reduce((a, b) => a + b, 0) / histTemps.length;
             const forecastAdj = climMean + anomaly;
             const above = getAboveCount(forecastAdj, histTemps);
@@ -107,10 +115,10 @@ export function useAllPeriodRanks(
             const targetMonth = Number(period.start.slice(5, 7));
             const periodKey = `${period.start}_month`;
 
-            const sameMonth = allMonthly.filter(m => m.month === targetMonth);
+            const sameMonth = allMonthly.filter((m) => m.month === targetMonth);
             if (!sameMonth.length) continue;
 
-            const histTemps = sameMonth.map(m => m.temperature);
+            const histTemps = sameMonth.map((m) => m.temperature);
             const climMean = histTemps.reduce((a, b) => a + b, 0) / histTemps.length;
             const forecastAdj = climMean + anomaly;
             const above = getAboveCount(forecastAdj, histTemps);
@@ -125,8 +133,10 @@ export function useAllPeriodRanks(
     }
 
     load();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, periodsKey, isSeasonal]);
 
   return ranks;

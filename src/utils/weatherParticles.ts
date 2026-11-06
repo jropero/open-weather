@@ -1,9 +1,22 @@
 // WMO rain/storm codes → 0–1 intensity (0 = light drizzle, 1 = violent storm)
 export const RAIN_INTENSITY: Record<number, number> = {
-  51: 0.10, 56: 0.15, 53: 0.20, 61: 0.25, 55: 0.30,
-  57: 0.35, 80: 0.30, 66: 0.35, 62: 0.40, 63: 0.50,
-  81: 0.55, 67: 0.60, 65: 0.70, 82: 0.85, 95: 0.90,
-  96: 0.95, 99: 1.00,
+  51: 0.1,
+  56: 0.15,
+  53: 0.2,
+  61: 0.25,
+  55: 0.3,
+  57: 0.35,
+  80: 0.3,
+  66: 0.35,
+  62: 0.4,
+  63: 0.5,
+  81: 0.55,
+  67: 0.6,
+  65: 0.7,
+  82: 0.85,
+  95: 0.9,
+  96: 0.95,
+  99: 1.0,
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -46,7 +59,7 @@ export function generateWeatherParticles(rainIntensity: number): WeatherParticle
       y: -30 - Math.random() * 50,
       length: lerp(6, 30, rainIntensity) + Math.random() * 5,
       width: lerp(0.4, 1.6, rainIntensity) + Math.random() * 0.3,
-      opacity: 0.30 + Math.random() * 0.13,
+      opacity: 0.3 + Math.random() * 0.13,
       dur,
       drift,
       driftPx: drift * 20,

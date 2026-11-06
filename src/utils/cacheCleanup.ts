@@ -1,6 +1,7 @@
 const PURGE_KEY = 'cache_last_purged';
 const PURGE_INTERVAL = 24 * 60 * 60 * 1000;
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function purgeStaleCache() {
   try {
     const last = Number(localStorage.getItem(PURGE_KEY) ?? 0);
@@ -17,7 +18,7 @@ export function purgeStaleCache() {
         // One entry per visited location (incl. custom ones) — drop those older than a day
         try {
           const { timestamp } = JSON.parse(localStorage.getItem(key) ?? '{}');
-          if (!(Date.now() - timestamp < PURGE_INTERVAL)) localStorage.removeItem(key);
+          if (Date.now() - timestamp >= PURGE_INTERVAL) localStorage.removeItem(key);
         } catch {
           localStorage.removeItem(key);
         }
@@ -25,5 +26,7 @@ export function purgeStaleCache() {
     }
 
     localStorage.setItem(PURGE_KEY, String(Date.now()));
-  } catch { /* localStorage unavailable */ }
+  } catch {
+    /* localStorage unavailable */
+  }
 }

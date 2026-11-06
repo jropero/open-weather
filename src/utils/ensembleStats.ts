@@ -1,4 +1,5 @@
-export type EnsembleVar = 'temperature_2m' | 'precipitation' | 'pressure_msl' | 'wind_speed_10m';
+export type EnsembleVar =
+  'temperature_2m' | 'precipitation' | 'pressure_msl' | 'wind_speed_10m';
 
 export interface EnsemblePoint {
   time: number; // ms UTC
@@ -47,30 +48,37 @@ function isBimodal(members: number[]): boolean {
   if (n < 4) return false;
   const totalRange = sorted[n - 1] - sorted[0];
   if (totalRange < 0.01) return false;
-  const lo = Math.floor(n * 0.30);
-  const hi = Math.ceil(n * 0.70);
+  const lo = Math.floor(n * 0.3);
+  const hi = Math.ceil(n * 0.7);
   let maxGap = 0;
   for (let i = lo; i < hi - 1; i++) {
     maxGap = Math.max(maxGap, sorted[i + 1] - sorted[i]);
   }
-  return maxGap > totalRange * 0.30;
+  return maxGap > totalRange * 0.3;
 }
 
 // p90-p10 spread threshold to classify as "wide"
 const WIDE_THRESHOLD: Record<EnsembleVar, number> = {
-  temperature_2m: 4,   // °C
-  precipitation: 3,    // mm
-  pressure_msl: 5,     // hPa
-  wind_speed_10m: 20,  // km/h
+  temperature_2m: 4, // °C
+  precipitation: 3, // mm
+  pressure_msl: 5, // hPa
+  wind_speed_10m: 20, // km/h
 };
 
-export function classifySpread(points: EnsemblePoint[], variable: EnsembleVar): SpreadClassification {
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export function classifySpread(
+  points: EnsemblePoint[],
+  variable: EnsembleVar,
+): SpreadClassification {
   if (!points.length) return { label: 'agree' };
   let peakIdx = 0;
   let maxSpread = -Infinity;
   for (let i = 0; i < points.length; i++) {
     const spread = points[i].p90 - points[i].p10;
-    if (spread > maxSpread) { maxSpread = spread; peakIdx = i; }
+    if (spread > maxSpread) {
+      maxSpread = spread;
+      peakIdx = i;
+    }
   }
   if (isBimodal(points[peakIdx].members)) return { label: 'bimodal' };
   if (maxSpread > WIDE_THRESHOLD[variable]) return { label: 'disagree' };

@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { ClimateZone, Location, SeasonalForecastData, SeasonalPeriod } from '../types/weather';
+import type {
+  ClimateZone,
+  Location,
+  SeasonalForecastData,
+  SeasonalPeriod,
+} from '../types/weather';
 import { buildOutlook, fetchSeasonal, getLocalToday } from '../utils/seasonal';
 
 const CACHE_KEY = 'seasonal_trend_cache';
@@ -18,7 +23,9 @@ function readCache(now: number): TrendCache {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return {};
     const cache = JSON.parse(raw) as TrendCache;
-    return Object.fromEntries(Object.entries(cache).filter(([, e]) => now - e.timestamp < CACHE_TTL));
+    return Object.fromEntries(
+      Object.entries(cache).filter(([, e]) => now - e.timestamp < CACHE_TTL),
+    );
   } catch {
     return {};
   }
@@ -46,28 +53,36 @@ export function useSeasonalTrends(locations: Location[]) {
   });
 
   const load = () => {
-    const pending = locations.filter(l => {
+    const pending = locations.filter((l) => {
       const status = trends[l.id]?.status;
       return status !== 'ready' && status !== 'loading';
     });
     if (!pending.length) return;
 
-    setTrends(prev => ({ ...prev, ...Object.fromEntries(pending.map(l => [l.id, { status: 'loading' } as SeasonalTrend])) }));
+    setTrends((prev) => ({
+      ...prev,
+      ...Object.fromEntries(pending.map((l) => [l.id, { status: 'loading' } as SeasonalTrend])),
+    }));
 
     pending.forEach(async (loc) => {
       try {
         // Monthly temp + precip only: the compact trend needs nothing else, which keeps 12 calls cheap
-        const data = await fetchSeasonal(loc.latitude, loc.longitude, { vars: ['temperature', 'precipitation'], weekly: false });
+        const data = await fetchSeasonal(loc.latitude, loc.longitude, {
+          vars: ['temperature', 'precipitation'],
+          weekly: false,
+        });
         const now = Date.now();
         try {
           const cache = readCache(now);
           cache[loc.id] = { timestamp: now, data };
           localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-        } catch { /* storage full */ }
-        setTrends(prev => ({ ...prev, [loc.id]: toTrend(loc, data, now) }));
+        } catch {
+          /* storage full */
+        }
+        setTrends((prev) => ({ ...prev, [loc.id]: toTrend(loc, data, now) }));
       } catch (err) {
         console.error(`Failed to fetch seasonal trend for ${loc.id}:`, err);
-        setTrends(prev => ({ ...prev, [loc.id]: { status: 'error' } }));
+        setTrends((prev) => ({ ...prev, [loc.id]: { status: 'error' } }));
       }
     });
   };

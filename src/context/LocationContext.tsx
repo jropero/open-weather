@@ -44,8 +44,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   };
 
   const addCustomLocation = (location: Location) => {
-    setCustomLocations(prev => {
-      if (prev.some(l => l.id === location.id)) return prev;
+    setCustomLocations((prev) => {
+      if (prev.some((l) => l.id === location.id)) return prev;
       const next = [...prev, location];
       saveCustomLocations(next);
       return next;
@@ -53,8 +53,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCustomLocation = (id: string) => {
-    setCustomLocations(prev => {
-      const next = prev.filter(l => l.id !== id);
+    setCustomLocations((prev) => {
+      const next = prev.filter((l) => l.id !== id);
       saveCustomLocations(next);
       return next;
     });
@@ -65,7 +65,15 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LocationContext.Provider value={{ currentLocation, setCurrentLocation, customLocations, addCustomLocation, deleteCustomLocation }}>
+    <LocationContext.Provider
+      value={{
+        currentLocation,
+        setCurrentLocation,
+        customLocations,
+        addCustomLocation,
+        deleteCustomLocation,
+      }}
+    >
       {children}
     </LocationContext.Provider>
   );
