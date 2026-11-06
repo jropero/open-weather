@@ -395,6 +395,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
           else if (windChill.value > -25) activePenguins = 3;
           else activePenguins = 4;
 
+          const activeGambas = Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3));
           let thermalWidget: React.ReactNode;
           if (isCold) {
             thermalWidget = (
@@ -447,7 +448,6 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
               </div>
             );
           }
-          const activeGambas = Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3));
 
           return (
             <button
