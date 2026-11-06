@@ -245,9 +245,7 @@ export function useHistoricalClimate(
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResult(null);
 
     const key = cacheKey(lat, lon);

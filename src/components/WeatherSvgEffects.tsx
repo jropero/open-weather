@@ -48,7 +48,6 @@ interface Props {
   isNight?: boolean;
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 const WeatherSvgEffects: React.FC<Props> = ({
   condition,
   weatherParticles,
@@ -134,6 +133,15 @@ const WeatherSvgEffects: React.FC<Props> = ({
       : Math.max(0, (rainIntensity - 0.25) / 0.75) * stormOpacity;
 
   const mistGradientId = `${fogGradientId}-mist`;
+  let bgCloudOpacity: number;
+  if (condition === 'partly-cloudy') bgCloudOpacity = 0.1;
+  else if (condition === 'cloudy') bgCloudOpacity = 0.22;
+  else bgCloudOpacity = 0.15;
+
+  let midCloudOpacity: number;
+  if (condition === 'partly-cloudy') midCloudOpacity = cloudOpacity * 0.25;
+  else if (condition === 'cloudy') midCloudOpacity = cloudOpacity * 0.6;
+  else midCloudOpacity = cloudOpacity * 0.35;
 
   return (
     <g>
@@ -145,11 +153,7 @@ const WeatherSvgEffects: React.FC<Props> = ({
           {/* Far background layer + cumulus puffs — only when windy */}
           {windStreaks.length > 0 && (
             <>
-              <g
-                opacity={
-                  condition === 'partly-cloudy' ? 0.1 : condition === 'cloudy' ? 0.22 : 0.15
-                }
-              >
+              <g opacity={bgCloudOpacity}>
                 <path
                   d="M -200 35 Q 0 15 100 40 T 300 25 T 500 38 L 500 -20 L -200 -20 Z"
                   fill="#8fa3b8"
@@ -220,15 +224,7 @@ const WeatherSvgEffects: React.FC<Props> = ({
             </>
           )}
           {/* Mid cloud band — always shown */}
-          <g
-            opacity={
-              condition === 'partly-cloudy'
-                ? cloudOpacity * 0.25
-                : condition === 'cloudy'
-                  ? cloudOpacity * 0.6
-                  : cloudOpacity * 0.35
-            }
-          >
+          <g opacity={midCloudOpacity}>
             <path
               d="M -200 40 Q 50 10 120 50 T 250 30 T 500 60 L 500 -20 L -200 -20 Z"
               fill={cloudFill1}

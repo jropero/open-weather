@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocationContext } from '../hooks/useLocationContext';
 import { PREDEFINED_LOCATIONS } from '../constants/locations';
 import type { Location } from '../types/weather';
@@ -276,10 +276,11 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
     const chips = (['temperature', 'precipitation'] as const).map((variable) => {
       const d = classifyAnomaly(variable, period.values[variable], period.days);
       if (!d) return null;
+      const anomalyDirection = d.level > 0 ? 'above' : 'below';
       const word =
         d.level === 0
           ? t('seasonal.word.normal')
-          : t(`seasonal.word.${variable}.${d.level > 0 ? 'above' : 'below'}`);
+          : t(`seasonal.word.${variable}.${anomalyDirection}`);
       return (
         <span
           key={variable}
@@ -320,6 +321,36 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   // ==========================================
   // NEW COMPACT OTHER LOCATIONS WEATHER VIEW
   // ==========================================
+  const trendButtonLabel = trendsIdle === 0 ? t('seasonal.retry') : t('seasonal.compact.load');
+  let trendControl: React.ReactNode;
+  if (trendsLoading) {
+    trendControl = (
+      <span
+        className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700"
+        role="status"
+      >
+        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600" />
+        {t('seasonal.compact.loading')}
+      </span>
+    );
+  } else if (trendsIdle > 0 || trendErrors > 0) {
+    trendControl = (
+      <button
+        type="button"
+        onClick={loadTrends}
+        className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-bold shadow-sm hover:bg-indigo-700 transition-colors"
+      >
+        {trendButtonLabel}
+      </button>
+    );
+  } else {
+    trendControl = (
+      <span className="text-[10px] font-semibold text-slate-600">
+        ✓ {t('seasonal.compact.cached')}
+      </span>
+    );
+  }
+
   /* eslint-disable sonarjs/cognitive-complexity */
   return (
     <section className="bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-lg text-slate-800 mt-6">
@@ -340,27 +371,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
               {t('seasonal.compact.hint')}
             </span>
           </div>
-          {trendsLoading ? (
-            <span
-              className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700"
-              role="status"
-            >
-              <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600" />
-              {t('seasonal.compact.loading')}
-            </span>
-          ) : trendsIdle > 0 || trendErrors > 0 ? (
-            <button
-              type="button"
-              onClick={loadTrends}
-              className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-bold shadow-sm hover:bg-indigo-700 transition-colors"
-            >
-              {trendsIdle === 0 ? t('seasonal.retry') : t('seasonal.compact.load')}
-            </button>
-          ) : (
-            <span className="text-[10px] font-semibold text-slate-600">
-              ✓ {t('seasonal.compact.cached')}
-            </span>
-          )}
+          {trendControl}
         </div>
         <SeasonalAttribution variant="compact" />
       </div>
@@ -378,8 +389,64 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
           const thom = getThomsDiscomfortIndex(weather.temperature, weather.humidity, language);
           const isCold = weather.temperature < 10;
           const windChill = getWindChillIndex(weather.temperature, weather.windSpeed, language);
-          const activePenguins =
-            windChill.value > 0 ? 1 : windChill.value > -10 ? 2 : windChill.value > -25 ? 3 : 4;
+          let activePenguins: number;
+          if (windChill.value > 0) activePenguins = 1;
+          else if (windChill.value > -10) activePenguins = 2;
+          else if (windChill.value > -25) activePenguins = 3;
+          else activePenguins = 4;
+
+          let thermalWidget: React.ReactNode;
+          if (isCold) {
+            thermalWidget = (
+              <div
+                className="flex items-center gap-0.5"
+                title={language === 'en' ? 'Wind Chill Index' : 'Índice Polar'}
+              >
+                <span className="text-sm font-bold text-slate-600 mr-1">
+                  {windChill.value.toFixed(1)}°
+                </span>
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`text-xl leading-none transition-all duration-300 ${idx < activePenguins ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
+                  >
+                    🐧
+                  </span>
+                ))}
+              </div>
+            );
+          } else if (activeGambas === 0) {
+            const comfortIcon = weather.temperature >= 20 ? '🏖️' : '🌤️';
+            thermalWidget = (
+              <div
+                className="flex items-center gap-1"
+                title={language === 'en' ? 'Comfortable weather' : 'Clima agradable'}
+              >
+                <span className="text-xl leading-none">{comfortIcon}</span>
+                <span className="text-[10px] text-slate-500 font-semibold">
+                  {thom.value.toFixed(1)}
+                </span>
+              </div>
+            );
+          } else {
+            const thomTitle =
+              language === 'en' ? "Thom's Discomfort Index" : 'Índice de Incomodidad de Thom';
+            thermalWidget = (
+              <div className="flex items-center gap-0.5" title={thomTitle}>
+                <span className="text-sm font-bold text-slate-600 mr-1">
+                  {thom.value.toFixed(1)}
+                </span>
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`text-xl leading-none transition-all duration-300 ${idx < activeGambas ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
+                  >
+                    🦐
+                  </span>
+                ))}
+              </div>
+            );
+          }
           const activeGambas = Math.min(4, Math.floor(Math.max(0, thom.value - 15) / 3));
 
           return (
@@ -448,57 +515,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                       {Math.round(weather.humidity)}%
                     </span>
                   </div>
-                  {isCold ? (
-                    <div
-                      className="flex items-center gap-0.5"
-                      title={language === 'en' ? 'Wind Chill Index' : 'Índice Polar'}
-                    >
-                      <span className="text-sm font-bold text-slate-600 mr-1">
-                        {windChill.value.toFixed(1)}°
-                      </span>
-                      {Array.from({ length: 4 }).map((_, idx) => (
-                        <span
-                          key={idx}
-                          className={`text-xl leading-none transition-all duration-300 ${idx < activePenguins ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
-                        >
-                          🐧
-                        </span>
-                      ))}
-                    </div>
-                  ) : activeGambas === 0 ? (
-                    <div
-                      className="flex items-center gap-1"
-                      title={language === 'en' ? 'Comfortable weather' : 'Clima agradable'}
-                    >
-                      <span className="text-xl leading-none">
-                        {weather.temperature >= 20 ? '🏖️' : '🌤️'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-semibold">
-                        {thom.value.toFixed(1)}
-                      </span>
-                    </div>
-                  ) : (
-                    <div
-                      className="flex items-center gap-0.5"
-                      title={
-                        language === 'en'
-                          ? "Thom's Discomfort Index"
-                          : 'Índice de Incomodidad de Thom'
-                      }
-                    >
-                      <span className="text-sm font-bold text-slate-600 mr-1">
-                        {thom.value.toFixed(1)}
-                      </span>
-                      {Array.from({ length: 4 }).map((_, idx) => (
-                        <span
-                          key={idx}
-                          className={`text-xl leading-none transition-all duration-300 ${idx < activeGambas ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
-                        >
-                          🦐
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {thermalWidget}
                 </div>
               </div>
 

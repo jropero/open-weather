@@ -44,11 +44,13 @@ export function SeasonalAttribution({ variant, seas5Issue }: SeasonalAttribution
     );
   }
 
+  const dateLocale = language === 'en' ? 'en-GB' : 'es-ES';
   const issue = seas5Issue
-    ? new Date(`${seas5Issue}T00:00:00Z`).toLocaleDateString(
-        language === 'en' ? 'en-GB' : 'es-ES',
-        { month: 'short', year: 'numeric', timeZone: 'UTC' },
-      )
+    ? new Date(`${seas5Issue}T00:00:00Z`).toLocaleDateString(dateLocale, {
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })
     : '—';
 
   return (

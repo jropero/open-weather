@@ -164,7 +164,6 @@ function BandLayer({
 
 // ---
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export function EnsembleDetailView({
   location,
   period,
@@ -224,7 +223,7 @@ export function EnsembleDetailView({
       midnightIndices: midnights,
       xTicks: midnights,
     };
-  }, [points]);
+  }, [points, variable]);
 
   const renderXTick = useCallback(
     ({ x: rawX, y: rawY, payload }: XAxisTickContentProps) => {
@@ -367,6 +366,29 @@ export function EnsembleDetailView({
     getP90,
   ]);
 
+  let ensembleBody: React.ReactNode;
+  if (loading) {
+    ensembleBody = (
+      <div className="flex flex-col items-center justify-center h-48 gap-3">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400" />
+        <p className="text-sm text-slate-400">{t('ensemble.loading')}</p>
+      </div>
+    );
+  } else if (error) {
+    ensembleBody = (
+      <div className="flex flex-col items-center justify-center h-48 gap-2" role="alert">
+        <span className="text-2xl">⚠️</span>
+        <p className="text-sm text-slate-300 text-center">{t('ensemble.error')}</p>
+      </div>
+    );
+  } else if (!points || !points.length) {
+    ensembleBody = (
+      <div className="flex flex-col items-center justify-center h-48 gap-2">
+        <p className="text-sm text-slate-400">{t('ensemble.no_data')}</p>
+      </div>
+    );
+  }
+
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
@@ -425,21 +447,7 @@ export function EnsembleDetailView({
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-5">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400" />
-            <p className="text-sm text-slate-400">{t('ensemble.loading')}</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2" role="alert">
-            <span className="text-2xl">⚠️</span>
-            <p className="text-sm text-slate-300 text-center">{t('ensemble.error')}</p>
-          </div>
-        ) : !points || !points.length ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2">
-            <p className="text-sm text-slate-400">{t('ensemble.no_data')}</p>
-          </div>
-        ) : (
+        {ensembleBody ?? (
           <>
             {/* Chart */}
             <div className="mt-2 rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden">

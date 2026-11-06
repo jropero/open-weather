@@ -12,7 +12,6 @@ interface FutureForecastProps {
   daily: DailyWeather[];
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export function FutureForecast({ daily }: FutureForecastProps) {
   const { language, t } = useLanguage();
   const today = new Date();
@@ -62,6 +61,7 @@ export function FutureForecast({ daily }: FutureForecastProps) {
           const dayName = date.toLocaleDateString(isEn ? 'en-US' : 'es-ES', {
             weekday: 'long',
           });
+          const winterLabel = isEn ? 'WCI' : 'POLAR';
 
           return (
             <div key={idx} className="flex gap-4 py-4 border-b border-slate-100 last:border-0">
@@ -118,8 +118,7 @@ export function FutureForecast({ daily }: FutureForecastProps) {
                   <span
                     className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${thomIndex.bgClass} ${thomIndex.bgClass.includes('text-white') ? '' : 'text-slate-900'}`}
                   >
-                    {isWinter ? (isEn ? 'WCI' : 'POLAR') : t('label.fatigue')}:{' '}
-                    {thomIndex.shortLabel}
+                    {isWinter ? winterLabel : t('label.fatigue')}: {thomIndex.shortLabel}
                   </span>
                   <span
                     className={`px-2.5 py-1 rounded-full text-[10px] font-bold leading-none ${deltaAlert.bgClass}`}

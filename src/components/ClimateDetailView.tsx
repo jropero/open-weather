@@ -249,20 +249,21 @@ function MiniBarChart({
             <ReferenceLine y={climMean} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" />
           )}
           <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
-            {data.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={
-                  entry.isForecast
-                    ? color
-                    : (entry.value ?? 0) >= (climMean ?? 0)
-                      ? 'rgba(255,255,255,0.55)'
-                      : 'rgba(255,255,255,0.25)'
-                }
-                stroke={entry.isForecast ? 'rgba(255,255,255,0.5)' : 'none'}
-                strokeWidth={entry.isForecast ? 1 : 0}
-              />
-            ))}
+            {data.map((entry, index) => {
+              const histFill =
+                (entry.value ?? 0) >= (climMean ?? 0)
+                  ? 'rgba(255,255,255,0.55)'
+                  : 'rgba(255,255,255,0.25)';
+              const cellFill = entry.isForecast ? color : histFill;
+              return (
+                <Cell
+                  key={index}
+                  fill={cellFill}
+                  stroke={entry.isForecast ? 'rgba(255,255,255,0.5)' : 'none'}
+                  strokeWidth={entry.isForecast ? 1 : 0}
+                />
+              );
+            })}
             <LabelList
               dataKey="value"
               position="top"
@@ -348,7 +349,6 @@ function SkeletonStrip() {
 
 // ---- Strips section ------------------------------------------------------
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'en' }) {
   /* eslint-disable sonarjs/cognitive-complexity */
   return (
@@ -473,6 +473,75 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
   const summary = getHolisticSummary(anomalies, lang);
   const summaryEmoji = getSummaryEmoji(anomalies);
 
+  let climateBody: React.ReactNode = null;
+  if (loading) {
+    climateBody = (
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="animate-pulse flex gap-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex-1 h-12 bg-white/10 rounded-xl" />
+          ))}
+        </div>
+        {ALL_VARS.map((v) => (
+          <SkeletonStrip key={v} />
+        ))}
+      </div>
+    );
+  } else if (error) {
+    climateBody = (
+      <div className="mt-4 flex flex-col items-center gap-2 py-6" role="alert">
+        <span className="text-2xl" aria-hidden>
+          ⚠️
+        </span>
+        <p className="text-sm text-slate-300 text-center">{t('climate.error')}</p>
+      </div>
+    );
+  } else if (result) {
+    climateBody = (
+      <>
+        {/* Analogue years */}
+        <div className="mt-4">
+          <p className="text-[11px] text-slate-400 mb-2">{t('climate.analogues.label')}</p>
+          <div className="flex gap-2">
+            {result.analogues.length === 0 ? (
+              <p className="text-xs text-slate-500">—</p>
+            ) : (
+              result.analogues.map((a, i) => (
+                <div key={i} className="flex-1 min-w-0">
+                  <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
+                    <span className="text-sm font-bold text-white block leading-tight">
+                      {formatAnalogueLabel(a, locale)}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-400 rounded-full"
+                      style={{ width: `${Math.round(a.similarity * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <p className="mt-2 text-[10px] text-slate-500">{t('climate.analogues.note')}</p>
+        </div>
+
+        {/* Variable rows */}
+        <Strips result={result} lang={lang} />
+
+        {/* Footnote */}
+        <p className="mt-4 text-[10px] text-slate-600 leading-relaxed">
+          {t('climate.footnote')
+            .replace('{start}', String(result.stripYears[0] ?? '…'))
+            .replace('{end}', String(result.stripYears.at(-1) ?? '…'))}
+        </p>
+        <p className="mt-1 text-[10px] text-slate-700 leading-relaxed">
+          {t('climate.footnote.bias')}
+        </p>
+      </>
+    );
+  }
+
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
@@ -514,67 +583,7 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
           <p className="text-sm text-slate-100 leading-snug">{summary}</p>
         </div>
 
-        {loading ? (
-          <div className="mt-4 flex flex-col gap-3">
-            <div className="animate-pulse flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="flex-1 h-12 bg-white/10 rounded-xl" />
-              ))}
-            </div>
-            {ALL_VARS.map((v) => (
-              <SkeletonStrip key={v} />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="mt-4 flex flex-col items-center gap-2 py-6" role="alert">
-            <span className="text-2xl" aria-hidden>
-              ⚠️
-            </span>
-            <p className="text-sm text-slate-300 text-center">{t('climate.error')}</p>
-          </div>
-        ) : result ? (
-          <>
-            {/* Analogue years */}
-            <div className="mt-4">
-              <p className="text-[11px] text-slate-400 mb-2">{t('climate.analogues.label')}</p>
-              <div className="flex gap-2">
-                {result.analogues.length === 0 ? (
-                  <p className="text-xs text-slate-500">—</p>
-                ) : (
-                  result.analogues.map((a, i) => (
-                    <div key={i} className="flex-1 min-w-0">
-                      <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
-                        <span className="text-sm font-bold text-white block leading-tight">
-                          {formatAnalogueLabel(a, locale)}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-400 rounded-full"
-                          style={{ width: `${Math.round(a.similarity * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <p className="mt-2 text-[10px] text-slate-500">{t('climate.analogues.note')}</p>
-            </div>
-
-            {/* Variable rows */}
-            <Strips result={result} lang={lang} />
-
-            {/* Footnote */}
-            <p className="mt-4 text-[10px] text-slate-600 leading-relaxed">
-              {t('climate.footnote')
-                .replace('{start}', String(result.stripYears[0] ?? '…'))
-                .replace('{end}', String(result.stripYears.at(-1) ?? '…'))}
-            </p>
-            <p className="mt-1 text-[10px] text-slate-700 leading-relaxed">
-              {t('climate.footnote.bias')}
-            </p>
-          </>
-        ) : null}
+        {climateBody}
       </div>
     </dialog>
   );

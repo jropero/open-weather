@@ -155,10 +155,11 @@ function WeatherDashboard() {
           h.weatherCode === 57 ||
           h.weatherCode === 66 ||
           h.weatherCode === 67;
-        return {
-          minutesFromNow,
-          type: isSnow ? 'snow' : isFreezing ? 'freezing' : 'rain',
-        };
+        let precipType: 'rain' | 'snow' | 'freezing';
+        if (isSnow) precipType = 'snow';
+        else if (isFreezing) precipType = 'freezing';
+        else precipType = 'rain';
+        return { minutesFromNow, type: precipType };
       }
     }
     return null;
@@ -273,30 +274,24 @@ function WeatherDashboard() {
   );
 
   const isEn = language === 'en';
-  const pressureText =
-    data.current.surfacePressure > 1022
-      ? isEn
-        ? 'high pressure'
-        : 'presión alta'
-      : data.current.surfacePressure < 1000
-        ? isEn
-          ? 'low pressure'
-          : 'presión baja'
-        : isEn
-          ? 'normal pressure'
-          : 'presión normal';
-  const humidityText =
-    data.current.humidity >= 70
-      ? isEn
-        ? 'high humidity'
-        : 'humedad alta'
-      : data.current.humidity >= 40
-        ? isEn
-          ? 'comfortable humidity'
-          : 'humedad confortable'
-        : isEn
-          ? 'low humidity'
-          : 'humedad baja';
+
+  let pressureText: string;
+  if (data.current.surfacePressure > 1022) {
+    pressureText = isEn ? 'high pressure' : 'presión alta';
+  } else if (data.current.surfacePressure < 1000) {
+    pressureText = isEn ? 'low pressure' : 'presión baja';
+  } else {
+    pressureText = isEn ? 'normal pressure' : 'presión normal';
+  }
+
+  let humidityText: string;
+  if (data.current.humidity >= 70) {
+    humidityText = isEn ? 'high humidity' : 'humedad alta';
+  } else if (data.current.humidity >= 40) {
+    humidityText = isEn ? 'comfortable humidity' : 'humedad confortable';
+  } else {
+    humidityText = isEn ? 'low humidity' : 'humedad baja';
+  }
   const pressureHumDesc = isEn
     ? `${pressureText} and ${humidityText}`
     : `${pressureText} y ${humidityText}`;
@@ -309,6 +304,175 @@ function WeatherDashboard() {
     if (currentLocation.id === 'taipei') return lang === 'en' ? 'Taipei' : 'Taipéi';
     return name;
   };
+
+  // --- Computed display values extracted from JSX to avoid nested ternaries ---
+
+  let migraineBarClass: string;
+  if (currentMigraineRisk.score >= 6)
+    migraineBarClass = 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]';
+  else if (currentMigraineRisk.score >= 4)
+    migraineBarClass = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
+  else if (currentMigraineRisk.score >= 3)
+    migraineBarClass = 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]';
+  else if (currentMigraineRisk.score >= 2)
+    migraineBarClass = 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]';
+  else migraineBarClass = 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+
+  let windChillBarClass: string;
+  if (!currentWindChill || currentWindChill.value > 0)
+    windChillBarClass = 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+  else if (currentWindChill.value <= -25)
+    windChillBarClass = 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]';
+  else if (currentWindChill.value <= -10)
+    windChillBarClass = 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]';
+  else windChillBarClass = 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]';
+
+  let thomBarClass: string;
+  if (currentThom.value >= 27) thomBarClass = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
+  else if (currentThom.value >= 24)
+    thomBarClass = 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]';
+  else if (currentThom.value >= 21)
+    thomBarClass = 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]';
+  else thomBarClass = 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+
+  let delta6hBadgeClass: string;
+  if (!data.pressureTrend || data.pressureTrend.delta6h > -3)
+    delta6hBadgeClass = 'bg-blue-500/20 border-blue-400/30 text-white';
+  else if (data.pressureTrend.delta6h <= -5)
+    delta6hBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
+  else delta6hBadgeClass = 'bg-amber-500/30 border-amber-400/40 text-white';
+
+  let tempDelta3hClass: string;
+  if (tempDelta3h !== null && tempDelta3h > 0) tempDelta3hClass = 'text-orange-200';
+  else if (tempDelta3h !== null && tempDelta3h < 0) tempDelta3hClass = 'text-sky-200';
+  else tempDelta3hClass = 'text-white';
+
+  let tempDelta6hBadgeClass: string;
+  if (tempDelta6h !== null && tempDelta6h >= 3)
+    tempDelta6hBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
+  else if (tempDelta6h !== null && tempDelta6h > 0)
+    tempDelta6hBadgeClass = 'bg-amber-500/30 border-amber-400/40 text-white';
+  else tempDelta6hBadgeClass = 'bg-white/20 border-white/10 text-white';
+
+  const inOrEn = isEn ? 'in' : 'en';
+
+  let precipBadgeClass: string;
+  let precipEmoji: string;
+  let precipText: string;
+  let precipTimingText: string;
+  if (precipOnset) {
+    if (precipOnset.type === 'snow') {
+      precipBadgeClass = 'bg-cyan-500/30 border-cyan-400/40';
+      precipEmoji = '❄️';
+      precipText = isEn ? 'Snow' : 'Nieve';
+    } else if (precipOnset.type === 'freezing') {
+      precipBadgeClass = 'bg-indigo-500/30 border-indigo-400/40';
+      precipEmoji = '🌨️';
+      precipText = isEn ? 'Freezing' : 'Helada';
+    } else {
+      precipBadgeClass = 'bg-blue-500/30 border-blue-400/40';
+      precipEmoji = '🌧️';
+      const mmh = rainNext3h / 3;
+      if (mmh >= 10) precipText = isEn ? 'Violent rain' : 'Torrencial';
+      else if (mmh >= 2.5) precipText = isEn ? 'Heavy rain' : 'Fuerte';
+      else if (mmh >= 0.5) precipText = isEn ? 'Moderate rain' : 'Moderada';
+      else precipText = isEn ? 'Light rain' : 'Leve';
+    }
+    if (precipOnset.minutesFromNow <= 0) precipTimingText = isEn ? 'now' : 'ahora';
+    else if (precipOnset.minutesFromNow < 60)
+      precipTimingText = `${inOrEn} ${precipOnset.minutesFromNow}min`;
+    else precipTimingText = `${inOrEn} ${Math.floor(precipOnset.minutesFromNow / 60)}h`;
+  } else {
+    precipBadgeClass = 'bg-blue-500/30 border-blue-400/40';
+    precipEmoji = '🌧️';
+    precipText = '';
+    precipTimingText = '';
+  }
+
+  let windBadgeClass: string;
+  let windEmoji: string;
+  let windLevelText: string;
+  let windTimingText: string;
+  if (!windAlert) {
+    windBadgeClass = 'bg-teal-500/25 border-teal-400/35';
+    windEmoji = '🌬️';
+    windLevelText = isEn ? 'Breezy' : 'Ventoso';
+    windTimingText = '';
+  } else if (windAlert.level === 'storm') {
+    windBadgeClass = 'bg-red-600/40 border-red-400/50';
+    windEmoji = '🌪️';
+    windLevelText = isEn ? 'Storm' : 'Borrasca';
+    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
+    else if (windAlert.minutesFromNow < 60)
+      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
+    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
+  } else if (windAlert.level === 'gale') {
+    windBadgeClass = 'bg-orange-500/35 border-orange-400/45';
+    windEmoji = '💨';
+    windLevelText = isEn ? 'Gale' : 'Vendaval';
+    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
+    else if (windAlert.minutesFromNow < 60)
+      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
+    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
+  } else if (windAlert.level === 'strong') {
+    windBadgeClass = 'bg-amber-500/30 border-amber-400/40';
+    windEmoji = '🌬️';
+    windLevelText = isEn ? 'Strong wind' : 'Viento fuerte';
+    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
+    else if (windAlert.minutesFromNow < 60)
+      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
+    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
+  } else {
+    windBadgeClass = 'bg-teal-500/25 border-teal-400/35';
+    windEmoji = '🌬️';
+    windLevelText = isEn ? 'Breezy' : 'Ventoso';
+    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
+    else if (windAlert.minutesFromNow < 60)
+      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
+    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
+  }
+
+  let nightBadgeClass: string;
+  let nightEmoji: string;
+  if (nightType === 'ecuatorial') {
+    nightBadgeClass = 'bg-purple-500/30 border-purple-400/40 text-white';
+    nightEmoji = '🌊';
+  } else if (nightType === 'torrida') {
+    nightBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
+    nightEmoji = '🔥';
+  } else {
+    nightBadgeClass = 'bg-amber-500/20 border-amber-400/30 text-white';
+    nightEmoji = '🌙';
+  }
+
+  let frostBadgeClass: string;
+  let frostEmoji: string;
+  let frostText: string;
+  if (frostType === 'ice') {
+    frostBadgeClass = 'bg-cyan-900/40 border-cyan-400/40 text-white';
+    frostEmoji = '🧊';
+    frostText = isEn ? 'Ice tonight' : 'Hielo esta noche';
+  } else {
+    frostBadgeClass = 'bg-slate-700/40 border-slate-400/30 text-white';
+    frostEmoji = '🌨️';
+    frostText = isEn ? 'Frost risk' : 'Riesgo helada';
+  }
+
+  let stormBadgeClass: string;
+  if (stormPotential?.level === 'extreme')
+    stormBadgeClass = 'bg-red-600/30 border-red-400/40 text-white';
+  else if (stormPotential?.level === 'strong')
+    stormBadgeClass = 'bg-orange-500/30 border-orange-400/40 text-white';
+  else if (stormPotential?.level === 'moderate')
+    stormBadgeClass = 'bg-yellow-400/20 border-yellow-400/40 text-white';
+  else stormBadgeClass = 'bg-sky-400/20 border-sky-400/30 text-white';
+
+  let fogText: string;
+  if (data.current.weatherCode === 48) {
+    fogText = isEn ? 'Rime fog' : 'Niebla helada';
+  } else {
+    fogText = isEn ? 'Fog' : 'Niebla';
+  }
 
   /* eslint-disable sonarjs/cognitive-complexity */
   return (
@@ -514,17 +678,7 @@ function WeatherDashboard() {
                 </span>
                 <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
                   <div
-                    className={`w-full rounded-full transition-all duration-1000 ease-out ${
-                      currentMigraineRisk.score >= 6
-                        ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'
-                        : currentMigraineRisk.score >= 4
-                          ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
-                          : currentMigraineRisk.score >= 3
-                            ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]'
-                            : currentMigraineRisk.score >= 2
-                              ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]'
-                              : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                    }`}
+                    className={`w-full rounded-full transition-all duration-1000 ease-out ${migraineBarClass}`}
                     style={{
                       height: `${(currentMigraineRisk.score / 6) * 100}%`,
                     }}
@@ -590,15 +744,7 @@ function WeatherDashboard() {
                     </span>
                     <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
                       <div
-                        className={`w-full rounded-full transition-all duration-1000 ease-out ${
-                          currentWindChill.value <= -25
-                            ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]'
-                            : currentWindChill.value <= -10
-                              ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]'
-                              : currentWindChill.value <= 0
-                                ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]'
-                                : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                        }`}
+                        className={`w-full rounded-full transition-all duration-1000 ease-out ${windChillBarClass}`}
                         style={{
                           height: `${Math.max(10, Math.min(100, ((15 - currentWindChill.value) / 30) * 100))}%`,
                         }}
@@ -615,15 +761,7 @@ function WeatherDashboard() {
                     </span>
                     <div className="relative w-2.5 h-16 bg-white/15 rounded-full overflow-hidden flex flex-col justify-end border border-white/10 shadow-inner">
                       <div
-                        className={`w-full rounded-full transition-all duration-1000 ease-out ${
-                          currentThom.value >= 27
-                            ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
-                            : currentThom.value >= 24
-                              ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]'
-                              : currentThom.value >= 21
-                                ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]'
-                                : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                        }`}
+                        className={`w-full rounded-full transition-all duration-1000 ease-out ${thomBarClass}`}
                         style={{
                           height: `${Math.max(10, Math.min(100, ((currentThom.value - 15) / 15) * 100))}%`,
                         }}
@@ -650,21 +788,16 @@ function WeatherDashboard() {
                   ? `${Math.round(data.current.windSpeed)} km/h ${getWindDirection(data.current.windDirection, language)}`
                   : t('label.wind_calm')}
               </span>
-              {/* eslint-disable-next-line sonarjs/cognitive-complexity */}
               {data.airQuality?.uvIndex != null &&
                 data.airQuality.uvIndex > 0 &&
                 (() => {
                   const uvInfo = getUvInfo(data.airQuality.uvIndex, language);
-                  const uvHeroColor =
-                    data.airQuality.uvIndex < 3
-                      ? 'text-emerald-300'
-                      : data.airQuality.uvIndex < 6
-                        ? 'text-yellow-300'
-                        : data.airQuality.uvIndex < 8
-                          ? 'text-orange-300'
-                          : data.airQuality.uvIndex < 11
-                            ? 'text-red-300'
-                            : 'text-purple-300';
+                  let uvHeroColor: string;
+                  if (data.airQuality.uvIndex < 3) uvHeroColor = 'text-emerald-300';
+                  else if (data.airQuality.uvIndex < 6) uvHeroColor = 'text-yellow-300';
+                  else if (data.airQuality.uvIndex < 8) uvHeroColor = 'text-orange-300';
+                  else if (data.airQuality.uvIndex < 11) uvHeroColor = 'text-red-300';
+                  else uvHeroColor = 'text-purple-300';
                   return (
                     <>
                       <span className="w-px h-4 bg-white/30" />
@@ -709,7 +842,7 @@ function WeatherDashboard() {
                   )}
                   {data.pressureTrend && Math.abs(data.pressureTrend.delta6h) >= 3 && (
                     <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${data.pressureTrend.delta6h <= -5 ? 'bg-red-500/30 border-red-400/40 text-white' : data.pressureTrend.delta6h <= -3 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-blue-500/20 border-blue-400/30 text-white'}`}
+                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${delta6hBadgeClass}`}
                     >
                       <span className="uppercase tracking-wider opacity-70">6h</span>
                       <span>
@@ -732,15 +865,7 @@ function WeatherDashboard() {
                   {tempDelta3h !== null && (
                     <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3 text-xs font-bold text-white border border-white/10 flex items-center gap-1 shadow-md">
                       <span className="text-white/50 uppercase tracking-wider">3h</span>
-                      <span
-                        className={
-                          tempDelta3h > 0
-                            ? 'text-orange-200'
-                            : tempDelta3h < 0
-                              ? 'text-sky-200'
-                              : 'text-white'
-                        }
-                      >
+                      <span className={tempDelta3hClass}>
                         {tempDelta3h > 0 ? '+' : ''}
                         {tempDelta3h}°C
                       </span>
@@ -748,10 +873,10 @@ function WeatherDashboard() {
                   )}
                   {tempDelta6h !== null && (
                     <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${tempDelta6h >= 3 ? 'bg-red-500/30 border-red-400/40 text-white' : tempDelta6h > 0 ? 'bg-amber-500/30 border-amber-400/40 text-white' : 'bg-white/20 border-white/10 text-white'}`}
+                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${tempDelta6hBadgeClass}`}
                     >
                       <span
-                        className={`uppercase tracking-wider ${tempDelta6h > 0 ? 'opacity-80' : 'text-white/50'}`}
+                        className={`uppercase tracking-wider ${tempDelta6h !== null && tempDelta6h > 0 ? 'opacity-80' : 'text-white/50'}`}
                       >
                         6h
                       </span>
@@ -779,58 +904,11 @@ function WeatherDashboard() {
               {precipOnset && (
                 <div className="flex flex-wrap justify-center gap-2">
                   <div
-                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                      precipOnset.type === 'snow'
-                        ? 'bg-cyan-500/30 border-cyan-400/40'
-                        : precipOnset.type === 'freezing'
-                          ? 'bg-indigo-500/30 border-indigo-400/40'
-                          : 'bg-blue-500/30 border-blue-400/40'
-                    } text-white`}
+                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${precipBadgeClass} text-white`}
                   >
-                    <span>
-                      {precipOnset.type === 'snow'
-                        ? '❄️'
-                        : precipOnset.type === 'freezing'
-                          ? '🌨️'
-                          : '🌧️'}
-                    </span>
-                    <span className="opacity-80">
-                      {precipOnset.type === 'snow'
-                        ? isEn
-                          ? 'Snow'
-                          : 'Nieve'
-                        : precipOnset.type === 'freezing'
-                          ? isEn
-                            ? 'Freezing'
-                            : 'Helada'
-                          : (() => {
-                              const mmh = rainNext3h / 3;
-                              return mmh >= 10
-                                ? isEn
-                                  ? 'Violent rain'
-                                  : 'Torrencial'
-                                : mmh >= 2.5
-                                  ? isEn
-                                    ? 'Heavy rain'
-                                    : 'Fuerte'
-                                  : mmh >= 0.5
-                                    ? isEn
-                                      ? 'Moderate rain'
-                                      : 'Moderada'
-                                    : isEn
-                                      ? 'Light rain'
-                                      : 'Leve';
-                            })()}
-                    </span>
-                    <span className="font-black text-white/90">
-                      {precipOnset.minutesFromNow <= 0
-                        ? isEn
-                          ? 'now'
-                          : 'ahora'
-                        : precipOnset.minutesFromNow < 60
-                          ? `${isEn ? 'in' : 'en'} ${precipOnset.minutesFromNow}min`
-                          : `${isEn ? 'in' : 'en'} ${Math.floor(precipOnset.minutesFromNow / 60)}h`}
-                    </span>
+                    <span>{precipEmoji}</span>
+                    <span className="opacity-80">{precipText}</span>
+                    <span className="font-black text-white/90">{precipTimingText}</span>
                   </div>
                   {(
                     [
@@ -838,23 +916,28 @@ function WeatherDashboard() {
                       { label: '6h', value: rainNext6h },
                       { label: '24h', value: rainNext24h },
                     ] as const
-                  ).map(({ label, value }) => (
-                    <div
-                      key={label}
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 backdrop-blur-md ${
-                        value > 0
-                          ? precipOnset.type === 'snow'
-                            ? 'bg-cyan-500/20 border-cyan-400/30 text-cyan-200'
-                            : precipOnset.type === 'freezing'
-                              ? 'bg-indigo-500/20 border-indigo-400/30 text-indigo-200'
-                              : 'bg-blue-500/20 border-blue-400/30 text-blue-200'
-                          : 'bg-white/5 border-white/10 text-white/30'
-                      }`}
-                    >
-                      <span className="opacity-60">{label}</span>
-                      <span className="font-black">{value > 0 ? `${value}mm` : '—'}</span>
-                    </div>
-                  ))}
+                  ).map(({ label, value }) => {
+                    let amountBadgeClass: string;
+                    if (!value) {
+                      amountBadgeClass = 'bg-white/5 border-white/10 text-white/30';
+                    } else if (precipOnset.type === 'snow') {
+                      amountBadgeClass = 'bg-cyan-500/20 border-cyan-400/30 text-cyan-200';
+                    } else if (precipOnset.type === 'freezing') {
+                      amountBadgeClass =
+                        'bg-indigo-500/20 border-indigo-400/30 text-indigo-200';
+                    } else {
+                      amountBadgeClass = 'bg-blue-500/20 border-blue-400/30 text-blue-200';
+                    }
+                    return (
+                      <div
+                        key={label}
+                        className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 backdrop-blur-md ${amountBadgeClass}`}
+                      >
+                        <span className="opacity-60">{label}</span>
+                        <span className="font-black">{value > 0 ? `${value}mm` : '—'}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -862,50 +945,12 @@ function WeatherDashboard() {
               {windAlert && (
                 <div className="flex flex-wrap justify-center gap-2">
                   <div
-                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md text-white ${
-                      windAlert.level === 'storm'
-                        ? 'bg-red-600/40 border-red-400/50'
-                        : windAlert.level === 'gale'
-                          ? 'bg-orange-500/35 border-orange-400/45'
-                          : windAlert.level === 'strong'
-                            ? 'bg-amber-500/30 border-amber-400/40'
-                            : 'bg-teal-500/25 border-teal-400/35'
-                    }`}
+                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md text-white ${windBadgeClass}`}
                   >
-                    <span>
-                      {windAlert.level === 'storm'
-                        ? '🌪️'
-                        : windAlert.level === 'gale'
-                          ? '💨'
-                          : '🌬️'}
-                    </span>
-                    <span className="opacity-80">
-                      {windAlert.level === 'storm'
-                        ? isEn
-                          ? 'Storm'
-                          : 'Borrasca'
-                        : windAlert.level === 'gale'
-                          ? isEn
-                            ? 'Gale'
-                            : 'Vendaval'
-                          : windAlert.level === 'strong'
-                            ? isEn
-                              ? 'Strong wind'
-                              : 'Viento fuerte'
-                            : isEn
-                              ? 'Breezy'
-                              : 'Ventoso'}
-                    </span>
+                    <span>{windEmoji}</span>
+                    <span className="opacity-80">{windLevelText}</span>
                     <span className="font-bold">{windAlert.gusts} km/h</span>
-                    <span className="font-black opacity-90">
-                      {windAlert.minutesFromNow <= 0
-                        ? isEn
-                          ? 'now'
-                          : 'ahora'
-                        : windAlert.minutesFromNow < 60
-                          ? `${isEn ? 'in' : 'en'} ${windAlert.minutesFromNow}min`
-                          : `${isEn ? 'in' : 'en'} ${Math.floor(windAlert.minutesFromNow / 60)}h`}
-                    </span>
+                    <span className="font-black opacity-90">{windTimingText}</span>
                   </div>
                 </div>
               )}
@@ -915,55 +960,23 @@ function WeatherDashboard() {
                 <div className="flex flex-wrap justify-center gap-2">
                   {nightType && (
                     <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                        nightType === 'ecuatorial'
-                          ? 'bg-purple-500/30 border-purple-400/40 text-white'
-                          : nightType === 'torrida'
-                            ? 'bg-red-500/30 border-red-400/40 text-white'
-                            : 'bg-amber-500/20 border-amber-400/30 text-white'
-                      }`}
+                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${nightBadgeClass}`}
                     >
-                      <span>
-                        {nightType === 'ecuatorial'
-                          ? '🌊'
-                          : nightType === 'torrida'
-                            ? '🔥'
-                            : '🌙'}
-                      </span>
+                      <span>{nightEmoji}</span>
                       <span>{t(`label.night_${nightType}`)}</span>
                     </div>
                   )}
                   {frostType && (
                     <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                        frostType === 'ice'
-                          ? 'bg-cyan-900/40 border-cyan-400/40 text-white'
-                          : 'bg-slate-700/40 border-slate-400/30 text-white'
-                      }`}
+                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${frostBadgeClass}`}
                     >
-                      <span>{frostType === 'ice' ? '🧊' : '🌨️'}</span>
-                      <span>
-                        {frostType === 'ice'
-                          ? isEn
-                            ? 'Ice tonight'
-                            : 'Hielo esta noche'
-                          : isEn
-                            ? 'Frost risk'
-                            : 'Riesgo helada'}
-                      </span>
+                      <span>{frostEmoji}</span>
+                      <span>{frostText}</span>
                     </div>
                   )}
                   {stormPotential && (
                     <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${
-                        stormPotential.level === 'extreme'
-                          ? 'bg-red-600/30 border-red-400/40 text-white'
-                          : stormPotential.level === 'strong'
-                            ? 'bg-orange-500/30 border-orange-400/40 text-white'
-                            : stormPotential.level === 'moderate'
-                              ? 'bg-yellow-400/20 border-yellow-400/40 text-white'
-                              : 'bg-sky-400/20 border-sky-400/30 text-white'
-                      }`}
+                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${stormBadgeClass}`}
                     >
                       <span>⛈️</span>
                       <span>
@@ -974,15 +987,7 @@ function WeatherDashboard() {
                   {wmoCondition === 'fog' && (
                     <div className="rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md bg-zinc-500/30 border-zinc-400/40 text-white">
                       <span>🌫️</span>
-                      <span>
-                        {data.current.weatherCode === 48
-                          ? isEn
-                            ? 'Rime fog'
-                            : 'Niebla helada'
-                          : isEn
-                            ? 'Fog'
-                            : 'Niebla'}
-                      </span>
+                      <span>{fogText}</span>
                     </div>
                   )}
                 </div>
@@ -1020,7 +1025,11 @@ function WeatherDashboard() {
                 <div className="flex justify-center items-center h-12 gap-1 p-3 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
                   {Array.from({ length: 4 }).map((_, idx) => {
                     const wci = currentWindChill.value;
-                    const activePenguins = wci > 0 ? 1 : wci > -10 ? 2 : wci > -25 ? 3 : 4;
+                    let activePenguins: number;
+                    if (wci > 0) activePenguins = 1;
+                    else if (wci > -10) activePenguins = 2;
+                    else if (wci > -25) activePenguins = 3;
+                    else activePenguins = 4;
                     return (
                       <span
                         key={idx}
@@ -1185,22 +1194,18 @@ function WeatherDashboard() {
 
                     {(aq.currentPm25 !== null || aq.currentPm10 !== null) &&
                       (() => {
-                        const pm25dot = (v: number) =>
-                          v < 12
-                            ? 'bg-emerald-400'
-                            : v < 35.5
-                              ? 'bg-yellow-400'
-                              : v < 55.5
-                                ? 'bg-orange-400'
-                                : 'bg-red-500';
-                        const pm10dot = (v: number) =>
-                          v < 54
-                            ? 'bg-emerald-400'
-                            : v < 154
-                              ? 'bg-yellow-400'
-                              : v < 254
-                                ? 'bg-orange-400'
-                                : 'bg-red-500';
+                        const pm25dot = (v: number) => {
+                          if (v < 12) return 'bg-emerald-400';
+                          if (v < 35.5) return 'bg-yellow-400';
+                          if (v < 55.5) return 'bg-orange-400';
+                          return 'bg-red-500';
+                        };
+                        const pm10dot = (v: number) => {
+                          if (v < 54) return 'bg-emerald-400';
+                          if (v < 154) return 'bg-yellow-400';
+                          if (v < 254) return 'bg-orange-400';
+                          return 'bg-red-500';
+                        };
                         return (
                           <div className="flex flex-col gap-0.5">
                             {aq.currentPm25 !== null && (
