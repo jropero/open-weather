@@ -143,6 +143,10 @@ Once installed, the app works **offline** — the last fetched weather data is s
     npm run dev
     ```
 4.  Open `http://localhost:5173/` in your browser.
+5.  Run the test suite (Vitest, 290 tests across `src/utils/__tests__/`):
+    ```bash
+    npm test
+    ```
 
 ---
 
@@ -291,3 +295,7 @@ Una vez instalada, la app funciona **sin conexión** — los últimos datos mete
     npm run dev
     ```
 4.  Abre `http://localhost:5173/` en tu navegador.
+5.  Ejecuta los tests (Vitest, 290 tests en `src/utils/__tests__/`):
+    ```bash
+    npm test
+    ```

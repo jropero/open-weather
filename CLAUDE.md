@@ -66,8 +66,11 @@ The project uses a standard Vite/React/TypeScript setup. All development actions
 
 **Testing:**
 
-- **Unit/Integration Testing:** Please consult the test suite structure in `src/` for specific test files. If general unit tests are required, use the standard Jest/Testing Library setup as configured by the React/Vite environment.
-- **Single Test:** Run a specific test file or component test using the configured testing runner command (e.g., `npm run test -- <path/to/test-file>`).
+- **Framework:** Vitest (`vitest.config.ts`, `environment: 'node'`). Test files live in `src/utils/__tests__/`.
+- **Run all tests:** `npm test` (290 tests, ~170ms)
+- **Watch mode:** `npm run test:watch`
+- **Single file:** `npm test -- src/utils/__tests__/weatherCodes.scoring.test.ts`
+- Tests cover only the pure utility functions in `src/utils/` — no component or React rendering tests. The 7 test files map 1-to-1 to the utility modules: `weatherCodes` (scoring + classify), `daySummary`, `climateStats`, `ensembleStats`, `seasonal` (pure + classify).
 
 ## ✨ Key Features & Areas of Focus
 
