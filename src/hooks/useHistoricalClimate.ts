@@ -243,7 +243,7 @@ export function useHistoricalClimate(
 
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // oxlint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
     setResult(null);
@@ -270,11 +270,11 @@ export function useHistoricalClimate(
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, periodKey, locale]);
 
   return { result, loading, error };

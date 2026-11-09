@@ -207,7 +207,7 @@ export function useWeather(location: Location) {
         const histCacheKey = `hist_cache_${location.latitude}_${location.longitude}_${month}-${day}`;
 
         // eslint-disable-next-line sonarjs/cognitive-complexity
-        Promise.resolve().then(async () => {
+        void Promise.resolve().then(async () => {
           // Try cache first
           try {
             const raw = localStorage.getItem(histCacheKey);
@@ -354,7 +354,7 @@ export function useWeather(location: Location) {
       }
     }
 
-    fetchWeather();
+    void fetchWeather();
 
     return () => {
       isMounted = false;

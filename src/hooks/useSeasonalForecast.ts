@@ -67,7 +67,7 @@ export function useSeasonalForecast(location: Location) {
       }
     }
 
-    fetchOutlook();
+    void fetchOutlook();
 
     return () => {
       isMounted = false;

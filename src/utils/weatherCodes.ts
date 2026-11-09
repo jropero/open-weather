@@ -12,7 +12,13 @@ import {
 import type { Language } from '../hooks/useLanguage';
 
 export type WeatherCondition =
-  'clear' | 'partly-cloudy' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
+  | 'clear'
+  | 'partly-cloudy'
+  | 'cloudy'
+  | 'rain'
+  | 'storm'
+  | 'snow'
+  | 'fog';
 
 /** Map WMO weather codes to a WeatherCondition for the SVG animation layer. */
 // eslint-disable-next-line sonarjs/cognitive-complexity

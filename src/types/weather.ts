@@ -115,7 +115,11 @@ export interface WeatherData {
 // --- Long-range outlook (Open-Meteo Seasonal API: ECMWF EC46 weekly + SEAS5 monthly) ---
 
 export type SeasonalVariable =
-  'temperature' | 'precipitation' | 'pressure' | 'sunshine' | 'snowfall';
+  | 'temperature'
+  | 'precipitation'
+  | 'pressure'
+  | 'sunshine'
+  | 'snowfall';
 export type SeasonKey = 'DJF' | 'MAM' | 'JJA' | 'SON';
 export type SeasonName = 'winter' | 'spring' | 'summer' | 'autumn';
 export type ClimateZone = 'north' | 'south' | 'tropical';

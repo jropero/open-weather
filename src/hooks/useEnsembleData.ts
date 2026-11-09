@@ -55,7 +55,7 @@ export function useEnsembleData(
 
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // oxlint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
 
@@ -111,11 +111,11 @@ export function useEnsembleData(
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, weekStart, variable]);
 
   return { data, loading, error };

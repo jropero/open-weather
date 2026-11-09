@@ -132,11 +132,11 @@ export function useAllPeriodRanks(
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, periodsKey, isSeasonal]);
 
   return ranks;

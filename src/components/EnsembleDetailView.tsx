@@ -352,7 +352,7 @@ export function EnsembleDetailView({
         />
       </>
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
     points,
     xTicks,
@@ -390,7 +390,7 @@ export function EnsembleDetailView({
   }
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
       ref={dialogRef}
       onClose={onClose}

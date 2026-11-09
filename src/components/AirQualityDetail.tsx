@@ -107,7 +107,7 @@ export function AirQualityDetail({ aq, timezone, onClose }: Props) {
   ].filter((p) => p.value !== null && p.value > 0);
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
       ref={dialogRef}
       className="m-0 mt-auto w-full max-w-lg mx-auto rounded-t-2xl bg-white shadow-2xl p-0 backdrop:bg-black/40"

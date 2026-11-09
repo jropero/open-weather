@@ -221,7 +221,7 @@ function WeatherDashboard() {
   const todayDaily = data.daily.find((d) => {
     const dDate = new Date(d.date);
     dDate.setHours(0, 0, 0, 0);
-    const t = new Date();
+    const t = new Date(now);
     t.setHours(0, 0, 0, 0);
     return dDate.getTime() === t.getTime();
   });
@@ -244,7 +244,7 @@ function WeatherDashboard() {
       ? wmoToCondition(data.current.weatherCode)
       : (previewCondition as ReturnType<typeof wmoToCondition>);
 
-  const today = new Date();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const todayIndex = data.daily.findIndex((d) => {
     const dDate = new Date(d.date);
@@ -627,6 +627,7 @@ function WeatherDashboard() {
             <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
               {/* Left Progress Bar: Migraine Risk */}
               <div
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- wrapper contains positioned popover; layout preserved
                 role="button"
                 tabIndex={0}
                 className="relative flex flex-col items-center gap-1 cursor-pointer"
@@ -691,6 +692,7 @@ function WeatherDashboard() {
 
               {/* Right Progress Bar: Fatigue Level */}
               <div
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- wrapper contains positioned popover; layout preserved
                 role="button"
                 tabIndex={0}
                 className="relative flex flex-col items-center gap-1 cursor-pointer"
