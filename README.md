@@ -102,7 +102,8 @@ The application evaluates these 4 parameters in real time to calculate a combine
 
 This application is built for high-performance network requests and an immersive user interface (_dark glassmorphism_ and A11y high contrast), leveraging the latest tools in the React ecosystem:
 
-- **Core:** React 19, TypeScript, Vite.
+- **Core:** React 19, TypeScript, [Vite+](https://viteplus.dev/) (Vite/Vitest/Oxlint/Oxfmt unified toolchain).
+- **Quality:** Oxlint (type-aware) + **SonarJS** (`eslint-plugin-sonarjs`) + Stylelint; **Husky** pre-commit via `vp staged`.
 - **Styles:** Tailwind CSS v4, Lucide Icons.
 - **PWA:** `vite-plugin-pwa` — installable on desktop and mobile, offline-capable via Workbox service worker.
 - **Mobile-First Responsive Design:** Seamless layout scales and dynamic paddings to maximize tactile and visual space on smaller screens.
@@ -136,16 +137,17 @@ Once installed, the app works **offline** — the last fetched weather data is s
 1.  Clone the repository to your local machine.
 2.  Install dependencies:
     ```bash
-    npm install
+    pnpm install
     ```
-3.  Start the ultra-fast Vite development server (HMR):
+3.  Start the Vite+ development server (HMR):
     ```bash
-    npm run dev
+    pnpm dev
     ```
-4.  Open `http://localhost:5173/` in your browser.
-5.  Run the test suite (Vitest, 290 tests across `src/utils/__tests__/`):
+4.  Open the local URL shown by Vite+ in your browser.
+5.  Run checks and tests (Vitest, 290 tests across `src/utils/__tests__/`):
     ```bash
-    npm test
+    pnpm exec vp check
+    pnpm test
     ```
 
 ---
@@ -254,7 +256,8 @@ La aplicación cruza estos 4 parámetros en tiempo real para emitir un **Índice
 
 Esta aplicación destaca por su alto rendimiento en red y su UI inmersiva (_Glassmorphism_ oscuro y alto contraste A11y), construida sobre la pila más moderna del ecosistema React.
 
-- **Core:** React 19, TypeScript, Vite.
+- **Core:** React 19, TypeScript, [Vite+](https://viteplus.dev/) (toolchain unificado Vite/Vitest/Oxlint/Oxfmt).
+- **Calidad:** Oxlint (type-aware) + **SonarJS** (`eslint-plugin-sonarjs`) + Stylelint; **Husky** pre-commit vía `vp staged`.
 - **Estilos:** Tailwind CSS v4, Lucide Icons.
 - **PWA:** `vite-plugin-pwa` — instalable en escritorio y móvil, funciona sin conexión mediante service worker Workbox.
 - **Diseño Fluido (Mobile-First):** Escalabilidad de componentes sin bordes y paddings dinámicos para maximizar la superficie táctil y visual en pantallas pequeñas.
@@ -288,14 +291,15 @@ Una vez instalada, la app funciona **sin conexión** — los últimos datos mete
 1.  Clona el repositorio en tu máquina.
 2.  Instala las dependencias:
     ```bash
-    npm install
+    pnpm install
     ```
-3.  Arranca el servidor de desarrollo ultrarrápido (HMR):
+3.  Arranca el servidor de desarrollo Vite+ (HMR):
     ```bash
-    npm run dev
+    pnpm dev
     ```
-4.  Abre `http://localhost:5173/` en tu navegador.
-5.  Ejecuta los tests (Vitest, 290 tests en `src/utils/__tests__/`):
+4.  Abre la URL local que muestra Vite+ en tu navegador.
+5.  Ejecuta checks y tests (Vitest, 290 tests en `src/utils/__tests__/`):
     ```bash
-    npm test
+    pnpm exec vp check
+    pnpm test
     ```

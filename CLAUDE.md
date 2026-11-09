@@ -55,21 +55,23 @@ The app is deployed at `ekult.co.uk/t` and is fully installable as a PWA on desk
 
 ## 🛠️ Development Workflow & Commands
 
-The project uses a standard Vite/React/TypeScript setup. All development actions should respect the following CLI commands defined in `package.json`:
+The project uses **Vite+** (unified toolchain; `vp` CLI, managed via `pnpm`/catalog in `pnpm-workspace.yaml`) with Vite, Vitest, Oxlint, and Oxfmt configured in `vite.config.ts` (and `vitest.config.ts` re-exporting from `vite-plus`). Quality gates use **Husky** (`prepare: husky`) running **`vp staged`** (`.husky/pre-commit`), with staged tasks defined in `vite.config.ts` (`staged`). Linting includes **SonarJS** via the `eslint-plugin-sonarjs` JS plugin (`lint/sonarjs.js`, wired in `vite.config.ts`), plus React/jsx-a11y/TypeScript (type-aware) and Stylelint for CSS.
 
-| Command           | Purpose                | Description                                                                                                  |
-| :---------------- | :--------------------- | :----------------------------------------------------------------------------------------------------------- |
-| `npm run dev`     | **Development Server** | Starts the ultra-fast Vite development server with Hot Module Replacement (HMR). Use this for active coding. |
-| `npm run build`   | **Build Application**  | Compiles the TypeScript source code and bundles the assets for production use.                               |
-| `npm run lint`    | **Code Quality Check** | Runs ESLint across the project to enforce TypeScript and React best practices.                               |
-| `npm run preview` | **Local Preview**      | Serves the output of the `npm run build` command, allowing inspection of the final bundled output locally.   |
+| Command                       | Purpose                   | Description                                                                |
+| :---------------------------- | :------------------------ | :------------------------------------------------------------------------- |
+| `pnpm install`                | **Install**               | Installs dependencies (run after pulling; `prepare` sets up Husky hooks).  |
+| `pnpm dev` / `vp dev`         | **Development Server**    | Starts the Vite+ dev server with HMR.                                      |
+| `pnpm build`                  | **Build Application**     | Runs `tsc -b && vp build` for a production bundle (PWA output in `dist/`). |
+| `pnpm run lint` / `vp lint .` | **Lint / Type-aware**     | Runs Oxlint (incl. SonarJS) with type-aware checks.                        |
+| `pnpm exec vp check`          | **Format + Lint + Types** | Formats (Oxfmt), lints, and type-checks; use `--fix` to auto-fix.          |
+| `pnpm preview` / `vp preview` | **Local Preview**         | Serves the built output locally.                                           |
 
 **Testing:**
 
-- **Framework:** Vitest (`vitest.config.ts`, `environment: 'node'`). Test files live in `src/utils/__tests__/`.
-- **Run all tests:** `npm test` (290 tests, ~170ms)
-- **Watch mode:** `npm run test:watch`
-- **Single file:** `npm test -- src/utils/__tests__/weatherCodes.scoring.test.ts`
+- **Framework:** Vitest via Vite+ (`test` config in `vite.config.ts` / `vitest.config.ts`, `environment: 'node'`). Test files live in `src/utils/__tests__/`.
+- **Run all tests:** `pnpm test` / `vp test run`
+- **Watch mode:** `pnpm run test:watch`
+- **Single file:** `pnpm exec vp test run src/utils/__tests__/weatherCodes.scoring.test.ts`
 - Tests cover only the pure utility functions in `src/utils/` — no component or React rendering tests. The 7 test files map 1-to-1 to the utility modules: `weatherCodes` (scoring + classify), `daySummary`, `climateStats`, `ensembleStats`, `seasonal` (pure + classify).
 
 ## ✨ Key Features & Areas of Focus

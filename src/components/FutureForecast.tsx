@@ -7,6 +7,7 @@ import {
   getMigraineRisk,
 } from '../utils/weatherCodes';
 import { useLanguage } from '../hooks/useLanguage';
+import { useNow } from '../hooks/useNow';
 
 interface FutureForecastProps {
   daily: DailyWeather[];
@@ -14,7 +15,8 @@ interface FutureForecastProps {
 
 export function FutureForecast({ daily }: FutureForecastProps) {
   const { language, t } = useLanguage();
-  const today = new Date();
+  const now = useNow();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
 
   const todayIndex = daily.findIndex((d) => {

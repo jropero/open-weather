@@ -135,7 +135,7 @@ export function aggregateMonthly(daily: ERA5DailyData): MonthlyClimate[] {
   }
 
   const result: MonthlyClimate[] = [];
-  for (const [ym, g] of Array.from(groups.entries()).sort()) {
+  for (const [ym, g] of Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b))) {
     if (!g.temp.length && !g.pressure.length) continue;
     const year = Number(ym.slice(0, 4));
     const month = Number(ym.slice(5, 7));
@@ -185,7 +185,7 @@ export function aggregateSeasonal(monthly: MonthlyClimate[]): SeasonalClimate[] 
   }
 
   const result: SeasonalClimate[] = [];
-  for (const [key, g] of Array.from(groups.entries()).sort()) {
+  for (const [key, g] of Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b))) {
     if (g.months.length < 3) continue; // incomplete — skip
     result.push({
       key,

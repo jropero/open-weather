@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vite-plus/test';
 import { classifyAnomaly, formatAbsolute, getAnomalyClass } from '../seasonal';
 import type { SeasonalValue, SeasonalVariable } from '../../types/weather';
 

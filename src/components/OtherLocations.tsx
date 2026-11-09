@@ -325,13 +325,10 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   let trendControl: React.ReactNode;
   if (trendsLoading) {
     trendControl = (
-      <span
-        className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700"
-        role="status"
-      >
+      <output className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700">
         <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600" />
         {t('seasonal.compact.loading')}
-      </span>
+      </output>
     );
   } else if (trendsIdle > 0 || trendErrors > 0) {
     trendControl = (
@@ -452,6 +449,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
           return (
             <div
               key={location.id}
+              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- card contains block content; button semantics/layout preserved
               role="button"
               tabIndex={0}
               className="bg-slate-50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"

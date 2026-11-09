@@ -443,9 +443,8 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
         {expanded && (
           <>
             {/* Tier switcher */}
-            <div
-              className="bg-white/10 p-0.5 rounded-full grid grid-cols-3 gap-1 border border-white/5 mb-4"
-              role="group"
+            <fieldset
+              className="bg-white/10 p-0.5 rounded-full grid grid-cols-3 gap-1 border border-white/5 mb-4 min-w-0 m-0"
               aria-label={t('title.long_range')}
             >
               {TIERS.map((key) => (
@@ -459,7 +458,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
                   {t(`seasonal.tier.${key}`)}
                 </button>
               ))}
-            </div>
+            </fieldset>
 
             {outlookBody}
 

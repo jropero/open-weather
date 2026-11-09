@@ -1,5 +1,8 @@
 export type EnsembleVar =
-  'temperature_2m' | 'precipitation' | 'pressure_msl' | 'wind_speed_10m';
+  | 'temperature_2m'
+  | 'precipitation'
+  | 'pressure_msl'
+  | 'wind_speed_10m';
 
 export interface EnsemblePoint {
   time: number; // ms UTC

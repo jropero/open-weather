@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import type { XAxisTickContentProps } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
+import { useNow } from '../hooks/useNow';
 
 interface DailyForecastProps {
   daily: DailyWeather[];
@@ -109,7 +110,8 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   const { language, t } = useLanguage();
   const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('hourly');
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const today = new Date();
+  const now = useNow();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
 
   const todayIndex = daily.findIndex((d) => {
