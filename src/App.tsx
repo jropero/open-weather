@@ -10,40 +10,52 @@ import {
   getWindDirection,
   getWindChillIndex,
   getStormPotential,
-  getAqiInfo,
-  getPollenLevel,
   getUvInfo,
   wmoToCondition,
-  getGustLevel,
-  type GustLevel,
 } from './utils/weatherCodes';
-import { AirQualityDetail } from './components/AirQualityDetail';
+import {
+  sumPrecip,
+  getNightType,
+  getFrostType,
+  getPrecipOnset,
+  getWindAlert,
+} from './utils/heroAlerts';
+import { AlertBadges } from './components/AlertBadges';
+import { AirQualityCard } from './components/AirQualityCard';
+import { StaleDataBanner } from './components/StaleDataBanner';
 import WeatherSvgEffects from './components/WeatherSvgEffects';
 import { RAIN_INTENSITY, generateWeatherParticles } from './utils/weatherParticles';
 import AuroraSvg from './components/AuroraSvg';
 import { MapPin, Search, HelpCircle, Wind, Cloud, Moon } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
-import { LongRangeOutlook } from './components/LongRangeOutlook';
 import { HistoricalPressure } from './components/HistoricalPressure';
 import { LocationSelector } from './components/LocationSelector';
 import { LanguageProvider } from './context/LanguageContext';
 import { useLanguage, type Language } from './hooks/useLanguage';
-import { HelpModal } from './components/HelpModal';
 import { OtherLocations } from './components/OtherLocations';
 import { TodayTomorrowSummary } from './components/TodayTomorrowSummary';
 import { purgeStaleCache } from './utils/cacheCleanup';
 
+// Code-split: the help text and the long-range outlook (with its two drill-down dialogs and
+// the seasonal/ensemble/ERA5 logic) load in their own chunks after the first paint
+const HelpModal = React.lazy(() =>
+  import('./components/HelpModal').then((m) => ({ default: m.HelpModal })),
+);
+const LongRangeOutlook = React.lazy(() =>
+  import('./components/LongRangeOutlook').then((m) => ({ default: m.LongRangeOutlook })),
+);
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function WeatherDashboard() {
   const { currentLocation } = useLocationContext();
-  const { data, loading, error } = useWeather(currentLocation);
+  const { data, loading, error, stale, fetchedAt, refreshing, refresh } =
+    useWeather(currentLocation);
   const [isSelectorOpen, setIsSelectorOpen] = React.useState(false);
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
   const { language, setLanguage, t } = useLanguage();
   const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
   const [previewCondition, setPreviewCondition] = React.useState<string>('auto');
-  const [aqDetailOpen, setAqDetailOpen] = React.useState(false);
   const now = useNow();
 
   React.useEffect(() => {
@@ -63,46 +75,15 @@ function WeatherDashboard() {
     ? Math.round((data.hourly[6].temperature - data.current.temperature) * 10) / 10
     : null;
 
-  const rainNext3h = React.useMemo(() => {
-    if (!data?.hourly.length) return 0;
-    let sum = 0;
-    for (const h of data.hourly.slice(0, 3)) {
-      sum += h.precipitation || 0;
-    }
-    return Math.round(sum * 10) / 10;
-  }, [data]);
-
-  const rainNext6h = React.useMemo(() => {
-    if (!data?.hourly.length) return 0;
-    let sum = 0;
-    for (const h of data.hourly.slice(0, 6)) {
-      sum += h.precipitation || 0;
-    }
-    return Math.round(sum * 10) / 10;
-  }, [data]);
-
-  const rainNext24h = React.useMemo(() => {
-    if (!data?.hourly.length) return 0;
-    let sum = 0;
-    for (const h of data.hourly) {
-      sum += h.precipitation || 0;
-    }
-    return Math.round(sum * 10) / 10;
-  }, [data]);
-
-  const nightType = React.useMemo<'ecuatorial' | 'torrida' | 'tropical' | null>(() => {
-    if (!data?.hourly.length) return null;
-    const tonight = data.hourly.filter((h) => {
-      const hour = new Date(h.time + 'Z').getHours();
-      return hour >= 20 || hour <= 6;
-    });
-    if (!tonight.length) return null;
-    const minTonight = Math.min(...tonight.map((h) => h.temperature));
-    if (minTonight > 25) return 'ecuatorial';
-    if (minTonight >= 25) return 'torrida';
-    if (minTonight >= 20) return 'tropical';
-    return null;
-  }, [data]);
+  // Badge inputs — pure helpers in utils/heroAlerts.ts (tested); cheap, so not memoized
+  const hourly = data?.hourly ?? [];
+  const rain = { h3: sumPrecip(hourly, 3), h6: sumPrecip(hourly, 6), h24: sumPrecip(hourly) };
+  // "Night" = local hours at the location (API timezone, else the saved location's zone)
+  const locationTz = data?.timezone ?? currentLocation.timezone;
+  const nightType = getNightType(hourly, locationTz);
+  const frostType = getFrostType(hourly, locationTz);
+  const precipOnset = getPrecipOnset(hourly, now);
+  const windAlert = data ? getWindAlert(data.current.windGusts, hourly, now) : null;
 
   // Not memoized: cheap, and React Compiler treats `data.current` like a ref and can't preserve a manual memo on it
   const currentWindChill = data
@@ -116,83 +97,6 @@ function WeatherDashboard() {
     return result.level !== 'none' ? result : null;
   }, [data, language]);
 
-  const frostType = React.useMemo<'ice' | 'frost' | null>(() => {
-    if (!data?.hourly.length) return null;
-    const overnight = data.hourly.filter((h) => {
-      const hour = new Date(h.time + 'Z').getHours();
-      return hour >= 20 || hour <= 8;
-    });
-    if (!overnight.length) return null;
-    const minTemp = Math.min(...overnight.map((h) => h.temperature));
-    const dewPoints = overnight
-      .map((h) => h.dewPoint)
-      .filter((d): d is number => d !== undefined);
-    const minDewPoint = dewPoints.length ? Math.min(...dewPoints) : Infinity;
-    if (minTemp <= 0) return 'ice';
-    if (minTemp <= 2 || minDewPoint <= 0) return 'frost';
-    return null;
-  }, [data]);
-
-  // Not memoized: depends on the ticking `now`, scans at most 25 hours
-  const precipOnset = ((): {
-    minutesFromNow: number;
-    type: 'rain' | 'snow' | 'freezing';
-    // eslint-disable-next-line sonarjs/cognitive-complexity
-  } | null => {
-    if (!data?.hourly.length) return null;
-    for (const h of data.hourly) {
-      if (h.precipitation >= 0.1) {
-        const onsetTime = new Date(h.time + 'Z').getTime();
-        const minutesFromNow = Math.max(0, Math.round((onsetTime - now) / 60000));
-        const isSnow =
-          (h.snowfall ?? 0) > 0 ||
-          (h.weatherCode >= 71 && h.weatherCode <= 77) ||
-          h.weatherCode === 85 ||
-          h.weatherCode === 86;
-        const isFreezing =
-          h.weatherCode === 56 ||
-          h.weatherCode === 57 ||
-          h.weatherCode === 66 ||
-          h.weatherCode === 67;
-        let precipType: 'rain' | 'snow' | 'freezing';
-        if (isSnow) precipType = 'snow';
-        else if (isFreezing) precipType = 'freezing';
-        else precipType = 'rain';
-        return { minutesFromNow, type: precipType };
-      }
-    }
-    return null;
-  })();
-
-  // Not memoized for the same `data.current` reason as currentWindChill; scans at most 13 hours
-  const windAlert = ((): {
-    gusts: number;
-    minutesFromNow: number;
-    level: GustLevel;
-  } | null => {
-    if (!data) return null;
-    const getLevel = getGustLevel;
-    const currentLevel = getLevel(data.current.windGusts);
-    if (currentLevel)
-      return {
-        gusts: Math.round(data.current.windGusts),
-        minutesFromNow: 0,
-        level: currentLevel,
-      };
-    // Look ahead up to 12h for strengthening gusts
-    for (const h of data.hourly.slice(1, 13)) {
-      const level = getLevel(h.windGusts);
-      if (level) {
-        const minutesFromNow = Math.max(
-          0,
-          Math.round((new Date(h.time + 'Z').getTime() - now) / 60000),
-        );
-        return { gusts: Math.round(h.windGusts), minutesFromNow, level };
-      }
-    }
-    return null;
-  })();
-
   // Must be before early returns (Rules of Hooks)
   const rainIntensity = RAIN_INTENSITY[data?.current.weatherCode ?? -1] ?? 0;
   const weatherParticles = React.useMemo(
@@ -202,16 +106,32 @@ function WeatherDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-200 text-white font-sans">
-        {language === 'en' ? 'Loading weather data...' : 'Cargando datos del clima...'}
+      <div
+        className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-400 to-blue-200 text-white font-sans"
+        aria-live="polite"
+      >
+        {t('app.loading')}
       </div>
     );
   }
 
-  if (error) {
+  // Only reached when there is nothing to show (no network and no last-good copy)
+  if (error && !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-red-400 to-red-200 text-white font-sans">
-        Error: {error}
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-b from-slate-700 to-slate-900 text-white font-sans">
+        <div className="max-w-sm text-center flex flex-col items-center gap-3" role="alert">
+          <Cloud size={48} strokeWidth={1.2} className="text-slate-300" aria-hidden="true" />
+          <h1 className="text-lg font-bold">{t('app.error.title')}</h1>
+          <p className="text-sm text-slate-300">{t('app.error.detail')}</p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="mt-2 px-5 py-2 rounded-full bg-white text-slate-900 text-sm font-bold hover:bg-sky-100 transition-colors"
+          >
+            {t('app.retry')}
+          </button>
+          <p className="text-[11px] text-slate-400 break-all">{error}</p>
+        </div>
       </div>
     );
   }
@@ -334,145 +254,6 @@ function WeatherDashboard() {
     thomBarClass = 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]';
   else thomBarClass = 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
 
-  let delta6hBadgeClass: string;
-  if (!data.pressureTrend || data.pressureTrend.delta6h > -3)
-    delta6hBadgeClass = 'bg-blue-500/20 border-blue-400/30 text-white';
-  else if (data.pressureTrend.delta6h <= -5)
-    delta6hBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
-  else delta6hBadgeClass = 'bg-amber-500/30 border-amber-400/40 text-white';
-
-  let tempDelta3hClass: string;
-  if (tempDelta3h !== null && tempDelta3h > 0) tempDelta3hClass = 'text-orange-200';
-  else if (tempDelta3h !== null && tempDelta3h < 0) tempDelta3hClass = 'text-sky-200';
-  else tempDelta3hClass = 'text-white';
-
-  let tempDelta6hBadgeClass: string;
-  if (tempDelta6h !== null && tempDelta6h >= 3)
-    tempDelta6hBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
-  else if (tempDelta6h !== null && tempDelta6h > 0)
-    tempDelta6hBadgeClass = 'bg-amber-500/30 border-amber-400/40 text-white';
-  else tempDelta6hBadgeClass = 'bg-white/20 border-white/10 text-white';
-
-  const inOrEn = isEn ? 'in' : 'en';
-
-  let precipBadgeClass: string;
-  let precipEmoji: string;
-  let precipText: string;
-  let precipTimingText: string;
-  if (precipOnset) {
-    if (precipOnset.type === 'snow') {
-      precipBadgeClass = 'bg-cyan-500/30 border-cyan-400/40';
-      precipEmoji = '❄️';
-      precipText = isEn ? 'Snow' : 'Nieve';
-    } else if (precipOnset.type === 'freezing') {
-      precipBadgeClass = 'bg-indigo-500/30 border-indigo-400/40';
-      precipEmoji = '🌨️';
-      precipText = isEn ? 'Freezing' : 'Helada';
-    } else {
-      precipBadgeClass = 'bg-blue-500/30 border-blue-400/40';
-      precipEmoji = '🌧️';
-      const mmh = rainNext3h / 3;
-      if (mmh >= 10) precipText = isEn ? 'Violent rain' : 'Torrencial';
-      else if (mmh >= 2.5) precipText = isEn ? 'Heavy rain' : 'Fuerte';
-      else if (mmh >= 0.5) precipText = isEn ? 'Moderate rain' : 'Moderada';
-      else precipText = isEn ? 'Light rain' : 'Leve';
-    }
-    if (precipOnset.minutesFromNow <= 0) precipTimingText = isEn ? 'now' : 'ahora';
-    else if (precipOnset.minutesFromNow < 60)
-      precipTimingText = `${inOrEn} ${precipOnset.minutesFromNow}min`;
-    else precipTimingText = `${inOrEn} ${Math.floor(precipOnset.minutesFromNow / 60)}h`;
-  } else {
-    precipBadgeClass = 'bg-blue-500/30 border-blue-400/40';
-    precipEmoji = '🌧️';
-    precipText = '';
-    precipTimingText = '';
-  }
-
-  let windBadgeClass: string;
-  let windEmoji: string;
-  let windLevelText: string;
-  let windTimingText: string;
-  if (!windAlert) {
-    windBadgeClass = 'bg-teal-500/25 border-teal-400/35';
-    windEmoji = '🌬️';
-    windLevelText = isEn ? 'Breezy' : 'Ventoso';
-    windTimingText = '';
-  } else if (windAlert.level === 'storm') {
-    windBadgeClass = 'bg-red-600/40 border-red-400/50';
-    windEmoji = '🌪️';
-    windLevelText = isEn ? 'Storm' : 'Borrasca';
-    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
-    else if (windAlert.minutesFromNow < 60)
-      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
-    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
-  } else if (windAlert.level === 'gale') {
-    windBadgeClass = 'bg-orange-500/35 border-orange-400/45';
-    windEmoji = '💨';
-    windLevelText = isEn ? 'Gale' : 'Vendaval';
-    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
-    else if (windAlert.minutesFromNow < 60)
-      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
-    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
-  } else if (windAlert.level === 'strong') {
-    windBadgeClass = 'bg-amber-500/30 border-amber-400/40';
-    windEmoji = '🌬️';
-    windLevelText = isEn ? 'Strong wind' : 'Viento fuerte';
-    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
-    else if (windAlert.minutesFromNow < 60)
-      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
-    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
-  } else {
-    windBadgeClass = 'bg-teal-500/25 border-teal-400/35';
-    windEmoji = '🌬️';
-    windLevelText = isEn ? 'Breezy' : 'Ventoso';
-    if (windAlert.minutesFromNow <= 0) windTimingText = isEn ? 'now' : 'ahora';
-    else if (windAlert.minutesFromNow < 60)
-      windTimingText = `${inOrEn} ${windAlert.minutesFromNow}min`;
-    else windTimingText = `${inOrEn} ${Math.floor(windAlert.minutesFromNow / 60)}h`;
-  }
-
-  let nightBadgeClass: string;
-  let nightEmoji: string;
-  if (nightType === 'ecuatorial') {
-    nightBadgeClass = 'bg-purple-500/30 border-purple-400/40 text-white';
-    nightEmoji = '🌊';
-  } else if (nightType === 'torrida') {
-    nightBadgeClass = 'bg-red-500/30 border-red-400/40 text-white';
-    nightEmoji = '🔥';
-  } else {
-    nightBadgeClass = 'bg-amber-500/20 border-amber-400/30 text-white';
-    nightEmoji = '🌙';
-  }
-
-  let frostBadgeClass: string;
-  let frostEmoji: string;
-  let frostText: string;
-  if (frostType === 'ice') {
-    frostBadgeClass = 'bg-cyan-900/40 border-cyan-400/40 text-white';
-    frostEmoji = '🧊';
-    frostText = isEn ? 'Ice tonight' : 'Hielo esta noche';
-  } else {
-    frostBadgeClass = 'bg-slate-700/40 border-slate-400/30 text-white';
-    frostEmoji = '🌨️';
-    frostText = isEn ? 'Frost risk' : 'Riesgo helada';
-  }
-
-  let stormBadgeClass: string;
-  if (stormPotential?.level === 'extreme')
-    stormBadgeClass = 'bg-red-600/30 border-red-400/40 text-white';
-  else if (stormPotential?.level === 'strong')
-    stormBadgeClass = 'bg-orange-500/30 border-orange-400/40 text-white';
-  else if (stormPotential?.level === 'moderate')
-    stormBadgeClass = 'bg-yellow-400/20 border-yellow-400/40 text-white';
-  else stormBadgeClass = 'bg-sky-400/20 border-sky-400/30 text-white';
-
-  let fogText: string;
-  if (data.current.weatherCode === 48) {
-    fogText = isEn ? 'Rime fog' : 'Niebla helada';
-  } else {
-    fogText = isEn ? 'Fog' : 'Niebla';
-  }
-
   /* eslint-disable sonarjs/cognitive-complexity */
   return (
     <div
@@ -569,6 +350,15 @@ function WeatherDashboard() {
           </button>
         </div>
       </header>
+
+      {stale && fetchedAt !== null && (
+        <StaleDataBanner
+          fetchedAt={fetchedAt}
+          now={now}
+          refreshing={refreshing}
+          onRetry={refresh}
+        />
+      )}
 
       <main className="flex flex-col gap-6">
         {/* Hero with animated weather background */}
@@ -820,180 +610,19 @@ function WeatherDashboard() {
             />
 
             {/* Alert badges — grouped by category, each group is its own flex row */}
-            <div className="flex flex-col items-center gap-2 mt-3">
-              {/* Group: Pressure + Temperature trends */}
-              {((data.pressureTrend &&
-                (Math.abs(data.pressureTrend.delta3h) >= 2 ||
-                  Math.abs(data.pressureTrend.delta6h) >= 3)) ||
-                tempDelta3h !== null ||
-                tempDelta6h !== null) && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  {data.pressureTrend && Math.abs(data.pressureTrend.delta3h) >= 2 && (
-                    <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3 text-xs font-bold text-white border border-white/10 flex items-center gap-1 shadow-md">
-                      <span className="text-white/50 uppercase tracking-wider">3h</span>
-                      <span
-                        className={
-                          data.pressureTrend.delta3h <= -2 ? 'text-orange-200' : 'text-blue-200'
-                        }
-                      >
-                        {data.pressureTrend.delta3h > 0 ? '+' : ''}
-                        {data.pressureTrend.delta3h} hPa
-                      </span>
-                    </div>
-                  )}
-                  {data.pressureTrend && Math.abs(data.pressureTrend.delta6h) >= 3 && (
-                    <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${delta6hBadgeClass}`}
-                    >
-                      <span className="uppercase tracking-wider opacity-70">6h</span>
-                      <span>
-                        {data.pressureTrend.delta6h > 0 ? '+' : ''}
-                        {data.pressureTrend.delta6h} hPa
-                      </span>
-                      {data.pressureTrend.delta6h <= -3 && (
-                        <span
-                          title={
-                            isEn
-                              ? 'Significant 6h drop (Main migraine trigger)'
-                              : 'Caída severa en 6h (Principal riesgo)'
-                          }
-                        >
-                          ⚡
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {tempDelta3h !== null && (
-                    <div className="bg-white/20 backdrop-blur-md rounded-full py-1.5 px-3 text-xs font-bold text-white border border-white/10 flex items-center gap-1 shadow-md">
-                      <span className="text-white/50 uppercase tracking-wider">3h</span>
-                      <span className={tempDelta3hClass}>
-                        {tempDelta3h > 0 ? '+' : ''}
-                        {tempDelta3h}°C
-                      </span>
-                    </div>
-                  )}
-                  {tempDelta6h !== null && (
-                    <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 shadow-md backdrop-blur-md ${tempDelta6hBadgeClass}`}
-                    >
-                      <span
-                        className={`uppercase tracking-wider ${tempDelta6h !== null && tempDelta6h > 0 ? 'opacity-80' : 'text-white/50'}`}
-                      >
-                        6h
-                      </span>
-                      <span>
-                        {tempDelta6h > 0 ? '+' : ''}
-                        {tempDelta6h}°C
-                      </span>
-                      {tempDelta6h >= 3 && (
-                        <span
-                          title={
-                            isEn
-                              ? 'Sharp temperature rise in 6h'
-                              : 'Subida fuerte de temperatura en 6h'
-                          }
-                        >
-                          🔥
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Group: Precipitation — onset badge + amounts in same row */}
-              {precipOnset && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  <div
-                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${precipBadgeClass} text-white`}
-                  >
-                    <span>{precipEmoji}</span>
-                    <span className="opacity-80">{precipText}</span>
-                    <span className="font-black text-white/90">{precipTimingText}</span>
-                  </div>
-                  {(
-                    [
-                      { label: '3h', value: rainNext3h },
-                      { label: '6h', value: rainNext6h },
-                      { label: '24h', value: rainNext24h },
-                    ] as const
-                  ).map(({ label, value }) => {
-                    let amountBadgeClass: string;
-                    if (!value) {
-                      amountBadgeClass = 'bg-white/5 border-white/10 text-white/30';
-                    } else if (precipOnset.type === 'snow') {
-                      amountBadgeClass = 'bg-cyan-500/20 border-cyan-400/30 text-cyan-200';
-                    } else if (precipOnset.type === 'freezing') {
-                      amountBadgeClass =
-                        'bg-indigo-500/20 border-indigo-400/30 text-indigo-200';
-                    } else {
-                      amountBadgeClass = 'bg-blue-500/20 border-blue-400/30 text-blue-200';
-                    }
-                    return (
-                      <div
-                        key={label}
-                        className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1 backdrop-blur-md ${amountBadgeClass}`}
-                      >
-                        <span className="opacity-60">{label}</span>
-                        <span className="font-black">{value > 0 ? `${value}mm` : '—'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Group: Wind */}
-              {windAlert && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  <div
-                    className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md text-white ${windBadgeClass}`}
-                  >
-                    <span>{windEmoji}</span>
-                    <span className="opacity-80">{windLevelText}</span>
-                    <span className="font-bold">{windAlert.gusts} km/h</span>
-                    <span className="font-black opacity-90">{windTimingText}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Group: Conditions (night type, frost, storm potential, fog) */}
-              {(nightType || frostType || stormPotential || wmoCondition === 'fog') && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  {nightType && (
-                    <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${nightBadgeClass}`}
-                    >
-                      <span>{nightEmoji}</span>
-                      <span>{t(`label.night_${nightType}`)}</span>
-                    </div>
-                  )}
-                  {frostType && (
-                    <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${frostBadgeClass}`}
-                    >
-                      <span>{frostEmoji}</span>
-                      <span>{frostText}</span>
-                    </div>
-                  )}
-                  {stormPotential && (
-                    <div
-                      className={`rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md ${stormBadgeClass}`}
-                    >
-                      <span>⛈️</span>
-                      <span>
-                        {isEn ? 'Storm' : 'Tormenta'}: {stormPotential.label}
-                      </span>
-                    </div>
-                  )}
-                  {wmoCondition === 'fog' && (
-                    <div className="rounded-full py-1.5 px-3 text-xs font-bold border flex items-center gap-1.5 shadow-md backdrop-blur-md bg-zinc-500/30 border-zinc-400/40 text-white">
-                      <span>🌫️</span>
-                      <span>{fogText}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <AlertBadges
+              pressureTrend={data.pressureTrend}
+              tempDelta3h={tempDelta3h}
+              tempDelta6h={tempDelta6h}
+              precipOnset={precipOnset}
+              rain={rain}
+              windAlert={windAlert}
+              nightType={nightType}
+              frostType={frostType}
+              stormPotential={stormPotential}
+              isFog={wmoCondition === 'fog'}
+              weatherCode={data.current.weatherCode}
+            />
 
             {/* Shrimp Progress Bar */}
             {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (
@@ -1111,171 +740,12 @@ function WeatherDashboard() {
           </section>
 
           {/* Air Quality Card */}
-          {data.airQuality &&
-            data.airQuality.currentAqi !== null &&
-            (() => {
-              const aq = data.airQuality!;
-              const aqiInfo = getAqiInfo(aq.currentAqi!, language);
-              const pollens: {
-                emoji: string;
-                name: string;
-                value: number | null;
-              }[] = [
-                {
-                  emoji: '🌿',
-                  name: isEn ? 'Grass' : 'Gramín.',
-                  value: aq.grassPollen,
-                },
-                {
-                  emoji: '🌳',
-                  name: isEn ? 'Birch' : 'Abedul',
-                  value: aq.birchPollen,
-                },
-                {
-                  emoji: '🌸',
-                  name: isEn ? 'Alder' : 'Aliso',
-                  value: aq.alderPollen,
-                },
-                {
-                  emoji: '🌾',
-                  name: isEn ? 'Mugwort' : 'Artemisa',
-                  value: aq.mugwortPollen,
-                },
-                {
-                  emoji: '🫒',
-                  name: isEn ? 'Olive' : 'Olivo',
-                  value: aq.olivePollen,
-                },
-                {
-                  emoji: '🌻',
-                  name: isEn ? 'Ragweed' : 'Ambrosía',
-                  value: aq.ragweedPollen,
-                },
-              ].filter((p) => p.value !== null && p.value > 0);
-
-              return (
-                <>
-                  <section className="bg-gradient-to-br from-white to-emerald-50 rounded-2xl p-3 shadow-lg text-slate-800 flex flex-col gap-2">
-                    <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold leading-tight">
-                      {isEn ? 'Air Quality' : 'Calidad del Aire'}
-                    </h3>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-black text-slate-900 leading-none">
-                        {Math.round(aq.currentAqi!)}
-                      </span>
-                      <span className="text-xs text-slate-400 font-bold uppercase">AQI</span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${aqiInfo.bgClass}`}
-                      >
-                        {aqiInfo.label}
-                      </span>
-                      {aq.dominantPollutant && (
-                        <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
-                          {aq.dominantPollutant}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <div className="relative w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-purple-600 opacity-80" />
-                        <div
-                          className="absolute top-0 h-full w-1 bg-slate-900 rounded-full border border-white shadow-sm transition-all duration-1000 ease-out"
-                          style={{
-                            left: `calc(${Math.max(0, Math.min(100, (aq.currentAqi! / 100) * 100))}% - 2px)`,
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-400 font-bold">
-                        <span>{isEn ? 'Good' : 'Bueno'}</span>
-                        <span>Ext.</span>
-                      </div>
-                    </div>
-
-                    {(aq.currentPm25 !== null || aq.currentPm10 !== null) &&
-                      (() => {
-                        const pm25dot = (v: number) => {
-                          if (v < 12) return 'bg-emerald-400';
-                          if (v < 35.5) return 'bg-yellow-400';
-                          if (v < 55.5) return 'bg-orange-400';
-                          return 'bg-red-500';
-                        };
-                        const pm10dot = (v: number) => {
-                          if (v < 54) return 'bg-emerald-400';
-                          if (v < 154) return 'bg-yellow-400';
-                          if (v < 254) return 'bg-orange-400';
-                          return 'bg-red-500';
-                        };
-                        return (
-                          <div className="flex flex-col gap-0.5">
-                            {aq.currentPm25 !== null && (
-                              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                                <span>
-                                  PM2.5{' '}
-                                  <span className="font-bold text-slate-700">
-                                    {aq.currentPm25.toFixed(1)}
-                                  </span>{' '}
-                                  μg/m³
-                                </span>
-                                <span
-                                  className={`w-2.5 h-2.5 rounded-full ml-2 ${pm25dot(aq.currentPm25)}`}
-                                />
-                              </div>
-                            )}
-                            {aq.currentPm10 !== null && (
-                              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                                <span>
-                                  PM10{' '}
-                                  <span className="font-bold text-slate-700">
-                                    {aq.currentPm10.toFixed(1)}
-                                  </span>{' '}
-                                  μg/m³
-                                </span>
-                                <span
-                                  className={`w-2.5 h-2.5 rounded-full ml-2 ${pm10dot(aq.currentPm10)}`}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                    {pollens.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1.5 border-t border-slate-100">
-                        {pollens.map((p) => {
-                          const level = getPollenLevel(p.value!, language);
-                          if (!level) return null;
-                          return (
-                            <span
-                              key={p.name}
-                              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${level.bgClass}`}
-                            >
-                              {p.emoji} {p.name}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => setAqDetailOpen(true)}
-                      className="mt-auto text-xs text-emerald-600 font-bold text-right hover:text-emerald-800 transition-colors"
-                    >
-                      {isEn ? 'View detail →' : 'Ver detalle →'}
-                    </button>
-                  </section>
-
-                  {aqDetailOpen && (
-                    <AirQualityDetail
-                      aq={aq}
-                      timezone={data.timezone}
-                      onClose={() => setAqDetailOpen(false)}
-                    />
-                  )}
-                </>
-              );
-            })()}
+          {data.airQuality && data.airQuality.currentAqi !== null && (
+            <AirQualityCard
+              aq={{ ...data.airQuality, currentAqi: data.airQuality.currentAqi }}
+              timezone={data.timezone}
+            />
+          )}
         </div>
 
         {/* Daily Forecast and Chart */}
@@ -1289,7 +759,16 @@ function WeatherDashboard() {
         <FutureForecast daily={data.daily} />
 
         {/* Long-Range Outlook (weeks → months → seasons) — continues the timeline after the 3-day forecast */}
-        <LongRangeOutlook key={currentLocation.id} location={currentLocation} />
+        <React.Suspense
+          fallback={
+            <div
+              className="bg-slate-900/60 rounded-3xl p-6 mt-4 h-48 animate-pulse"
+              aria-hidden="true"
+            />
+          }
+        >
+          <LongRangeOutlook key={currentLocation.id} location={currentLocation} />
+        </React.Suspense>
 
         {/* Other Locations */}
         <OtherLocations
@@ -1311,7 +790,11 @@ function WeatherDashboard() {
       </main>
 
       <LocationSelector isOpen={isSelectorOpen} onClose={() => setIsSelectorOpen(false)} />
-      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      {isHelpOpen && (
+        <React.Suspense fallback={null}>
+          <HelpModal isOpen onClose={() => setIsHelpOpen(false)} />
+        </React.Suspense>
+      )}
     </div>
   );
   /* eslint-enable sonarjs/cognitive-complexity */
