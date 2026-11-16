@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   Location,
   WeatherData,
@@ -7,25 +7,116 @@ import type {
   AirQualityData,
   SummaryHour,
 } from '../types/weather';
+import { isAbortError } from '../utils/fetchUtils';
 
 function getModelParam(lat: number, lon: number): string {
   const isSwiss = lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
   return isSwiss ? '&models=meteoswiss_icon_ch2' : '';
 }
 
+/** Refetch when the shown data is older than this (matches the service worker's 30-min TTL). */
+export const REFRESH_AFTER_MS = 30 * 60 * 1000;
+/** How often an open, visible app checks whether its data is due for a refresh. */
+const REFRESH_CHECK_MS = 5 * 60 * 1000;
+/** Last successful result (one location only) — shown when a later load fails, e.g. offline. */
+const LAST_KEY = 'weather_last';
+
+interface LastWeather {
+  key: string; // `${lat}_${lon}`
+  fetchedAt: number;
+  data: WeatherData;
+}
+
+function readLast(key: string): LastWeather | null {
+  try {
+    const raw = localStorage.getItem(LAST_KEY);
+    if (!raw) return null;
+    const last = JSON.parse(raw) as LastWeather;
+    return last.key === key && last.data?.current ? last : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Forecast + derived data for a location.
+ * - `loading`: first load of this location (nothing to show yet).
+ * - `refreshing`: background refetch of the location already shown (data stays on screen).
+ * - `stale`: the data shown is older than it should be — a refresh failed, or it came from
+ *   the last-good cache because the network was unreachable. `fetchedAt` says how old.
+ * - `error`: set only when there is nothing at all to show.
+ */
 export function useWeather(location: Location) {
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  const [stale, setStale] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const locKey = `${location.latitude}_${location.longitude}`;
+  // Which location the data on screen belongs to, and when it was fetched (read by listeners)
+  const shownKeyRef = useRef<string | null>(null);
+  const fetchedAtRef = useRef<number | null>(null);
+  const staleRef = useRef(false);
+
+  const refresh = useCallback(() => setReloadToken((n) => n + 1), []);
+
+  // Persist the last good result so a failed load (offline) can still show something
+  useEffect(() => {
+    if (!data || stale || fetchedAt === null || shownKeyRef.current === null) return;
+    try {
+      const last: LastWeather = { key: shownKeyRef.current, fetchedAt, data };
+      localStorage.setItem(LAST_KEY, JSON.stringify(last));
+    } catch {
+      /* storage full */
+    }
+  }, [data, stale, fetchedAt]);
+
+  // Background refresh: when the tab becomes visible, periodically while open, and when the
+  // connection comes back after a failed load
+  useEffect(() => {
+    const maybeRefresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      const t = fetchedAtRef.current;
+      if (t !== null && Date.now() - t >= REFRESH_AFTER_MS) refresh();
+    };
+    const onOnline = () => {
+      if (staleRef.current) refresh();
+    };
+    document.addEventListener('visibilitychange', maybeRefresh);
+    window.addEventListener('online', onOnline);
+    const id = setInterval(maybeRefresh, REFRESH_CHECK_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', maybeRefresh);
+      window.removeEventListener('online', onOnline);
+      clearInterval(id);
+    };
+  }, [refresh]);
 
   useEffect(() => {
-    let isMounted = true;
+    // Aborts every request of this load when the location changes, a refresh starts or the
+    // dashboard unmounts — late responses can never overwrite newer data
+    const controller = new AbortController();
+    const { signal } = controller;
+    const isMounted = () => !signal.aborted;
+
+    const markShown = (at: number, isStale: boolean) => {
+      shownKeyRef.current = locKey;
+      fetchedAtRef.current = at;
+      staleRef.current = isStale;
+      setFetchedAt(at);
+      setStale(isStale);
+    };
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
     async function fetchWeather() {
       if (!location.latitude || !location.longitude) return;
 
-      setLoading(true);
+      const isRefresh = shownKeyRef.current === locKey;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
 
       try {
@@ -42,8 +133,11 @@ export function useWeather(location: Location) {
           ? `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=weather_code&timezone=UTC`
           : null;
 
-        const fetches: Promise<Response>[] = [fetch(currentUrl), fetch(dailyUrl)];
-        if (globalCodeUrl) fetches.push(fetch(globalCodeUrl));
+        const fetches: Promise<Response>[] = [
+          fetch(currentUrl, { signal }),
+          fetch(dailyUrl, { signal }),
+        ];
+        if (globalCodeUrl) fetches.push(fetch(globalCodeUrl, { signal }));
         const [resCurrent, resDaily, resGlobalCode] = await Promise.all(fetches);
         if (!resCurrent.ok) throw new Error('Error fetching current weather data');
         if (!resDaily.ok) throw new Error('Error fetching daily weather data');
@@ -174,9 +268,10 @@ export function useWeather(location: Location) {
           }
         }
 
-        if (!isMounted) return;
+        if (!isMounted()) return;
 
         // Set main weather data immediately (non-blocking)
+        markShown(Date.now(), false);
         setData({
           current: {
             temperature: currentData.current.temperature_2m,
@@ -197,6 +292,7 @@ export function useWeather(location: Location) {
           airQuality: null, // starts null and loads asynchronously
         });
         setLoading(false);
+        setRefreshing(false);
 
         // Fetch Historical data (2003, 1973, 1949) asynchronously
         const years = [2003, 1973, 1949];
@@ -213,7 +309,8 @@ export function useWeather(location: Location) {
             const raw = localStorage.getItem(histCacheKey);
             if (raw) {
               const cached = JSON.parse(raw);
-              if (isMounted) setData((prev) => (prev ? { ...prev, historical: cached } : null));
+              if (isMounted())
+                setData((prev) => (prev ? { ...prev, historical: cached } : null));
               return;
             }
           } catch {
@@ -224,7 +321,7 @@ export function useWeather(location: Location) {
             const dateStr = `${year}-${month}-${day}`;
             const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_mean,wind_speed_10m_max,wind_direction_10m_dominant,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum&timezone=auto`;
             try {
-              const res = await fetch(histUrl);
+              const res = await fetch(histUrl, { signal });
               if (!res.ok) throw new Error(`HTTP error ${res.status}`);
               const data = await res.json();
               if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
@@ -232,13 +329,15 @@ export function useWeather(location: Location) {
               }
               return { year, data, error: false };
             } catch (err) {
-              console.error(`Error fetching historical weather for ${year}:`, err);
+              if (!isAbortError(err))
+                console.error(`Error fetching historical weather for ${year}:`, err);
               return { year, data: null, error: true };
             }
           });
 
           const historicalResults = await Promise.all(historicalPromises);
-          if (!isMounted) return;
+          // Aborted requests come back as `error` rows — never show or cache those
+          if (!isMounted()) return;
 
           const historicalData = historicalResults.map((result) => {
             if (result.error || !result.data) {
@@ -282,9 +381,9 @@ export function useWeather(location: Location) {
 
         // Fetch Air Quality data asynchronously (Europe only for pollen)
         const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.latitude}&longitude=${location.longitude}&hourly=european_aqi,pm2_5,pm10,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen,european_aqi_pm2_5,european_aqi_pm10,european_aqi_nitrogen_dioxide,european_aqi_ozone,european_aqi_sulphur_dioxide,uv_index&timezone=UTC&forecast_days=2`;
-        fetch(aqUrl)
+        fetch(aqUrl, { signal })
           .then(async (res) => {
-            if (!res.ok || !isMounted) return;
+            if (!res.ok || !isMounted()) return;
             const aqData = await res.json();
             if (!aqData?.hourly?.time) return;
 
@@ -345,21 +444,37 @@ export function useWeather(location: Location) {
             });
           })
           .catch((err) => {
-            console.error('Failed to fetch air quality data:', err);
+            if (!isAbortError(err)) console.error('Failed to fetch air quality data:', err);
           });
       } catch (err) {
-        if (isMounted) setError(err instanceof Error ? err.message : String(err));
+        if (isAbortError(err) || !isMounted()) return;
+        if (isRefresh) {
+          // Keep what is on screen and flag it as out of date
+          staleRef.current = true;
+          setStale(true);
+        } else {
+          const last = readLast(locKey);
+          if (last) {
+            setData(last.data);
+            markShown(last.fetchedAt, true);
+          } else {
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted()) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     }
 
     void fetchWeather();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [location]);
+    return () => controller.abort();
+    // locKey is derived from `location`; reloadToken triggers refreshes/retries
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, reloadToken]);
 
-  return { data, loading, error };
+  return { data, loading, refreshing, error, stale, fetchedAt, refresh };
 }

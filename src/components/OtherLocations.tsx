@@ -76,7 +76,9 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
   }
 
   useEffect(() => {
-    let isMounted = true;
+    // Aborted when the active location changes again before the 13 requests finish
+    const controller = new AbortController();
+    const isMounted = () => !controller.signal.aborted;
     const CACHE_KEY = 'other_locations_cache';
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -93,7 +95,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
             const filtered = (data as OtherLocationData[]).filter(
               (d) => d.location.id !== currentLocation.id,
             );
-            if (isMounted) {
+            if (isMounted()) {
               setOtherLocationsData(filtered);
               setLoading(false);
             }
@@ -108,7 +110,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
       const promises = allLocs.map(async (loc) => {
         try {
           const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m&timezone=auto`;
-          const res = await fetch(url);
+          const res = await fetch(url, { signal: controller.signal });
           if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
           return {
@@ -130,23 +132,24 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
       const all = (await Promise.all(promises)).sort(
         (a, b) => (a.weather?.temperature ?? Infinity) - (b.weather?.temperature ?? Infinity),
       );
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: all }));
-      } catch {
-        /* storage full */
+      // Aborted requests show up as `error` rows — never render or cache them
+      if (!isMounted()) return;
+      // Cache only complete results, so one failed city isn't stuck as an error for an hour
+      if (all.every((d) => d.weather)) {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: all }));
+        } catch {
+          /* storage full */
+        }
       }
 
-      if (isMounted) {
-        const filtered = all.filter((d) => d.location.id !== currentLocation.id);
-        setOtherLocationsData(filtered);
-        setLoading(false);
-      }
+      const filtered = all.filter((d) => d.location.id !== currentLocation.id);
+      setOtherLocationsData(filtered);
+      setLoading(false);
     };
 
     void fetchOtherLocations();
-    return () => {
-      isMounted = false;
-    };
+    return () => controller.abort();
   }, [currentLocation.id]);
 
   if (loading) {

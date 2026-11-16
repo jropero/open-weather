@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Location, SeasonalForecastData, SeasonalOutlook } from '../types/weather';
 import { buildOutlook, fetchSeasonal, getExpectedRun, getLocalToday } from '../utils/seasonal';
+import { isAbortError } from '../utils/fetchUtils';
 
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 
@@ -13,7 +14,9 @@ export function useSeasonalForecast(location: Location) {
   const retry = useCallback(() => setReloadToken((n) => n + 1), []);
 
   useEffect(() => {
-    let isMounted = true;
+    // Cancels the request when the location changes or the widget unmounts
+    const controller = new AbortController();
+    const isActive = () => !controller.signal.aborted;
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
     async function fetchOutlook() {
@@ -37,7 +40,7 @@ export function useSeasonalForecast(location: Location) {
             data: SeasonalForecastData;
           };
           if (cached.run === run && now - cached.timestamp < CACHE_MAX_AGE) {
-            if (isMounted) {
+            if (isActive()) {
               setOutlook(buildOutlook(cached.data, today, location.latitude));
               setLoading(false);
             }
@@ -49,29 +52,28 @@ export function useSeasonalForecast(location: Location) {
       }
 
       try {
-        const data = await fetchSeasonal(location.latitude, location.longitude);
+        const data = await fetchSeasonal(location.latitude, location.longitude, {
+          signal: controller.signal,
+        });
         try {
           localStorage.setItem(cacheKey, JSON.stringify({ run, timestamp: now, data }));
         } catch {
           /* storage full */
         }
-        if (isMounted) setOutlook(buildOutlook(data, today, location.latitude));
+        if (isActive()) setOutlook(buildOutlook(data, today, location.latitude));
       } catch (err) {
+        if (isAbortError(err) || !isActive()) return;
         console.error('Failed to fetch seasonal outlook:', err);
-        if (isMounted) {
-          setOutlook(null);
-          setError(err instanceof Error ? err.message : String(err));
-        }
+        setOutlook(null);
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        if (isMounted) setLoading(false);
+        if (isActive()) setLoading(false);
       }
     }
 
     void fetchOutlook();
 
-    return () => {
-      isMounted = false;
-    };
+    return () => controller.abort();
   }, [location.latitude, location.longitude, location.timezone, reloadToken]);
 
   return { outlook, loading, error, retry };

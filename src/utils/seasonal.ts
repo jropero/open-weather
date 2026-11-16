@@ -128,11 +128,12 @@ export async function fetchSeasonal(
   {
     vars = SEASONAL_VARIABLES,
     weekly = true,
-  }: { vars?: SeasonalVariable[]; weekly?: boolean } = {},
+    signal,
+  }: { vars?: SeasonalVariable[]; weekly?: boolean; signal?: AbortSignal } = {},
 ): Promise<SeasonalForecastData> {
   const weeklyParam = weekly ? `&weekly=${variableList(vars, true)}` : '';
   const url = `${SEASONAL_URL}?latitude=${latitude}&longitude=${longitude}${weeklyParam}&monthly=${variableList(vars, false)}&forecast_days=215`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Seasonal API error ${res.status}`);
   const json = await res.json();
   return {
@@ -487,6 +488,26 @@ const PALETTE: Record<SeasonalVariable, [string, string, string, string]> = {
     'bg-cyan-400 text-slate-900',
   ],
 };
+
+// Same steps as PALETTE as hex (Tailwind v4 sRGB fallbacks), for SVG fills in charts.
+const PALETTE_HEX: Record<SeasonalVariable, [string, string, string, string]> = {
+  temperature: ['#2563eb', '#7dd3fc', '#fdba74', '#dc2626'],
+  precipitation: ['#b45309', '#fde68a', '#6ee7b7', '#047857'],
+  pressure: ['#be185d', '#f9a8d4', '#a5b4fc', '#4f46e5'],
+  sunshine: ['#64748b', '#cbd5e1', '#fef08a', '#facc15'],
+  snowfall: ['#57534e', '#d6d3d1', '#a5f3fc', '#22d3ee'],
+};
+const NEAR_NORMAL_HEX = '#94a3b8'; // slate-400
+
+/** Chart colour for an anomaly level, matching the heatmap cell colour. */
+export function getAnomalyHex(variable: SeasonalVariable, level: AnomalyLevel): string {
+  if (level === 0) return NEAR_NORMAL_HEX;
+  const p = PALETTE_HEX[variable];
+  if (level === -2) return p[0];
+  if (level === -1) return p[1];
+  if (level === 1) return p[2];
+  return p[3];
+}
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export function getAnomalyClass(

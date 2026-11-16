@@ -1,46 +1,48 @@
 import { useState, useEffect } from 'react';
-import { computeStats, type EnsemblePoint, type EnsembleVar } from '../utils/ensembleStats';
+import {
+  ENSEMBLE_DAYS,
+  parseEnsembleResponse,
+  toWeekPoints,
+  type EnsemblePoint,
+  type EnsembleVar,
+  type RawEnsemble,
+} from '../utils/ensembleStats';
+import { isAbortError } from '../utils/fetchUtils';
 
 const ENSEMBLE_URL = 'https://ensemble-api.open-meteo.com/v1/ensemble';
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
-// Session-level cache (covers all 14 days per variable)
-const sessionCache = new Map<string, EnsemblePoint[]>();
+// Session-level cache (all 15 days per variable)
+const sessionCache = new Map<string, RawEnsemble>();
 
 function storageKey(lat: number, lon: number, variable: EnsembleVar): string {
-  return `ensemble_cache_${lat}_${lon}_${variable}`;
+  return `ensemble_cache_v2_${lat}_${lon}_${variable}`;
 }
 
 async function fetchAll(
   lat: number,
   lon: number,
   variable: EnsembleVar,
-): Promise<EnsemblePoint[]> {
-  // ecmwf_ifs025: 50 ECMWF IFS members at 0.25° — closest to the EC46 seasonal ensemble
-  const url = `${ENSEMBLE_URL}?latitude=${lat}&longitude=${lon}&hourly=${variable}&models=ecmwf_ifs025&forecast_days=14&timezone=UTC`;
-  const res = await fetch(url);
+  signal: AbortSignal,
+): Promise<RawEnsemble> {
+  // ecmwf_ifs025: 50 perturbed members + control at 0.25° — closest to the EC46 seasonal ensemble
+  const url = `${ENSEMBLE_URL}?latitude=${lat}&longitude=${lon}&hourly=${variable}&models=ecmwf_ifs025&forecast_days=${ENSEMBLE_DAYS}&timezone=UTC`;
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Ensemble API ${res.status}`);
-  const json = await res.json();
-
-  const times: string[] = json.hourly?.time ?? [];
-  // Auto-detect member keys from response (avoids hardcoded count)
-  const memberKeys: string[] = Object.keys(json.hourly ?? {}).filter((k) =>
-    k.startsWith(`${variable}_member`),
-  );
-
-  return times.map((timeStr, i) => {
-    const members = memberKeys
-      .map((k) => json.hourly[k]?.[i])
-      .filter((v): v is number => typeof v === 'number' && isFinite(v));
-    const stats = computeStats(members.length ? members : [0]);
-    return { time: Date.parse(`${timeStr}Z`), ...stats, members };
-  });
+  return parseEnsembleResponse(await res.json(), variable);
 }
 
-function filterToWeek(points: EnsemblePoint[], weekStart: string): EnsemblePoint[] {
-  const startMs = Date.parse(`${weekStart}T00:00:00Z`);
-  const endMs = startMs + 7 * 24 * 60 * 60 * 1000;
-  return points.filter((p) => p.time >= startMs && p.time < endMs);
+function readStorage(key: string): RawEnsemble | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as { timestamp: number } & RawEnsemble;
+    if (Date.now() - cached.timestamp >= CACHE_TTL) return null;
+    if (!Array.isArray(cached.times) || !Array.isArray(cached.members)) return null;
+    return { times: cached.times, members: cached.members };
+  } catch {
+    return null; // corrupt
+  }
 }
 
 export function useEnsembleData(
@@ -54,68 +56,45 @@ export function useEnsembleData(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    // Switching variable (or closing the dialog) cancels the request still in flight
+    const controller = new AbortController();
     // oxlint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
 
     const key = storageKey(lat, lon, variable);
+    const done = (raw: RawEnsemble) => {
+      if (controller.signal.aborted) return;
+      setData(toWeekPoints(raw, weekStart, variable));
+      setLoading(false);
+    };
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
-      // Check localStorage first (24 h TTL)
-      try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const cached = JSON.parse(raw) as { timestamp: number; data: EnsemblePoint[] };
-          if (Date.now() - cached.timestamp < CACHE_TTL) {
-            if (!cancelled) {
-              setData(filterToWeek(cached.data, weekStart));
-              setLoading(false);
-            }
-            return;
-          }
-        }
-      } catch {
-        /* corrupt, fall through */
-      }
-
-      // Check session cache
-      const session = sessionCache.get(key);
-      if (session) {
-        if (!cancelled) {
-          setData(filterToWeek(session, weekStart));
-          setLoading(false);
-        }
+      const cached = sessionCache.get(key) ?? readStorage(key);
+      if (cached) {
+        sessionCache.set(key, cached);
+        done(cached);
         return;
       }
-
-      // Fetch all 14 days
       try {
-        const all = await fetchAll(lat, lon, variable);
+        const all = await fetchAll(lat, lon, variable, controller.signal);
         sessionCache.set(key, all);
         try {
-          localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data: all }));
+          localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), ...all }));
         } catch {
           /* storage full */
         }
-        if (!cancelled) {
-          setData(filterToWeek(all, weekStart));
-          setLoading(false);
-        }
+        done(all);
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
-          setLoading(false);
-        }
+        if (isAbortError(err) || controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : String(err));
+        setLoading(false);
       }
     }
 
     void load();
-    return () => {
-      cancelled = true;
-    };
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    return () => controller.abort();
   }, [lat, lon, weekStart, variable]);
 
   return { data, loading, error };

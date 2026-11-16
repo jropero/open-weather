@@ -1,69 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { SeasonalPeriod } from '../types/weather';
-import {
-  aggregateMonthly,
-  aggregateSeasonal,
-  getAboveCount,
-  getERA5StartDate,
-  getERA5EndDate,
-  type ERA5DailyData,
-} from '../utils/climateStats';
-
-const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
-const CACHE_TTL = 24 * 60 * 60 * 1000;
-
-function cacheKey(lat: number, lon: number): string {
-  return `climate_hist_v2_${lat}_${lon}`;
-}
-
-// eslint-disable-next-line sonarjs/cognitive-complexity
-async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5DailyData> {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const cached = JSON.parse(raw) as { timestamp: number; daily: ERA5DailyData };
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.daily;
-      }
-    }
-  } catch {
-    /* corrupt — fall through */
-  }
-
-  const startDate = getERA5StartDate();
-  const endDate = getERA5EndDate();
-  const url =
-    `${ARCHIVE_URL}?latitude=${lat}&longitude=${lon}` +
-    `&daily=temperature_2m_mean,precipitation_sum,surface_pressure_mean,sunshine_duration,snowfall_sum` +
-    `&timezone=UTC&start_date=${startDate}&end_date=${endDate}`;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`ERA5 archive API ${res.status}`);
-  const json = await res.json();
-  const d = json.daily ?? {};
-
-  const nullify = (x: unknown): number | null =>
-    typeof x === 'number' && isFinite(x) ? x : null;
-
-  const time: string[] = d.time ?? [];
-  const daily: ERA5DailyData = {
-    time,
-    temp: (d.temperature_2m_mean ?? []).map(nullify),
-    precip: (d.precipitation_sum ?? []).map(nullify),
-    pressure: (d.surface_pressure_mean ?? []).map(nullify),
-    sunshine: (d.sunshine_duration ?? []).map(nullify),
-    snowfall: (d.snowfall_sum ?? []).map(nullify),
-  };
-  try {
-    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), daily }));
-  } catch {
-    /* storage full */
-  }
-  return daily;
-}
+import { aggregateMonthly, aggregateSeasonal, getAboveCount } from '../utils/climateStats';
+import { getERA5Data } from './useHistoricalClimate';
 
 /**
- * Fetches ERA5 once (shared cache with ClimateDetailView), computes temperature
+ * Fetches ERA5 once (shared cache + in-flight request with ClimateDetailView), computes temperature
  * above-count for every period. Returns null while loading or on error.
  */
 export function useAllPeriodRanks(
@@ -72,9 +13,13 @@ export function useAllPeriodRanks(
   periods: SeasonalPeriod[],
   isSeasonal: boolean,
 ): Map<string, { above: number; total: number }> | null {
-  const [ranks, setRanks] = useState<Map<string, { above: number; total: number }> | null>(
-    null,
-  );
+  // Tagged with the coordinates they were computed for: period keys (start dates) are the same
+  // for every location, so untagged results would leak to the next location.
+  const [state, setState] = useState<{
+    coords: string;
+    ranks: Map<string, { above: number; total: number }>;
+  } | null>(null);
+  const coords = `${lat}_${lon}`;
 
   const periodsKey = periods.map((p) => p.start).join(',');
 
@@ -85,8 +30,7 @@ export function useAllPeriodRanks(
     // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
       try {
-        const key = cacheKey(lat, lon);
-        const era5 = await getERA5Data(lat, lon, key);
+        const era5 = await getERA5Data(lat, lon);
         const allMonthly = aggregateMonthly(era5);
         const result = new Map<string, { above: number; total: number }>();
 
@@ -126,7 +70,7 @@ export function useAllPeriodRanks(
           }
         }
 
-        if (!cancelled) setRanks(result);
+        if (!cancelled) setState({ coords: `${lat}_${lon}`, ranks: result });
       } catch {
         // Silently fail — decorative
       }
@@ -139,5 +83,5 @@ export function useAllPeriodRanks(
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, periodsKey, isSeasonal]);
 
-  return ranks;
+  return state?.coords === coords ? state.ranks : null;
 }

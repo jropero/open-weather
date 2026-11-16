@@ -50,27 +50,43 @@ async function fetchERA5(lat: number, lon: number): Promise<ERA5DailyData> {
   };
 }
 
-async function getERA5Data(lat: number, lon: number, key: string): Promise<ERA5DailyData> {
-  // Try localStorage cache (24 h TTL)
+// One request per coordinate at a time: the inline rank (useAllPeriodRanks) and the
+// drill-down usually ask for the same 10-year archive within seconds of each other.
+const inflight = new Map<string, Promise<ERA5DailyData>>();
+
+/**
+ * ERA5 10-year daily archive for a coordinate: localStorage (24 h) → shared in-flight
+ * request → network. Shared by ClimateDetailView and useAllPeriodRanks. Not abortable on
+ * purpose — another consumer may still be waiting for the same promise; callers ignore
+ * the result once they unmount.
+ */
+export function getERA5Data(lat: number, lon: number): Promise<ERA5DailyData> {
+  const key = cacheKey(lat, lon);
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
       const cached = JSON.parse(raw) as { timestamp: number; daily: ERA5DailyData };
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.daily;
-      }
+      if (Date.now() - cached.timestamp < CACHE_TTL) return Promise.resolve(cached.daily);
     }
   } catch {
     /* corrupt — fall through */
   }
 
-  const daily = await fetchERA5(lat, lon);
-  try {
-    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), daily }));
-  } catch {
-    /* storage full */
-  }
-  return daily;
+  const pending = inflight.get(key);
+  if (pending) return pending;
+
+  const request = fetchERA5(lat, lon)
+    .then((daily) => {
+      try {
+        localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), daily }));
+      } catch {
+        /* storage full */
+      }
+      return daily;
+    })
+    .finally(() => inflight.delete(key));
+  inflight.set(key, request);
+  return request;
 }
 
 // ---- Result builders ----------------------------------------------------
@@ -248,12 +264,10 @@ export function useHistoricalClimate(
     setError(null);
     setResult(null);
 
-    const key = cacheKey(lat, lon);
-
     // eslint-disable-next-line sonarjs/cognitive-complexity
     async function load() {
       try {
-        const era5 = await getERA5Data(lat, lon, key);
+        const era5 = await getERA5Data(lat, lon);
         const allMonthly = aggregateMonthly(era5);
         const r = isSeasonal
           ? buildSeasonalResult(allMonthly, period, locale)
