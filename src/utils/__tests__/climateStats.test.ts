@@ -5,7 +5,7 @@ import {
   computeClimatology,
   findAnalogues,
   getAboveCount,
-  getHolisticSummary,
+  getHolisticSummaryKey,
 } from '../climateStats';
 import type { ERA5DailyData, MonthlyClimate, HistoricalPeriod } from '../climateStats';
 
@@ -240,7 +240,6 @@ describe('findAnalogues', () => {
   //   temp=20 → hz=1.0,  dist=0.0  ← closest
   //   temp=25 → hz=2.0,  dist=1.0
   //   temp=30 → hz=3.0,  dist=2.0
-  // maxDist across all 5 = 2.0
   const historicalPeriods: HistoricalPeriod[] = [
     { label: 'Period A', year: 2019, values: { temperature: 15 } },
     { label: 'Period B', year: 2020, values: { temperature: 10 } },
@@ -267,18 +266,27 @@ describe('findAnalogues', () => {
     expect(result[0].distance).toBeCloseTo(0);
   });
 
-  it('assigns similarity=1 to the closest analogue', () => {
+  it('assigns similarity=1 to an identical analogue (distance 0)', () => {
     const result = findAnalogues(forecastMeans, historicalPeriods, climMean, climStd);
-    // maxDist=2 (from periods B/E), so Period C: 1 - 0/2 = 1.0
     expect(result[0].similarity).toBeCloseTo(1.0);
   });
 
-  it('assigns lower similarity to analogues farther from the forecast', () => {
+  it('uses an absolute scale: 1σ RMS difference → 0.5', () => {
     const result = findAnalogues(forecastMeans, historicalPeriods, climMean, climStd);
-    // Periods at distance=1.0 have similarity = 1 - 1/2 = 0.5
+    // similarity = 1 - distance / ANALOGUE_ZERO_SIMILARITY (2σ)
     expect(result[1].similarity).toBeCloseTo(0.5);
     expect(result[2].similarity).toBeCloseTo(0.5);
     expect(result[2].similarity).toBeLessThan(result[0].similarity);
+  });
+
+  it('does not inflate similarity when every candidate is far away', () => {
+    // All historical periods ≥ 2σ from the forecast → similarity 0, not "best = 100 %"
+    const far: HistoricalPeriod[] = [
+      { label: 'X', year: 2019, values: { temperature: 5 } }, // z=-2, dist 3
+      { label: 'Y', year: 2020, values: { temperature: 0 } }, // z=-3, dist 4
+    ];
+    const result = findAnalogues(forecastMeans, far, climMean, climStd);
+    expect(result[0].similarity).toBe(0);
   });
 });
 
@@ -307,40 +315,64 @@ describe('getAboveCount', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getHolisticSummary
+// getHolisticSummaryKey
 // ---------------------------------------------------------------------------
 
-describe('getHolisticSummary', () => {
-  const nullAnomalies = {
-    temperature: null,
-    precipitation: null,
-    pressure: null,
-    sunshine: null,
-    snowfall: null,
-  };
+describe('getHolisticSummaryKey', () => {
+  const normal = {
+    temperature: 0,
+    precipitation: 0,
+    pressure: 0,
+    sunshine: 0,
+    snowfall: 0,
+  } as const;
 
-  it('returns warm+wet combined sentence when temp≥1 and precip≥10', () => {
-    const anomalies = { ...nullAnomalies, temperature: 2, precipitation: 15 };
-    expect(getHolisticSummary(anomalies, 'es')).toBe(
-      'Un periodo más cálido y húmedo de lo normal.',
+  it('warm + wet → combined key', () => {
+    expect(getHolisticSummaryKey({ ...normal, temperature: 1, precipitation: 2 })).toBe(
+      'climate.summary.warm_wet',
     );
   });
 
-  it('returns cold+dry combined sentence when temp≤−1 and precip≤−10', () => {
-    const anomalies = { ...nullAnomalies, temperature: -2, precipitation: -15 };
-    expect(getHolisticSummary(anomalies, 'es')).toBe('Más frío y seco de lo habitual.');
-  });
-
-  it('returns near-normal sentence when all anomalies are within thresholds', () => {
-    const anomalies = { ...nullAnomalies, temperature: 0, precipitation: 0 };
-    expect(getHolisticSummary(anomalies, 'es')).toBe(
-      'Condiciones cercanas a lo normal en temperatura y precipitación.',
+  it('cold + dry → combined key', () => {
+    expect(getHolisticSummaryKey({ ...normal, temperature: -2, precipitation: -1 })).toBe(
+      'climate.summary.cold_dry',
     );
   });
 
-  it('falls back to ranked single-variable sentence when only temperature is anomalous', () => {
-    // temp=2 (warm) but precip=0 (no precip signal) → ranked fallback, top variable = temperature
-    const anomalies = { ...nullAnomalies, temperature: 2, precipitation: 0 };
-    expect(getHolisticSummary(anomalies, 'es')).toBe('Un periodo más cálido de lo normal.');
+  it('all levels 0 → normal', () => {
+    expect(getHolisticSummaryKey(normal)).toBe('climate.summary.normal');
+  });
+
+  it('null levels count as normal', () => {
+    expect(
+      getHolisticSummaryKey({
+        temperature: null,
+        precipitation: null,
+        pressure: null,
+        sunshine: null,
+        snowfall: null,
+      }),
+    ).toBe('climate.summary.normal');
+  });
+
+  it('only temperature anomalous → single-variable key', () => {
+    expect(getHolisticSummaryKey({ ...normal, temperature: 1 })).toBe(
+      'climate.summary.temperature.above',
+    );
+  });
+
+  it('temp & precip normal but sunshine strongly below → sunshine key (not "normal")', () => {
+    expect(getHolisticSummaryKey({ ...normal, sunshine: -2 })).toBe(
+      'climate.summary.sunshine.below',
+    );
+  });
+
+  it('largest |level| wins; ties follow temperature > precipitation > sunshine', () => {
+    expect(getHolisticSummaryKey({ ...normal, temperature: 1, sunshine: -2 })).toBe(
+      'climate.summary.sunshine.below',
+    );
+    expect(getHolisticSummaryKey({ ...normal, precipitation: -1, sunshine: 1 })).toBe(
+      'climate.summary.precipitation.below',
+    );
   });
 });

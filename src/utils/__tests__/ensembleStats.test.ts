@@ -1,11 +1,93 @@
 import { describe, it, expect } from 'vite-plus/test';
-import { computeStats, classifySpread } from '../ensembleStats';
+import {
+  computeStats,
+  classifySpread,
+  makePoint as buildPoint,
+  toCumulative,
+  localMidnightIndices,
+  ensembleDaysInWeek,
+  parseEnsembleResponse,
+  toWeekPoints,
+  MIN_ENSEMBLE_DAYS_IN_WEEK,
+} from '../ensembleStats';
 import type { EnsemblePoint } from '../ensembleStats';
 
-function makePoint(members: number[]): EnsemblePoint {
-  const stats = computeStats(members);
-  return { time: 0, members, ...stats };
+function makePoint(members: (number | null)[], time = 0): EnsemblePoint {
+  return buildPoint(time, members);
 }
+
+// ---------------------------------------------------------------------------
+// makePoint
+// ---------------------------------------------------------------------------
+
+describe('makePoint', () => {
+  it('returns null stats when every member is missing (never a fake 0)', () => {
+    expect(makePoint([null, null]).stats).toBeNull();
+  });
+
+  it('ignores missing members in the stats but keeps member indices aligned', () => {
+    const p = makePoint([1, null, 3]);
+    expect(p.stats?.mean).toBe(2);
+    expect(p.members).toEqual([1, null, 3]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toCumulative
+// ---------------------------------------------------------------------------
+
+describe('toCumulative', () => {
+  it('sums each member over time and recomputes stats', () => {
+    const pts = [makePoint([1, 2], 0), makePoint([1, 0], 1), makePoint([2, 4], 2)];
+    const cum = toCumulative(pts);
+    expect(cum.map((p) => p.members)).toEqual([
+      [1, 2],
+      [2, 2],
+      [4, 6],
+    ]);
+    expect(cum[2].stats?.mean).toBe(5);
+  });
+
+  it('a missing hour adds nothing; a member with no values stays null', () => {
+    const pts = [makePoint([1, null], 0), makePoint([null, null], 1), makePoint([1, null], 2)];
+    const cum = toCumulative(pts);
+    expect(cum.map((p) => p.members)).toEqual([
+      [1, null],
+      [1, null],
+      [2, null],
+    ]);
+  });
+
+  it('empty input → empty output', () => {
+    expect(toCumulative([])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// localMidnightIndices
+// ---------------------------------------------------------------------------
+
+describe('localMidnightIndices', () => {
+  const H = 3_600_000;
+  const start = Date.parse('2026-11-16T00:00:00Z');
+  const pts = Array.from({ length: 48 }, (_, i) => makePoint([0], start + i * H));
+
+  it('UTC: midnight at hour 0 and 24', () => {
+    expect(localMidnightIndices(pts, 'UTC')).toEqual([0, 24]);
+  });
+
+  it('Europe/Zurich (UTC+1 in November): local midnight is 23:00 UTC', () => {
+    expect(localMidnightIndices(pts, 'Europe/Zurich')).toEqual([23, 47]);
+  });
+
+  it('Pacific/Auckland (UTC+13 in November): local midnight is 11:00 UTC', () => {
+    expect(localMidnightIndices(pts, 'Pacific/Auckland')).toEqual([11, 35]);
+  });
+
+  it('hour parameter: local noon in Europe/Zurich is 11:00 UTC', () => {
+    expect(localMidnightIndices(pts, 'Europe/Zurich', 12)).toEqual([11, 35]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // computeStats
@@ -109,20 +191,31 @@ describe('classifySpread', () => {
       expect(classifySpread([point], 'temperature_2m')).toEqual({ label: 'disagree' });
     });
 
-    it('respects per-variable threshold: uniform spread < precipitation threshold → agree', () => {
-      // Same members but variable = precipitation (threshold = 3 mm)
-      // However spread=9.6 > 3, so this would still be disagree/bimodal.
-      // Instead test a spread between 3 and 4 to confirm variable routing.
-      // members [0, 1, 2, 3, 3.5, 4] (n=6)
-      // sorted: [0,1,2,3,3.5,4]
-      // p10: idx=0.5 → 0 + 0.5*1 = 0.5
-      // p90: idx=4.5 → 3.5 + 0.5*0.5 = 3.75
-      // spread = 3.25 > precipitation threshold (3) → disagree for precipitation
-      // isBimodal: lo=1, hi=5, loop i=1,2,3 → gaps 1,1,0.5; totalRange=4; maxGap=1; 1 > 1.2? No
-      const point = makePoint([0, 1, 2, 3, 3.5, 4]);
+    it('respects per-variable threshold: spread between temp (4) and pressure (5) thresholds', () => {
+      // members [0, 1, 2, 3, 4, 5.5] (n=6)
+      // p10: idx=0.5 → 0.5; p90: idx=4.5 → 4 + 0.5*1.5 = 4.75; spread = 4.25
+      // isBimodal: lo=1, hi=5, gaps 1,1,1; totalRange=5.5; 1 > 1.65? No
+      const point = makePoint([0, 1, 2, 3, 4, 5.5]);
+      expect(classifySpread([point], 'temperature_2m')).toEqual({ label: 'disagree' });
+      expect(classifySpread([point], 'pressure_msl')).toEqual({ label: 'agree' });
+    });
+
+    it('hourly precipitation (3 mm) vs. cumulative sunshine (10 h per week) thresholds', () => {
+      // members [0, 2, …, 12]: spread 9.6 → disagree for hourly precip, agree for weekly sunshine
+      const point = makePoint([0, 2, 4, 6, 8, 10, 12]);
       expect(classifySpread([point], 'precipitation')).toEqual({ label: 'disagree' });
-      // but < temperature_2m threshold (4) → agree
-      expect(classifySpread([point], 'temperature_2m')).toEqual({ label: 'agree' });
+      expect(classifySpread([point], 'sunshine_duration')).toEqual({ label: 'agree' });
+    });
+
+    it('hourly snowfall uses an hourly threshold (2 cm)', () => {
+      // members [0, 0.5, 1, 1.5, 2, 2.5, 3]: p10=0.3, p90=2.7 → spread 2.4 > 2
+      const point = makePoint([0, 0.5, 1, 1.5, 2, 2.5, 3]);
+      expect(classifySpread([point], 'snowfall')).toEqual({ label: 'disagree' });
+    });
+
+    it('skips points without stats', () => {
+      const empty = makePoint([null, null]);
+      expect(classifySpread([empty], 'temperature_2m')).toEqual({ label: 'agree' });
     });
 
     it('picks the point with the max spread when multiple points are given', () => {
@@ -157,5 +250,104 @@ describe('classifySpread', () => {
       expect(result.label).toBe('bimodal');
       expect(result.label).not.toBe('disagree');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ensembleDaysInWeek — which weekly cells can open the hourly ensemble chart
+// ---------------------------------------------------------------------------
+
+describe('ensembleDaysInWeek', () => {
+  // 2026-11-16 is a Monday; the window is today 00:00 UTC … +15 days (2026-12-01 00:00)
+  const monday = Date.parse('2026-11-16T10:00:00Z');
+
+  it('on a Monday: weeks 1–2 fully covered, week 3 only 1 day, week 4 none', () => {
+    expect(ensembleDaysInWeek('2026-11-16', monday)).toBe(7);
+    expect(ensembleDaysInWeek('2026-11-23', monday)).toBe(7);
+    expect(ensembleDaysInWeek('2026-11-30', monday)).toBe(1);
+    expect(ensembleDaysInWeek('2026-12-07', monday)).toBe(0);
+  });
+
+  it('on a Monday, week 3 is below the drill-down minimum', () => {
+    expect(ensembleDaysInWeek('2026-11-30', monday)).toBeLessThan(MIN_ENSEMBLE_DAYS_IN_WEEK);
+  });
+
+  it('mid-week: the in-progress week only counts its remaining days', () => {
+    const thursday = Date.parse('2026-11-19T08:00:00Z');
+    expect(ensembleDaysInWeek('2026-11-16', thursday)).toBe(4);
+    expect(ensembleDaysInWeek('2026-11-30', thursday)).toBe(4); // window ends 2026-12-04
+  });
+
+  it('on a Sunday the current week has 1 day left', () => {
+    const sunday = Date.parse('2026-11-22T23:00:00Z');
+    expect(ensembleDaysInWeek('2026-11-16', sunday)).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseEnsembleResponse
+// ---------------------------------------------------------------------------
+
+describe('parseEnsembleResponse', () => {
+  const json = {
+    hourly: {
+      time: ['2026-11-16T00:00', '2026-11-16T01:00'],
+      temperature_2m: [1.234, null], // control run
+      temperature_2m_member01: [2, 'x'],
+      pressure_msl_member01: [1000, 1001], // other variable — ignored
+    },
+  };
+
+  it('parses times as UTC and keeps control + members index-aligned', () => {
+    const raw = parseEnsembleResponse(json, 'temperature_2m');
+    expect(raw.times).toEqual([
+      Date.parse('2026-11-16T00:00:00Z'),
+      Date.parse('2026-11-16T01:00:00Z'),
+    ]);
+    expect(raw.members).toEqual([
+      [1.23, null],
+      [2, null],
+    ]);
+  });
+
+  it('an empty / malformed response gives no data instead of throwing', () => {
+    expect(parseEnsembleResponse({}, 'temperature_2m')).toEqual({ times: [], members: [] });
+    expect(parseEnsembleResponse(null, 'precipitation')).toEqual({ times: [], members: [] });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toWeekPoints
+// ---------------------------------------------------------------------------
+
+describe('toWeekPoints', () => {
+  const H = 3_600_000;
+  const weekStart = '2026-11-16';
+  const ws = Date.parse('2026-11-16T00:00:00Z');
+  // 3 hours: one before the week, two inside
+  const raw = {
+    times: [ws - H, ws, ws + H],
+    members: [
+      [3600, 3600, 1800],
+      [0, 7200, null],
+    ],
+  };
+
+  it('keeps only hours inside the UTC week', () => {
+    const pts = toWeekPoints(raw, weekStart, 'precipitation');
+    expect(pts.map((p) => p.time)).toEqual([ws, ws + H]);
+  });
+
+  it('precipitation stays hourly (not cumulative)', () => {
+    const pts = toWeekPoints(raw, weekStart, 'precipitation');
+    expect(pts[1].members).toEqual([1800, null]);
+  });
+
+  it('sunshine is converted to hours and accumulated', () => {
+    const pts = toWeekPoints(raw, weekStart, 'sunshine_duration');
+    expect(pts.map((p) => p.members)).toEqual([
+      [1, 2],
+      [1.5, 2],
+    ]);
   });
 });
