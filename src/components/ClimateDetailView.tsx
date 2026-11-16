@@ -4,11 +4,11 @@ import {
   Bar,
   Cell,
   LabelList,
-  Line,
   XAxis,
   YAxis,
   ReferenceLine,
   ResponsiveContainer,
+  Tooltip,
 } from 'recharts';
 import {
   X,
@@ -19,16 +19,26 @@ import {
   Snowflake,
   type LucideIcon,
 } from 'lucide-react';
-import type { Location, SeasonalPeriod, SeasonalVariable, SeasonKey } from '../types/weather';
+import type { Location, SeasonalPeriod, SeasonalVariable } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
 import { useHistoricalClimate } from '../hooks/useHistoricalClimate';
 import {
-  getHolisticSummary,
+  getHolisticSummaryKey,
   ALL_VARS,
   type ClimateDetailResult,
   type AnalogueYear,
 } from '../utils/climateStats';
-import { getClimateZone, getSeasonName } from '../utils/seasonal';
+import {
+  classifyAnomaly,
+  formatAbsolute,
+  getAnomalyHex,
+  getClimateZone,
+  getSeasonName,
+  hasMeaningfulRow,
+  type AnomalyLevel,
+} from '../utils/seasonal';
+
+type T = (key: string) => string;
 
 // ---- Meta ----------------------------------------------------------------
 
@@ -40,120 +50,94 @@ const VAR_ICONS: Record<SeasonalVariable, LucideIcon> = {
   snowfall: Snowflake,
 };
 
-const VAR_COLORS: Record<SeasonalVariable, string> = {
-  temperature: '#fca5a5',
-  precipitation: '#7dd3fc',
-  pressure: '#c084fc',
-  sunshine: '#fbbf24',
-  snowfall: '#a5f3fc',
-};
+/** Temperature (a mean) is drawn as the deviation from the ERA5 mean; totals grow from 0. */
+const DIVERGING: ReadonlySet<SeasonalVariable> = new Set(['temperature', 'pressure']);
 
-const VAR_NAMES_ES: Record<SeasonalVariable, string> = {
-  temperature: 'Temp.',
-  precipitation: 'Precip.',
-  pressure: 'Presión',
-  sunshine: 'Sol',
-  snowfall: 'Nieve',
-};
-const VAR_NAMES_EN: Record<SeasonalVariable, string> = {
-  temperature: 'Temp.',
-  precipitation: 'Precip.',
-  pressure: 'Pressure',
-  sunshine: 'Sun',
-  snowfall: 'Snow',
-};
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const ADJ: Record<
-  SeasonalVariable,
-  { aboveEs: string; belowEs: string; aboveEn: string; belowEn: string }
-> = {
-  temperature: { aboveEs: 'cálido', belowEs: 'frío', aboveEn: 'warmer', belowEn: 'cooler' },
-  precipitation: { aboveEs: 'lluvioso', belowEs: 'seco', aboveEn: 'wetter', belowEn: 'drier' },
-  pressure: { aboveEs: 'alto', belowEs: 'bajo', aboveEn: 'higher', belowEn: 'lower' },
-  sunshine: { aboveEs: 'soleado', belowEs: 'gris', aboveEn: 'sunnier', belowEn: 'greyer' },
-  snowfall: { aboveEs: 'nevoso', belowEs: 'sin nieve', aboveEn: 'snowier', belowEn: 'drier' },
-};
-
-// ---- Helpers -------------------------------------------------------------
-
-function formatValue(variable: SeasonalVariable, x: number | null): string {
-  if (x === null) return '—';
-  switch (variable) {
-    case 'temperature':
-      return `${x.toFixed(1)} °C`;
-    case 'precipitation':
-      return `${Math.round(x)} mm`;
-    case 'pressure':
-      return `${x.toFixed(1)} hPa`;
-    case 'sunshine':
-      return `${Math.round(x / 3600)} h`;
-    case 'snowfall':
-      return `${x.toFixed(1)} cm`;
-  }
+/** Same thresholds as the heatmap, applied to "value vs. ERA5 mean". */
+function levelOf(
+  variable: SeasonalVariable,
+  value: number | null,
+  climMean: number | null,
+  days: number,
+): AnomalyLevel {
+  if (value === null || climMean === null) return 0;
+  return (
+    classifyAnomaly(variable, { mean: value, anomaly: value - climMean, probAbove: null }, days)
+      ?.level ?? 0
+  );
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-function getSummaryEmoji(anomalies: Record<SeasonalVariable, number | null>): string {
-  const t = anomalies.temperature ?? 0;
-  const p = anomalies.precipitation ?? 0;
-  const sun = anomalies.sunshine ?? 0;
-  const pressure = anomalies.pressure ?? 0;
-  if (t >= 1) return '🌡';
-  if (t <= -1 && p >= 10) return '🌧';
-  if (t <= -1) return '❄';
-  if (p <= -10 && sun > 0) return '🌤';
-  if (pressure < -1) return '☁';
-  if (p >= 10) return '🌧';
-  return '🌡';
+function getSummaryEmoji(levels: Record<SeasonalVariable, AnomalyLevel | null>): string {
+  const temp = levels.temperature ?? 0;
+  const precip = levels.precipitation ?? 0;
+  const sun = levels.sunshine ?? 0;
+  if (temp > 0 && precip < 0) return '☀️';
+  if (precip > 0) return temp < 0 ? '🌨' : '🌧';
+  if (temp > 0) return '🌡';
+  if (temp < 0) return '❄️';
+  if (sun < 0) return '☁️';
+  if (sun > 0) return '🌤';
+  return '⚖️';
 }
 
-// ---- Comparison label (plain language "above/below N of last M years") ----
+// ---- Comparison label ("above/below N of last M years") -------------------
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function comparisonLabel(
   variable: SeasonalVariable,
   aboveCount: number | null,
   totalYears: number,
-  lang: 'es' | 'en',
+  t: T,
 ): string {
   if (aboveCount === null || totalYears === 0) return '—';
-  const adj = ADJ[variable];
+  const m = String(totalYears);
+  const adj = (dir: 'above' | 'below') => t(`climate.adj.${variable}.${dir}`);
 
   // aboveCount = how many historical years the forecast EXCEEDS (warmer/wetter/etc.)
-  if (aboveCount >= totalYears) {
-    return lang === 'es'
-      ? `El más ${adj.aboveEs} de los últimos ${totalYears} años`
-      : `${adj.aboveEn.charAt(0).toUpperCase() + adj.aboveEn.slice(1)} than all last ${totalYears} years`;
-  }
-  if (aboveCount === 0) {
-    return lang === 'es'
-      ? `El más ${adj.belowEs} de los últimos ${totalYears} años`
-      : `${adj.belowEn.charAt(0).toUpperCase() + adj.belowEn.slice(1)} than all last ${totalYears} years`;
-  }
-  if (aboveCount >= Math.ceil(totalYears * 0.65)) {
-    return lang === 'es'
-      ? `Más ${adj.aboveEs} que en ${aboveCount} de los últimos ${totalYears} años`
-      : `${adj.aboveEn.charAt(0).toUpperCase() + adj.aboveEn.slice(1)} than in ${aboveCount} of the last ${totalYears} years`;
-  }
-  if (aboveCount <= Math.floor(totalYears * 0.35)) {
-    const belowN = totalYears - aboveCount;
-    return lang === 'es'
-      ? `Más ${adj.belowEs} que en ${belowN} de los últimos ${totalYears} años`
-      : `${adj.belowEn.charAt(0).toUpperCase() + adj.belowEn.slice(1)} than in ${belowN} of the last ${totalYears} years`;
-  }
-  return lang === 'es'
-    ? `Parecido a la media de los últimos ${totalYears} años`
-    : `Near the average of the last ${totalYears} years`;
+  let s: string;
+  if (aboveCount >= totalYears) s = t('climate.cmp.all').replace('{adj}', adj('above'));
+  else if (aboveCount === 0) s = t('climate.cmp.all').replace('{adj}', adj('below'));
+  else if (aboveCount >= Math.ceil(totalYears * 0.65))
+    s = t('climate.cmp.some').replace('{adj}', adj('above')).replace('{n}', String(aboveCount));
+  else if (aboveCount <= Math.floor(totalYears * 0.35))
+    s = t('climate.cmp.some')
+      .replace('{adj}', adj('below'))
+      .replace('{n}', String(totalYears - aboveCount));
+  else s = t('climate.cmp.near');
+  return capitalize(s.replace('{m}', m));
 }
 
 // ---- Mini bar chart -------------------------------------------------------
 
 type BarEntry = {
   year: string;
-  value: number | null;
+  raw: number | null; // absolute value
+  bar: number | null; // plotted value (deviation for diverging variables)
   isForecast: boolean;
-  trendValue?: number | null;
+  color: string;
 };
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function fmtBarValue(variable: SeasonalVariable, x: number, signed: boolean): string {
+  let s: string;
+  switch (variable) {
+    case 'temperature':
+    case 'snowfall':
+      s = Math.abs(x).toFixed(1);
+      break;
+    case 'sunshine':
+      s = String(Math.round(Math.abs(x) / 3600));
+      break;
+    default:
+      s = String(Math.round(Math.abs(x)));
+  }
+  if (!signed) return x < 0 ? `−${s}` : s;
+  if (Number(s) === 0) return `±${s}`;
+  return `${x > 0 ? '+' : '−'}${s}`;
+}
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function MiniBarChart({
@@ -161,143 +145,138 @@ function MiniBarChart({
   values,
   forecastValue,
   climMean,
-  color,
   variable,
+  days,
+  t,
 }: {
   years: number[];
   values: (number | null)[];
   forecastValue: number | null;
   climMean: number | null;
-  color: string;
   variable: SeasonalVariable;
+  days: number;
+  t: T;
 }) {
-  if (!years.length) return <div className="flex-1 h-20" />;
+  if (!years.length) return <div className="flex-1 h-[88px]" />;
+  const diverging = DIVERGING.has(variable) && climMean !== null;
 
-  const fmtBarValue = (x: number): string => {
-    switch (variable) {
-      case 'temperature':
-        return x.toFixed(1);
-      case 'precipitation':
-        return String(Math.round(x));
-      case 'pressure':
-        return String(Math.round(x));
-      case 'sunshine':
-        return String(Math.round(x / 3600));
-      case 'snowfall':
-        return x.toFixed(1);
-    }
+  const entry = (year: string, raw: number | null, isForecast: boolean): BarEntry => ({
+    year,
+    raw,
+    bar: raw !== null && diverging ? raw - climMean! : raw,
+    isForecast,
+    color: getAnomalyHex(variable, levelOf(variable, raw, climMean, days)),
+  });
+
+  const data: BarEntry[] = years.map((year, i) =>
+    entry(`'${String(year).slice(2)}`, values[i], false),
+  );
+  if (forecastValue !== null) data.push(entry('S5', forecastValue, true));
+
+  const bars = data.map((d) => d.bar).filter((v): v is number => v !== null);
+  let domain: [number, number];
+  if (diverging) {
+    const m = Math.max(...bars.map(Math.abs), 0) * 1.15 || 0.5;
+    domain = [-m, m];
+  } else {
+    const max = Math.max(...bars, climMean ?? 0, 0);
+    domain = [0, max * 1.18 || 1];
+  }
+
+  const renderTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: readonly { payload?: unknown }[];
+  }) => {
+    const d = active ? (payload?.[0]?.payload as BarEntry | undefined) : undefined;
+    if (!d || d.raw === null) return null;
+    return (
+      <div className="rounded-md bg-slate-800/95 border border-white/10 px-2 py-1 text-[10px] text-slate-100 shadow-lg whitespace-nowrap">
+        <b className="text-white">
+          {d.isForecast ? t('climate.adjusted') : d.year.replace("'", '20')}
+        </b>
+        {': '}
+        {formatAbsolute(variable, d.raw)}
+        {climMean !== null && (
+          <span className="text-slate-300">
+            {' '}
+            ({fmtBarValue(variable, d.raw - climMean, true)} vs {t('climate.era5_avg')})
+          </span>
+        )}
+      </div>
+    );
   };
 
-  const data: BarEntry[] = years.map((year, i) => ({
-    year: `'${String(year).slice(2)}`,
-    value: values[i],
-    isForecast: false,
-  }));
-
-  if (forecastValue !== null) {
-    data.push({ year: 'S5', value: forecastValue, isForecast: true });
-  }
-
-  // Linear regression over historical bars only
-  const histData = data.filter((d) => !d.isForecast && d.value !== null);
-  const n = histData.length;
-  if (n >= 2) {
-    const xMean = (n - 1) / 2;
-    const yMean = histData.reduce((s, d) => s + (d.value as number), 0) / n;
-    const denom = histData.reduce((s, _, i) => s + (i - xMean) ** 2, 0);
-    const slope =
-      denom !== 0
-        ? histData.reduce((s, d, i) => s + (i - xMean) * ((d.value as number) - yMean), 0) /
-          denom
-        : 0;
-    const intercept = yMean - slope * xMean;
-    histData.forEach((d, i) => {
-      d.trendValue = intercept + slope * i;
-    });
-  }
-
-  const allValues = data.map((d) => d.value).filter((v): v is number => v !== null);
-  const minVal = allValues.length ? Math.min(...allValues) : 0;
-  const maxVal = allValues.length ? Math.max(...allValues) : 1;
-  const padding = (maxVal - minVal) * 0.05 || 0.5;
-  const domainMin = Math.min(
-    minVal - padding,
-    climMean !== null ? climMean - padding : minVal - padding,
-  );
-  const domainMax = Math.max(
-    maxVal + padding,
-    climMean !== null ? climMean + padding : maxVal + padding,
-  );
-
   return (
-    <div className="flex-1 min-w-0" style={{ height: 80 }}>
-      <ResponsiveContainer width="100%" height={80}>
+    <div className="flex-1 min-w-0 h-[88px]">
+      <ResponsiveContainer width="100%" height={88}>
         <ComposedChart
           data={data}
           margin={{ top: 14, right: 2, left: 2, bottom: 0 }}
-          barCategoryGap="10%"
+          barCategoryGap="14%"
         >
           <XAxis
             dataKey="year"
-            tick={{ fontSize: 8, fill: '#64748b' }}
+            tick={{ fontSize: 9, fill: '#94a3b8' }}
             axisLine={false}
             tickLine={false}
+            interval={0}
             height={14}
           />
-          <YAxis hide domain={[domainMin, domainMax]} />
+          <YAxis hide domain={domain} allowDataOverflow />
+          <Tooltip
+            content={renderTooltip}
+            cursor={{ fill: 'rgba(255,255,255,0.06)' }}
+            isAnimationActive={false}
+          />
           {climMean !== null && (
-            <ReferenceLine y={climMean} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" />
+            <ReferenceLine
+              y={diverging ? 0 : climMean}
+              stroke="rgba(255,255,255,0.45)"
+              strokeDasharray="3 3"
+            />
           )}
-          <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
-            {data.map((entry, index) => {
-              const histFill =
-                (entry.value ?? 0) >= (climMean ?? 0)
-                  ? 'rgba(255,255,255,0.55)'
-                  : 'rgba(255,255,255,0.25)';
-              const cellFill = entry.isForecast ? color : histFill;
-              return (
-                <Cell
-                  key={index}
-                  fill={cellFill}
-                  stroke={entry.isForecast ? 'rgba(255,255,255,0.5)' : 'none'}
-                  strokeWidth={entry.isForecast ? 1 : 0}
-                />
-              );
-            })}
+          <Bar dataKey="bar" radius={2} isAnimationActive={false}>
+            {data.map((d, index) => (
+              <Cell
+                key={index}
+                fill={d.color}
+                fillOpacity={d.isForecast ? 1 : 0.75}
+                stroke={d.isForecast ? '#ffffff' : 'none'}
+                strokeWidth={d.isForecast ? 1.5 : 0}
+              />
+            ))}
+            {/* Only the forecast bar is labelled; history values are in the tooltip */}
             <LabelList
-              dataKey="value"
-              position="top"
+              dataKey="bar"
               content={(props) => {
-                const { x, y, width, value } = props as {
+                const { x, y, width, height, index } = props as {
                   x: number;
                   y: number;
                   width: number;
-                  value: number | null;
+                  height: number;
+                  index: number;
                 };
-                if (value === null || value === undefined) return null;
+                const d = data[index];
+                if (!d?.isForecast || d.bar === null) return null;
+                const top = d.bar >= 0 ? y : y + height;
                 return (
                   <text
                     x={x + width / 2}
-                    y={y - 2}
-                    fill="rgba(255,255,255,0.55)"
-                    fontSize={7}
+                    y={d.bar >= 0 ? top - 3 : top + 10}
+                    fill="#ffffff"
+                    fontSize={9}
+                    fontWeight={700}
                     textAnchor="middle"
                   >
-                    {fmtBarValue(value)}
+                    {fmtBarValue(variable, d.bar, diverging)}
                   </text>
                 );
               }}
             />
           </Bar>
-          <Line
-            dataKey="trendValue"
-            stroke="rgba(148,163,184,0.5)"
-            strokeWidth={1.5}
-            strokeDasharray="4 2"
-            dot={false}
-            isAnimationActive={false}
-            connectNulls
-          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -306,8 +285,7 @@ function MiniBarChart({
 
 // ---- Analogue label ------------------------------------------------------
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
-function formatAnalogueLabel(a: AnalogueYear, locale: string): string {
+function formatAnalogueLabel(a: AnalogueYear, locale: string, t: T): string {
   if (a.month !== undefined) {
     return new Date(Date.UTC(a.year, a.month - 1, 1)).toLocaleDateString(locale, {
       month: 'short',
@@ -316,20 +294,7 @@ function formatAnalogueLabel(a: AnalogueYear, locale: string): string {
     });
   }
   if (a.seasonKey) {
-    const abbrsEs: Record<SeasonKey, string> = {
-      DJF: 'Inv',
-      MAM: 'Prim',
-      JJA: 'Ver',
-      SON: 'Oto',
-    };
-    const abbrsEn: Record<SeasonKey, string> = {
-      DJF: 'Win',
-      MAM: 'Spr',
-      JJA: 'Sum',
-      SON: 'Aut',
-    };
-    const abbrs = locale.startsWith('es') ? abbrsEs : abbrsEn;
-    const prefix = abbrs[a.seasonKey];
+    const prefix = t(`climate.season_abbr.${a.seasonKey}`);
     if (a.seasonKey === 'DJF') return `${prefix} ${a.year - 1}–${String(a.year).slice(2)}`;
     return `${prefix} ${a.year}`;
   }
@@ -341,77 +306,77 @@ function formatAnalogueLabel(a: AnalogueYear, locale: string): string {
 function SkeletonStrip() {
   return (
     <div className="flex items-center gap-2 py-1 animate-pulse">
-      <div className="w-14 h-3 bg-white/10 rounded" />
-      <div className="flex-1 h-6 bg-white/10 rounded" />
+      <div className="w-20 h-3 bg-white/10 rounded" />
+      <div className="flex-1 h-[72px] bg-white/10 rounded" />
     </div>
   );
 }
 
 // ---- Strips section ------------------------------------------------------
 
-function Strips({ result, lang }: { result: ClimateDetailResult; lang: 'es' | 'en' }) {
-  /* eslint-disable sonarjs/cognitive-complexity */
+/** Rows worth drawing: a comparable forecast exists (not pressure) and, for snow, a real signal. */
+function visibleVars(result: ClimateDetailResult, period: SeasonalPeriod): SeasonalVariable[] {
+  return ALL_VARS.filter((v) => {
+    if (result.forecastValues[v] === null) return false;
+    if (v !== 'snowfall') return true;
+    const cm = result.climMeans.snowfall ?? 0;
+    return hasMeaningfulRow('snowfall', [period]) || cm / period.days >= 0.05;
+  });
+}
+
+function Strips({
+  result,
+  period,
+  t,
+}: {
+  result: ClimateDetailResult;
+  period: SeasonalPeriod;
+  t: T;
+}) {
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {ALL_VARS.map((v) => {
+      {visibleVars(result, period).map((v) => {
         const fv = result.forecastValues[v];
-        const above = result.aboveCount[v];
         const cm = result.climMeans[v];
-        const hasData = fv !== null;
         const Icon = VAR_ICONS[v];
-        const color = VAR_COLORS[v];
-        const varName = lang === 'es' ? VAR_NAMES_ES[v] : VAR_NAMES_EN[v];
-
         return (
-          <div key={v} className={hasData ? '' : 'opacity-40'}>
-            {/* Row: icon+label | dot strip */}
+          <div key={v}>
             <div className="flex items-center gap-2">
-              <div className="w-14 flex items-center gap-1 shrink-0">
+              <div className="w-20 flex items-center gap-1 shrink-0">
                 <Icon size={11} className="shrink-0 text-slate-400" aria-hidden />
-                <span className="text-[10px] text-slate-300 font-medium leading-tight">
-                  {varName}
+                <span className="text-[10px] text-slate-200 font-medium leading-tight">
+                  {t(`seasonal.var.${v}`)}
                 </span>
               </div>
-
-              {hasData ? (
-                <MiniBarChart
-                  years={result.stripYears}
-                  values={result.stripValues[v]}
-                  forecastValue={fv}
-                  climMean={cm}
-                  color={color}
-                  variable={v}
-                />
-              ) : (
-                <span className="flex-1 text-[10px] text-slate-500">
-                  {lang === 'es' ? 'Sin previsión' : 'No forecast'}
-                </span>
-              )}
+              <MiniBarChart
+                years={result.stripYears}
+                values={result.stripValues[v]}
+                forecastValue={fv}
+                climMean={cm}
+                variable={v}
+                days={period.days}
+                t={t}
+              />
             </div>
-
-            {/* Below-strip detail */}
-            {hasData && (
-              <div className="pl-16 mt-0.5 space-y-px">
-                <p className="text-[9px] text-slate-300 leading-snug">
-                  {comparisonLabel(v, above, result.totalYears, lang)}
-                </p>
-                <p className="text-[9px] text-slate-600 leading-snug">
-                  {lang === 'es' ? 'S5 ajustado' : 'S5 adjusted'}: {formatValue(v, fv)}
-                  {cm !== null && (
-                    <>
-                      {' '}
-                      · {lang === 'es' ? 'Media ERA5' : 'ERA5 avg'}: {formatValue(v, cm)}
-                    </>
-                  )}
-                </p>
-              </div>
-            )}
+            <div className="pl-[88px] mt-0.5 space-y-px">
+              <p className="text-[10px] text-slate-200 leading-snug">
+                {comparisonLabel(v, result.aboveCount[v], result.totalYears, t)}
+              </p>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                {t('climate.adjusted')}: {formatAbsolute(v, fv)}
+                {cm !== null && (
+                  <>
+                    {' · '}
+                    {t('climate.era5_avg')}: {formatAbsolute(v, cm)}
+                  </>
+                )}
+              </p>
+            </div>
           </div>
         );
       })}
     </div>
   );
-  /* eslint-enable sonarjs/cognitive-complexity */
 }
 
 // ---- Main component ------------------------------------------------------
@@ -427,7 +392,6 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
   const { language, t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
-  const lang = language as 'es' | 'en';
 
   const { result, loading, error } = useHistoricalClimate(
     location.latitude,
@@ -441,19 +405,15 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
     if (el && !el.open) el.showModal();
   }, []);
 
-  const isSeasonal = !!period.season;
-
   const periodLabel = (): string => {
-    if (!isSeasonal) {
+    if (!period.season) {
       return new Date(`${period.start}T00:00:00Z`).toLocaleDateString(locale, {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
       });
     }
-    const seasonKey = period.season!.key;
-    const zone = getClimateZone(location.latitude);
-    const seasonName = getSeasonName(seasonKey, zone);
+    const seasonName = getSeasonName(period.season.key, getClimateZone(location.latitude));
     const name = seasonName ? t(`seasonal.season.${seasonName}`) : t('seasonal.next.tropical');
     const startYear = Number(period.start.slice(0, 4));
     const endYear = Number(period.end.slice(0, 4));
@@ -462,16 +422,10 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
     return `${name} ${yearStr}`;
   };
 
-  const anomalies: Record<SeasonalVariable, number | null> = {
-    temperature: period.values.temperature.anomaly,
-    precipitation: period.values.precipitation.anomaly,
-    pressure: period.values.pressure.anomaly,
-    sunshine: period.values.sunshine.anomaly,
-    snowfall: period.values.snowfall.anomaly,
-  };
-
-  const summary = getHolisticSummary(anomalies, lang);
-  const summaryEmoji = getSummaryEmoji(anomalies);
+  // Same classification as the heatmap cells, so the sentence never contradicts them
+  const levels = Object.fromEntries(
+    ALL_VARS.map((v) => [v, classifyAnomaly(v, period.values[v], period.days)?.level ?? null]),
+  ) as Record<SeasonalVariable, AnomalyLevel | null>;
 
   let climateBody: React.ReactNode = null;
   if (loading) {
@@ -482,8 +436,8 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
             <div key={i} className="flex-1 h-12 bg-white/10 rounded-xl" />
           ))}
         </div>
-        {ALL_VARS.map((v) => (
-          <SkeletonStrip key={v} />
+        {[0, 1, 2].map((i) => (
+          <SkeletonStrip key={i} />
         ))}
       </div>
     );
@@ -501,41 +455,58 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
       <>
         {/* Analogue years */}
         <div className="mt-4">
-          <p className="text-[11px] text-slate-400 mb-2">{t('climate.analogues.label')}</p>
+          <p className="text-[11px] text-slate-300 mb-2">{t('climate.analogues.label')}</p>
           <div className="flex gap-2">
             {result.analogues.length === 0 ? (
-              <p className="text-xs text-slate-500">—</p>
+              <p className="text-xs text-slate-400">—</p>
             ) : (
-              result.analogues.map((a, i) => (
-                <div key={i} className="flex-1 min-w-0">
-                  <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
-                    <span className="text-sm font-bold text-white block leading-tight">
-                      {formatAnalogueLabel(a, locale)}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
+              result.analogues.map((a) => {
+                const pct = Math.round(a.similarity * 100);
+                const desc = t('climate.analogues.similarity')
+                  .replace('{n}', String(pct))
+                  .replace('{d}', a.distance.toFixed(1));
+                return (
+                  <div
+                    key={`${a.year}_${a.month ?? a.seasonKey}`}
+                    className="flex-1 min-w-0"
+                    title={desc}
+                  >
+                    <div className="bg-white/10 rounded-xl px-2 py-2 text-center">
+                      <span className="text-sm font-bold text-white block leading-tight">
+                        {formatAnalogueLabel(a, locale, t)}
+                      </span>
+                    </div>
                     <div
-                      className="h-full bg-indigo-400 rounded-full"
-                      style={{ width: `${Math.round(a.similarity * 100)}%` }}
-                    />
+                      className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <div
+                        className="h-full bg-indigo-400 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-slate-400 text-center tabular-nums">
+                      <span aria-hidden="true">
+                        {pct}% · Δ{a.distance.toFixed(1)}σ
+                      </span>
+                      <span className="sr-only">{desc}</span>
+                    </p>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
-          <p className="mt-2 text-[10px] text-slate-500">{t('climate.analogues.note')}</p>
+          <p className="mt-2 text-[10px] text-slate-400">{t('climate.analogues.note')}</p>
         </div>
 
-        {/* Variable rows */}
-        <Strips result={result} lang={lang} />
+        <Strips result={result} period={period} t={t} />
 
-        {/* Footnote */}
-        <p className="mt-4 text-[10px] text-slate-600 leading-relaxed">
+        <p className="mt-4 text-[10px] text-slate-400 leading-relaxed">
           {t('climate.footnote')
             .replace('{start}', String(result.stripYears[0] ?? '…'))
             .replace('{end}', String(result.stripYears.at(-1) ?? '…'))}
         </p>
-        <p className="mt-1 text-[10px] text-slate-700 leading-relaxed">
+        <p className="mt-1 text-[10px] text-slate-500 leading-relaxed">
           {t('climate.footnote.bias')}
         </p>
       </>
@@ -550,16 +521,16 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
       onClick={(e) => {
         if (e.target === e.currentTarget) e.currentTarget.close();
       }}
+      aria-labelledby="climate-detail-title"
       className="open:flex flex-col w-full max-w-none sm:max-w-2xl max-h-[92dvh] m-0 mt-auto sm:m-auto p-0 rounded-t-3xl sm:rounded-3xl bg-slate-950 text-white shadow-2xl overflow-hidden backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
-      {/* Header */}
       <header className="flex items-start justify-between gap-3 px-5 py-4 bg-slate-900 shrink-0 border-b border-white/10">
         <div className="min-w-0">
-          <h2 className="text-base font-bold leading-tight text-white">
-            {(() => {
-              const s = periodLabel();
-              return s.charAt(0).toUpperCase() + s.slice(1);
-            })()}
+          <h2
+            id="climate-detail-title"
+            className="text-base font-bold leading-tight text-white"
+          >
+            {capitalize(periodLabel())}
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">{location.name}</p>
         </div>
@@ -573,14 +544,15 @@ export function ClimateDetailView({ location, period, onClose }: Props) {
         </button>
       </header>
 
-      {/* Scrollable body */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-5">
         {/* Holistic summary */}
         <div className="mt-4 rounded-2xl bg-white/10 border border-white/10 px-4 py-3 flex items-start gap-3">
           <span className="text-2xl leading-none shrink-0" aria-hidden>
-            {summaryEmoji}
+            {getSummaryEmoji(levels)}
           </span>
-          <p className="text-sm text-slate-100 leading-snug">{summary}</p>
+          <p className="text-sm text-slate-100 leading-snug">
+            {t(getHolisticSummaryKey(levels))}
+          </p>
         </div>
 
         {climateBody}

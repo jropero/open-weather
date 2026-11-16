@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { useAllPeriodRanks } from '../hooks/useAllPeriodRanks';
 import {
   CalendarRange,
@@ -17,7 +17,9 @@ import type {
   ConfidenceLevel,
 } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
+import { useNow } from '../hooks/useNow';
 import { useSeasonalForecast } from '../hooks/useSeasonalForecast';
+import { ensembleDaysInWeek, MIN_ENSEMBLE_DAYS_IN_WEEK } from '../utils/ensembleStats';
 import {
   SEASONAL_VARIABLES,
   classifyAnomaly,
@@ -27,8 +29,14 @@ import {
   hasMeaningfulRow,
 } from '../utils/seasonal';
 import { SeasonalAttribution } from './SeasonalAttribution';
-import { EnsembleDetailView } from './EnsembleDetailView';
-import { ClimateDetailView } from './ClimateDetailView';
+
+// Drill-down dialogs load on first tap (own chunks)
+const EnsembleDetailView = lazy(() =>
+  import('./EnsembleDetailView').then((m) => ({ default: m.EnsembleDetailView })),
+);
+const ClimateDetailView = lazy(() =>
+  import('./ClimateDetailView').then((m) => ({ default: m.ClimateDetailView })),
+);
 
 type Tier = 'weeks' | 'months' | 'seasons';
 
@@ -48,6 +56,12 @@ const CONFIDENCE_DOTS: Record<ConfidenceLevel, string> = {
   low: '●○○',
 };
 
+// Low-confidence cells get a neutral grey hatch (visible on light and dark cell colours)
+const LOW_CONFIDENCE_HATCH: React.CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(135deg, rgba(127,127,127,0.28) 0 2px, transparent 2px 6px)',
+};
+
 interface LongRangeOutlookProps {
   location: Location;
 }
@@ -55,6 +69,7 @@ interface LongRangeOutlookProps {
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   const { language, t } = useLanguage();
+  const now = useNow();
   const { outlook, loading, error, retry } = useSeasonalForecast(location);
   const [tier, setTier] = useState<Tier>('weeks');
   const [expanded, setExpanded] = useState(true);
@@ -124,6 +139,17 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     return t(`seasonal.word.${variable}.${direction}`);
   };
 
+  // "Warmer than in 9 of the last 10 years" (same wording as the climate drill-down)
+  const rankText = ({ above, total }: { above: number; total: number }) => {
+    const adj = (dir: 'above' | 'below') => t(`climate.adj.temperature.${dir}`);
+    let s: string;
+    if (above >= total) s = t('climate.cmp.all').replace('{adj}', adj('above'));
+    else if (above === 0) s = t('climate.cmp.all').replace('{adj}', adj('below'));
+    else s = t('climate.cmp.some').replace('{adj}', adj('above')).replace('{n}', String(above));
+    s = s.replace('{m}', String(total));
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
   const renderHeader = (p: SeasonalPeriod, col: number) => {
     const { main, sub } = periodLabel(p);
     const season = p.season;
@@ -169,9 +195,9 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
           >
             {CONFIDENCE_DOTS[p.confidence]}
           </span>
-          <span className="text-[9px] font-semibold text-slate-200 leading-tight">
-            <span className="sr-only">{t('seasonal.confidence')}: </span>
-            {t(`seasonal.confidence.${p.confidence}`)}
+          {/* The level word lives in the title / screen-reader text; cells carry the hatch */}
+          <span className="sr-only">
+            {t('seasonal.confidence')}: {t(`seasonal.confidence.${p.confidence}`)}
           </span>
           {p.agreement !== null && (
             <span className="text-[9px] text-slate-300 leading-tight">
@@ -203,9 +229,12 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     const { mean, anomaly } = p.values[variable];
     const normal = mean !== null && anomaly !== null ? mean - anomaly : null;
 
-    const isDrillableEnsemble = tier === 'weeks';
+    // Weekly cells open the hourly ensemble only where it actually has data (15-day window);
+    // weeks beyond it toggle the inline EC46 detail instead of opening an empty chart.
+    const isDrillableEnsemble =
+      tier === 'weeks' && ensembleDaysInWeek(p.start, now) >= MIN_ENSEMBLE_DAYS_IN_WEEK;
     const isDrillableClimate = tier === 'months' || tier === 'seasons';
-    const isDrillable = isDrillableEnsemble;
+    const opensDialog = isDrillableEnsemble || isDrillableClimate;
 
     const periodKey = `${p.start}_${isSeasonal ? 'seas' : 'month'}`;
     const rank =
@@ -223,19 +252,26 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
       }
     };
 
+    const { main, sub } = periodLabel(p);
+    const absolutes = `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`;
+    const ariaParts = [
+      `${main} ${sub}, ${t('seasonal.var.' + variable)}: ${d.value}${d.unit}, ${word}`,
+      `${t('seasonal.confidence')}: ${t('seasonal.confidence.' + p.confidence)}`,
+      rank ? rankText(rank) : null,
+    ].filter(Boolean);
+
     return (
       <td key={col} className="p-0 relative">
         <button
           type="button"
           onClick={handleClick}
-          aria-pressed={isSel}
-          aria-label={`${periodLabel(p).main} ${periodLabel(p).sub}, ${t('seasonal.var.' + variable)}: ${d.value}${d.unit}, ${word}`}
-          title={
-            isDrillable
-              ? `${t('ensemble.week')} ${col + 1}`
-              : `${t('seasonal.detail.forecast')}: ${formatAbsolute(variable, mean)} · ${t('seasonal.detail.normal')}: ${formatAbsolute(variable, normal)}`
-          }
-          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline outline-2 outline-white outline-offset-1' : ''} ${isDrillable || isDrillableClimate ? 'ring-1 ring-inset ring-white/30' : ''}`}
+          {...(opensDialog
+            ? { 'aria-haspopup': 'dialog' as const }
+            : { 'aria-pressed': isSel })}
+          aria-label={ariaParts.join('. ')}
+          title={rank ? `${absolutes}\n${rankText(rank)}` : absolutes}
+          style={p.confidence === 'low' ? LOW_CONFIDENCE_HATCH : undefined}
+          className={`w-full rounded-lg px-1 py-1.5 flex flex-col items-center transition-transform active:scale-95 ${getAnomalyClass(variable, d.level)} ${isSel ? 'outline-2 outline-white outline-offset-1' : ''}`}
         >
           <span className="text-xs font-black leading-none whitespace-nowrap">
             {d.value}
@@ -244,15 +280,20 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
           <span className="text-[9px] font-semibold leading-tight mt-0.5 whitespace-nowrap">
             {word}
           </span>
-          {isDrillable && (
-            <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ modelos</span>
+          {rank && (
+            // One dot per historical year; filled = years the forecast is warmer than
+            <span aria-hidden="true" className="flex gap-px mt-1">
+              {Array.from({ length: rank.total }, (_, k) => (
+                <span
+                  key={k}
+                  className={`w-[3px] h-[3px] rounded-full bg-current ${k < rank.above ? '' : 'opacity-25'}`}
+                />
+              ))}
+            </span>
           )}
-          {isDrillableClimate && (
-            <span className="text-[8px] leading-none mt-0.5 opacity-70">↗ historia</span>
-          )}
-          {rank && rank.above > 0 && rank.above < rank.total && (
-            <span className="text-[7px] leading-none mt-0.5 opacity-60 tabular-nums">
-              {rank.above}/{rank.total}
+          {opensDialog && (
+            <span aria-hidden="true" className="text-[9px] leading-none mt-1 opacity-80">
+              {t(isDrillableEnsemble ? 'seasonal.drill.ensemble' : 'seasonal.drill.history')}
             </span>
           )}
         </button>
@@ -301,6 +342,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
             {t('seasonal.detail.prob_above').replace('{n}', String(Math.round(probAbove)))}
           </span>
         )}
+        <span className="text-slate-400">{t('seasonal.beyond_ensemble')}</span>
       </div>
     );
   };
@@ -383,6 +425,14 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
         {renderDetail()}
         <div className="mt-3 px-1 flex flex-col gap-1 text-[10px] leading-snug text-slate-300">
           <p>{t('seasonal.legend')}</p>
+          <p className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block w-4 h-3 rounded-sm bg-white/10 shrink-0"
+              style={LOW_CONFIDENCE_HATCH}
+            />
+            {t('seasonal.legend.confidence')}
+          </p>
           <p>
             {t(
               tier === 'weeks'
@@ -400,23 +450,25 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
 
   return (
     <>
-      {drillTarget && (
-        <EnsembleDetailView
-          location={location}
-          period={drillTarget.period}
-          weekIndex={drillTarget.weekIndex}
-          initialVariable={drillTarget.variable}
-          lowConfidence={drillTarget.weekIndex >= 2}
-          onClose={() => setDrillTarget(null)}
-        />
-      )}
-      {climateTarget && (
-        <ClimateDetailView
-          location={location}
-          period={climateTarget.period}
-          onClose={() => setClimateTarget(null)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {drillTarget && (
+          <EnsembleDetailView
+            location={location}
+            period={drillTarget.period}
+            weekIndex={drillTarget.weekIndex}
+            initialVariable={drillTarget.variable}
+            lowConfidence={drillTarget.weekIndex >= 2}
+            onClose={() => setDrillTarget(null)}
+          />
+        )}
+        {climateTarget && (
+          <ClimateDetailView
+            location={location}
+            period={climateTarget.period}
+            onClose={() => setClimateTarget(null)}
+          />
+        )}
+      </Suspense>
       <section className="bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-xl mt-4 text-white border border-slate-700/50">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="min-w-0">
