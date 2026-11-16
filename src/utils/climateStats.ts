@@ -1,4 +1,5 @@
 import type { SeasonalVariable, SeasonKey } from '../types/weather';
+import type { AnomalyLevel } from './seasonal';
 
 // ---- Shared types --------------------------------------------------------
 
@@ -74,6 +75,9 @@ export const ALL_VARS: SeasonalVariable[] = [
 ];
 
 const ERA5_YEARS_BACK = 10;
+
+/** RMS z-score distance (σ) at which an analogue counts as 0 % similar. */
+export const ANALOGUE_ZERO_SIMILARITY = 2;
 
 // ---- Date helpers --------------------------------------------------------
 
@@ -296,10 +300,10 @@ export function findAnalogues(
 
   candidates.sort((a, b) => a.distance - b.distance);
 
-  // Normalise similarity relative to worst candidate
-  const maxDist = candidates.length ? candidates[candidates.length - 1].distance : 1;
+  // Absolute scale: identical = 1, an RMS difference of ANALOGUE_ZERO_SIMILARITY σ or more = 0.
+  // (Normalising to the worst candidate made the top 3 look close even when none was.)
   for (const r of candidates) {
-    r.similarity = maxDist > 0 ? 1 - r.distance / maxDist : 1;
+    r.similarity = Math.max(0, 1 - r.distance / ANALOGUE_ZERO_SIMILARITY);
   }
 
   return candidates.slice(0, 3);
@@ -317,99 +321,40 @@ export function getAboveCount(forecastValue: number, historicalValues: number[])
 
 // ---- Holistic summary ----------------------------------------------------
 
+/** Tie-break order when several variables share the largest |level|. */
+const SUMMARY_PRIORITY: SeasonalVariable[] = [
+  'temperature',
+  'precipitation',
+  'sunshine',
+  'pressure',
+  'snowfall',
+];
+
 /**
- * Generates a plain-language summary sentence describing the overall anomaly.
- * `anomalies` are the SEAS5 raw anomaly values (°C for temp/pressure, mm for precip,
- *  s for sunshine, cm for snow).
+ * Returns the translation key of a plain-language summary sentence.
+ * `levels` come from `classifyAnomaly` — the same thresholds the heatmap uses, so the
+ * sentence never contradicts the cell colours (e.g. "wetter" while the cell says normal).
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export function getHolisticSummary(
-  anomalies: Record<SeasonalVariable, number | null>,
-  lang: 'es' | 'en',
+export function getHolisticSummaryKey(
+  levels: Record<SeasonalVariable, AnomalyLevel | null>,
 ): string {
-  const t = anomalies.temperature;
-  const p = anomalies.precipitation;
-  const sun = anomalies.sunshine;
-  const pressure = anomalies.pressure;
-  const snow = anomalies.snowfall;
+  const temp = levels.temperature ?? 0;
+  const precip = levels.precipitation ?? 0;
 
-  // Temperature threshold: ±1°C; Precipitation threshold: ±10 mm (proxy for ~10%)
-  const tempWarm = t !== null && t >= 1;
-  const tempCold = t !== null && t <= -1;
-  const precipWet = p !== null && p >= 10;
-  const precipDry = p !== null && p <= -10;
+  if (temp !== 0 && precip !== 0) {
+    return `climate.summary.${temp > 0 ? 'warm' : 'cold'}_${precip > 0 ? 'wet' : 'dry'}`;
+  }
 
-  if (lang === 'es') {
-    if (tempWarm && precipWet) return 'Un periodo más cálido y húmedo de lo normal.';
-    if (tempWarm && precipDry) return 'Más cálido pero más seco de lo habitual.';
-    if (tempCold && precipWet) return 'Más frío y húmedo de lo normal.';
-    if (tempCold && precipDry) return 'Más frío y seco de lo habitual.';
-    if (!tempWarm && !tempCold && !precipWet && !precipDry) {
-      return 'Condiciones cercanas a lo normal en temperatura y precipitación.';
-    }
-    const rankedEs: Array<{ v: SeasonalVariable; mag: number; val: number | null }> = [
-      { v: 'temperature' as SeasonalVariable, mag: Math.abs(t ?? 0), val: t },
-      { v: 'precipitation' as SeasonalVariable, mag: Math.abs(p ?? 0), val: p },
-      { v: 'sunshine' as SeasonalVariable, mag: Math.abs((sun ?? 0) / 3600), val: sun },
-      { v: 'pressure' as SeasonalVariable, mag: Math.abs(pressure ?? 0), val: pressure },
-      { v: 'snowfall' as SeasonalVariable, mag: Math.abs(snow ?? 0), val: snow },
-    ];
-    rankedEs.sort((a, b) => b.mag - a.mag);
-    const topEs = rankedEs[0];
-    if (!topEs || topEs.val === null) return 'Condiciones cercanas a lo normal.';
-    switch (topEs.v) {
-      case 'temperature':
-        return topEs.val > 0
-          ? 'Un periodo más cálido de lo normal.'
-          : 'Un periodo más frío de lo normal.';
-      case 'precipitation':
-        return topEs.val > 0
-          ? 'Un periodo más lluvioso de lo habitual.'
-          : 'Un periodo más seco de lo habitual.';
-      case 'sunshine':
-        return topEs.val > 0
-          ? 'Más horas de sol de lo normal.'
-          : 'Menos horas de sol de lo habitual.';
-      case 'pressure':
-        return topEs.val > 0
-          ? 'Presión más alta de lo normal.'
-          : 'Presión más baja de lo normal.';
-      case 'snowfall':
-        return topEs.val > 0 ? 'Más nieve de lo habitual.' : 'Menos nieve de lo habitual.';
-      default:
-        return 'Condiciones cercanas a lo normal.';
-    }
-  } else {
-    if (tempWarm && precipWet) return 'A warmer and wetter period than normal.';
-    if (tempWarm && precipDry) return 'Warmer but drier than usual.';
-    if (tempCold && precipWet) return 'Colder and wetter than normal.';
-    if (tempCold && precipDry) return 'Colder and drier than usual.';
-    if (!tempWarm && !tempCold && !precipWet && !precipDry) {
-      return 'Near-normal conditions for temperature and precipitation.';
-    }
-    const rankedEn: Array<{ v: SeasonalVariable; mag: number; val: number | null }> = [
-      { v: 'temperature' as SeasonalVariable, mag: Math.abs(t ?? 0), val: t },
-      { v: 'precipitation' as SeasonalVariable, mag: Math.abs(p ?? 0), val: p },
-      { v: 'sunshine' as SeasonalVariable, mag: Math.abs((sun ?? 0) / 3600), val: sun },
-      { v: 'pressure' as SeasonalVariable, mag: Math.abs(pressure ?? 0), val: pressure },
-      { v: 'snowfall' as SeasonalVariable, mag: Math.abs(snow ?? 0), val: snow },
-    ];
-    rankedEn.sort((a, b) => b.mag - a.mag);
-    const topEn = rankedEn[0];
-    if (!topEn || topEn.val === null) return 'Near-normal conditions.';
-    switch (topEn.v) {
-      case 'temperature':
-        return topEn.val > 0 ? 'A warmer than normal period.' : 'A colder than normal period.';
-      case 'precipitation':
-        return topEn.val > 0 ? 'A wetter than usual period.' : 'A drier than usual period.';
-      case 'sunshine':
-        return topEn.val > 0 ? 'More sunshine than normal.' : 'Less sunshine than usual.';
-      case 'pressure':
-        return topEn.val > 0 ? 'Higher pressure than normal.' : 'Lower pressure than normal.';
-      case 'snowfall':
-        return topEn.val > 0 ? 'More snowfall than usual.' : 'Less snowfall than usual.';
-      default:
-        return 'Near-normal conditions.';
+  let top: SeasonalVariable | null = null;
+  let topMag = 0;
+  for (const v of SUMMARY_PRIORITY) {
+    const mag = Math.abs(levels[v] ?? 0);
+    if (mag > topMag) {
+      topMag = mag;
+      top = v;
     }
   }
+  if (!top) return 'climate.summary.normal';
+  return `climate.summary.${top}.${(levels[top] ?? 0) > 0 ? 'above' : 'below'}`;
 }

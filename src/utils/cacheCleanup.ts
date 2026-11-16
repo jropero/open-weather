@@ -14,7 +14,14 @@ export function purgeStaleCache() {
       const key = localStorage.key(i);
       if (key?.startsWith('hist_cache_') && !key.endsWith(todayMonthDay)) {
         localStorage.removeItem(key);
-      } else if (key?.startsWith('seasonal_cache_')) {
+      } else if (key?.startsWith('ensemble_cache_') && !key.startsWith('ensemble_cache_v2_')) {
+        // v1 stored precomputed stats per hour (larger, different shape) — no longer read
+        localStorage.removeItem(key);
+      } else if (
+        key?.startsWith('seasonal_cache_') ||
+        key?.startsWith('ensemble_cache_') ||
+        key?.startsWith('climate_hist_')
+      ) {
         // One entry per visited location (incl. custom ones) — drop those older than a day
         try {
           const { timestamp } = JSON.parse(localStorage.getItem(key) ?? '{}');
