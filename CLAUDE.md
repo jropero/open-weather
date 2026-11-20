@@ -69,6 +69,7 @@ The project uses **Vite+** (unified toolchain; `vp` CLI, managed via `pnpm`/cata
 | `pnpm run lint` / `vp lint .` | **Lint / Type-aware**     | Runs Oxlint (incl. SonarJS) with type-aware checks.                        |
 | `pnpm exec vp check`          | **Format + Lint + Types** | Formats (Oxfmt), lints, and type-checks; use `--fix` to auto-fix.          |
 | `pnpm preview` / `vp preview` | **Local Preview**         | Serves the built output locally.                                           |
+| `pnpm test:e2e`               | **E2E tests**             | Playwright smoke tests on mobile profiles (`e2e/`).                        |
 
 **Testing:**
 
@@ -76,7 +77,8 @@ The project uses **Vite+** (unified toolchain; `vp` CLI, managed via `pnpm`/cata
 - **Run all tests:** `pnpm test` / `vp test run`
 - **Watch mode:** `pnpm run test:watch`
 - **Single file:** `pnpm exec vp test run src/utils/__tests__/weatherCodes.scoring.test.ts`
-- Tests cover only the pure utility functions in `src/utils/` — no component or React rendering tests. The test files map to the utility modules: `weatherCodes` (scoring + classify), `daySummary`, `climateStats`, `ensembleStats` (stats, ensemble window, response parsing, week slicing), `seasonal` (pure + classify), `heroAlerts`, plus `translations.test.ts`.
+- Tests cover only the pure utility functions in `src/utils/` — no component or React rendering tests.
+- **E2E (Playwright):** `pnpm test:e2e` runs `e2e/*.spec.ts` on mobile profiles only (Pixel 5 / iPhone 12 — the app is used on phones), reusing a running dev server on :5173 (else starts one). Smoke tests hit the live Open-Meteo API (no mocks): dashboard loads with no horizontal scroll, ≤ 4 hero tiles before "+N más", tile tap opens the Today & Tomorrow dialog. Vitest only includes `src/**/*.test.ts`; `tsconfig.e2e.json` type-checks `e2e/` + `playwright.config.ts`. The test files map to the utility modules: `weatherCodes` (scoring + classify), `daySummary`, `climateStats`, `ensembleStats` (stats, ensemble window, response parsing, week slicing), `seasonal` (pure + classify), `heroAlerts`, `chartLabels`, plus `translations.test.ts`.
 - **i18n:** strings live in `src/constants/translations.ts` (`translations.es` / `translations.en`); `t()` falls back to the other language, then the key. `translations.test.ts` fails when the two languages have different keys, a value is empty, or a literal `t('…')` in `src/` uses a missing key (built keys like ``t(`x.${v}`)`` are not checked). Add new strings to both languages.
 
 ## ✨ Key Features & Areas of Focus

@@ -11,6 +11,7 @@
     "preview": "vp preview",
     "test": "vp test run",
     "test:watch": "vp test",
+    "test:e2e": "playwright test",
     "prepare": "husky"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
