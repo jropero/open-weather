@@ -146,14 +146,28 @@ function HourLabels({ hours }: Readonly<{ hours: LightStripHour[] }>) {
   );
 }
 
+// Muted top-right meta: estimated peak lux (bright days only; dim/dark have it in the headline)
+// and the raw irradiance the estimate comes from
+function PeakMeta({ lux, wm2 }: Readonly<{ lux: string | null; wm2: number | null }>) {
+  if (lux === null && wm2 === null) return null;
+  return (
+    <span className="shrink-0 flex flex-col items-end text-[11px] leading-tight">
+      {lux !== null && <span className="opacity-70">{lux}</span>}
+      {wm2 !== null && <span className="opacity-55 tabular-nums">{Math.round(wm2)} W/m²</span>}
+    </span>
+  );
+}
+
 export function LightStrip({ hours, now, timezone }: Readonly<Props>) {
   const { t, language } = useLanguage();
   const outlook = buildLightOutlook(hours, now, timezone);
   if (!outlook) return null;
   const { text, peak } = headline(outlook, language, t);
+  const wm2 = outlook.peakHour.wm2;
   const sr = fill(t('light.sr'), {
     s: text,
     v: formatLux(outlook.peakLux, language),
+    w: wm2 === null ? '–' : Math.round(wm2),
     h: pad(outlook.peakHour.hour),
   });
   const showPeak = outlook.verdict === 'bright';
@@ -169,11 +183,7 @@ export function LightStrip({ hours, now, timezone }: Readonly<Props>) {
           <HeadIcon verdict={outlook.verdict} />
           <span>{text}</span>
         </span>
-        {showPeak && (
-          <span className="shrink-0 text-[11px] leading-tight opacity-70">
-            {fill(t('light.peak'), { v: peak })}
-          </span>
-        )}
+        <PeakMeta lux={showPeak ? fill(t('light.peak'), { v: peak }) : null} wm2={wm2} />
       </span>
       <Bars o={outlook} lang={language} />
       <HourLabels hours={outlook.hours} />

@@ -45,6 +45,19 @@ describe('estimateLux', () => {
   });
 });
 
+describe('raw irradiance', () => {
+  it('keeps direct + diffuse W/m² per hour, null when either is missing', () => {
+    const h = { ...mk(T0 + 12 * H, null, true), directRadiation: 30, diffuseRadiation: 85 };
+    const o = buildLightOutlook([h], T0 + 12 * H + 60_000, 'UTC');
+    expect(o?.hours[0].wm2).toBe(115);
+    expect(o?.peakHour.wm2).toBe(115);
+    const missing = { ...h, diffuseRadiation: null };
+    expect(
+      buildLightOutlook([missing, h], T0 + 12 * H + 60_000, 'UTC')?.hours[0].wm2,
+    ).toBeNull();
+  });
+});
+
 describe('luxLevel / formatLux', () => {
   it('levels', () => {
     expect(luxLevel(1999)).toBe('dark');

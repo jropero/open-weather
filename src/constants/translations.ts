@@ -108,7 +108,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'light.tomorrow': 'Mañana: {s}',
     'light.title':
       'Luz exterior estimada a partir de la radiación solar (±15 %). 10 000 lux ≈ terapia de luz.',
-    'light.sr': '{s}. Máximo aproximado {v} lux a las {h} h.',
+    'light.sr': '{s}. Máximo aproximado {v} lux ({w} W/m²) a las {h} h.',
     'hero.chips.less': 'Mostrar menos',
     'label.night_tropical': 'Noche Tropical',
     'label.night_tropical_desc': 'Mínima no bajará de 20°C',
@@ -492,7 +492,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'light.tomorrow': 'Tomorrow: {s}',
     'light.title':
       'Outdoor light estimated from solar radiation (±15 %). 10,000 lux ≈ light therapy.',
-    'light.sr': '{s}. Peak about {v} lux at {h}h.',
+    'light.sr': '{s}. Peak about {v} lux ({w} W/m²) at {h}h.',
     'hero.chips.less': 'Show less',
     'label.night_tropical': 'Tropical Night',
     'label.night_tropical_desc': "Min temp won't drop below 20°C",

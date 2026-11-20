@@ -40,6 +40,7 @@ export interface LightStripHour {
   time: string;
   hour: number; // local hour at the location
   lux: number | null; // null = no data (never 0)
+  wm2: number | null; // raw global irradiance (direct + diffuse, W/m², as sent by the API)
   level: LightLevel | null;
 }
 
@@ -53,6 +54,10 @@ export interface LightOutlook {
   verdict: LightVerdict;
 }
 
+const wm2Of = (h: SummaryHour) =>
+  h.directRadiation == null || h.diffuseRadiation == null
+    ? null
+    : h.directRadiation + h.diffuseRadiation;
 const luxOf = (h: SummaryHour) =>
   estimateLux(h.directRadiation ?? null, h.diffuseRadiation ?? null);
 // Radiation is the mean of the PRECEDING hour, so the hour after sunset can still carry light
@@ -97,6 +102,7 @@ export function buildLightOutlook(
         time: h.time,
         hour: local(ms).hour,
         lux,
+        wm2: wm2Of(h),
         level: lux === null ? null : luxLevel(lux),
       };
     }),
