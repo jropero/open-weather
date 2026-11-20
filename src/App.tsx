@@ -635,7 +635,6 @@ function WeatherDashboard() {
             <TodayTomorrowSummary
               data={data}
               now={now}
-              todayMigraine={currentMigraineRisk}
               placeName={getTranslatedLocationName(currentLocation.name, language)}
               timezone={currentLocation.timezone}
               dialogRef={summaryDialogRef}

@@ -1,11 +1,21 @@
 import { describe, it, expect } from 'vite-plus/test';
-import { buildDaySummary, getTomorrowMigraine, getHighlights } from '../daySummary';
+import {
+  buildDaySummary,
+  buildNightChips,
+  buildOverview,
+  overviewSky,
+  compareFelt,
+  feltAdjective,
+  getHighlights,
+  isCalmDay,
+} from '../daySummary';
 import type {
   DaySummary,
   HealthSignals,
   UmbrellaVerdict,
   DayPart,
   FeltRange,
+  NightNote,
 } from '../daySummary';
 import type { SummaryHour, DailyWeather, WakingWindow } from '../../types/weather';
 
@@ -18,9 +28,10 @@ import type { SummaryHour, DailyWeather, WakingWindow } from '../../types/weathe
  * With timezone='UTC' and wakingWindow { start: 7, end: 23 }:
  *   - today  = TODAY
  *   - remaining waking today = hours 08–22 (hour 07 ended exactly at now → not remaining)
- *   - tomorrow = '2024-06-16', waking = hours 07–22
+ *   - tomorrow = TOMORROW, waking = hours 07–22
  */
 const TODAY = '2024-06-15';
+const TOMORROW = '2024-06-16';
 const NOW = Date.parse('2024-06-15T08:00:00Z');
 const WAKING: WakingWindow = { start: 7, end: 23 };
 
@@ -108,8 +119,6 @@ function makeEmptySummary(overrides: Partial<DaySummary> = {}): DaySummary {
 }
 
 const ZERO_HEALTH: HealthSignals = {
-  todayMigraine: null,
-  tomorrowMigraine: null,
   pressureDrop6h: null,
   aqi: null,
   maxPollen: null,
@@ -137,12 +146,13 @@ describe('buildDaySummary — umbrella', () => {
     expect(result.today?.umbrella?.level).toBe('take');
   });
 
-  it("returns 'maybe' when precipitation probability is enough but mm is too low", () => {
-    // precipProbability=35 >= possibleProb(30) but precipitation=0 → not hasPrecip
-    // So isPossible via probability alone → 'maybe'
+  it.each([
+    [49, 'none'],
+    [50, 'maybe'],
+  ])("probability %i%% alone (no amount) → '%s'", (prob, level) => {
     const hours = makeHours(TODAY, 8, 10, {
       precipitation: 0,
-      precipProbability: 35,
+      precipProbability: prob,
       weatherCode: 1,
     });
     const result = buildDaySummary({
@@ -152,7 +162,20 @@ describe('buildDaySummary — umbrella', () => {
       now: NOW,
       wakingWindow: WAKING,
     });
-    expect(result.today?.umbrella?.level).toBe('maybe');
+    expect(result.today?.umbrella?.level).toBe(level);
+  });
+
+  it('a modelled 0.1 mm at 49 % is not possible, at 50 % it is', () => {
+    const level = (prob: number) =>
+      buildDaySummary({
+        hours: makeHours(TODAY, 8, 10, { precipitation: 0.1, precipProbability: prob }),
+        daily: [],
+        timezone: 'UTC',
+        now: NOW,
+        wakingWindow: WAKING,
+      }).today?.umbrella?.level;
+    expect(level(49)).toBe('none');
+    expect(level(50)).toBe('maybe');
   });
 
   it('returns null umbrella when all hours have no precipitation data', () => {
@@ -285,7 +308,7 @@ describe('buildDaySummary — feltDelta', () => {
     // Today waking window: hours 07–22 of 2024-06-15 (todayFull — includes hour 07 even though not remaining)
     // Tomorrow waking window: hours 07–22 of 2024-06-16
     const todayHours = makeHours(TODAY, 7, 22, { apparentTemperature: 20 });
-    const tomorrowHours = makeHours('2024-06-16', 7, 22, { apparentTemperature: 25 });
+    const tomorrowHours = makeHours(TOMORROW, 7, 22, { apparentTemperature: 25 });
     const result = buildDaySummary({
       hours: [...todayHours, ...tomorrowHours],
       daily: [],
@@ -302,7 +325,7 @@ describe('buildDaySummary — feltDelta', () => {
     const todayHours = makeHours(TODAY, 7, 22, { apparentTemperature: 20 });
     // Replace hour 07 with null apparentTemperature
     todayHours[0] = makeHour('2024-06-15T07:00', { apparentTemperature: null });
-    const tomorrowHours = makeHours('2024-06-16', 7, 22, { apparentTemperature: 25 });
+    const tomorrowHours = makeHours(TOMORROW, 7, 22, { apparentTemperature: 25 });
     const result = buildDaySummary({
       hours: [...todayHours, ...tomorrowHours],
       daily: [],
@@ -311,53 +334,6 @@ describe('buildDaySummary — feltDelta', () => {
       wakingWindow: WAKING,
     });
     expect(result.feltDelta).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getTomorrowMigraine
-// ---------------------------------------------------------------------------
-
-describe('getTomorrowMigraine', () => {
-  it('returns null when both daily entries are null', () => {
-    expect(getTomorrowMigraine(null, null, 'es')).toBeNull();
-  });
-
-  it('returns null when only today is null', () => {
-    expect(getTomorrowMigraine(null, makeDaily('2024-06-16'), 'es')).toBeNull();
-  });
-
-  it('returns null when tomorrowDaily.meanPressure is NaN', () => {
-    const today = makeDaily(TODAY, { meanPressure: 1013 });
-    const tomorrow = makeDaily('2024-06-16', { meanPressure: NaN });
-    expect(getTomorrowMigraine(today, tomorrow, 'es')).toBeNull();
-  });
-
-  it('computes score >= 3 for a severe pressure drop of -5 hPa', () => {
-    // deltaP = 1008 - 1013 = -5 → +3 (severe drop); pressure 1008 < 1010 → +1 → score=4
-    const today = makeDaily(TODAY, { meanPressure: 1013, humidity: 50 });
-    const tomorrow = makeDaily('2024-06-16', {
-      meanPressure: 1008,
-      humidity: 50,
-      precipitation: 0,
-    });
-    const result = getTomorrowMigraine(today, tomorrow, 'es');
-    expect(result).not.toBeNull();
-    expect(result!.score).toBeGreaterThanOrEqual(3);
-  });
-
-  it('accumulates points from humidity and precipitation', () => {
-    // deltaP=-3 → +1; pressure=1008<1010 → +1; humidity=80>70 → +1; precip=2>0 → +1 → score=4
-    const today = makeDaily(TODAY, { meanPressure: 1013, humidity: 50 });
-    const tomorrow = makeDaily('2024-06-16', {
-      meanPressure: 1010,
-      humidity: 80,
-      precipitation: 2,
-    });
-    const result = getTomorrowMigraine(today, tomorrow, 'es');
-    expect(result).not.toBeNull();
-    // deltaP=1010-1013=-3 → +1; pressure=1010 (not < 1010) → +0; humidity=80 → +1; precip=2 → +1 → score=3
-    expect(result!.score).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -387,13 +363,14 @@ describe('getHighlights', () => {
     expect(first.topic === 'umbrella' && first.umbrella.thunder).toBe(true);
   });
 
-  it('highlights migraine score 6 with weight 85', () => {
-    const summary = makeEmptySummary({
-      today: makeDayPart(),
+  it('highlights a 6 h pressure drop with weight 46', () => {
+    const summary = makeEmptySummary({ today: makeDayPart() });
+    const health: HealthSignals = { ...ZERO_HEALTH, pressureDrop6h: -4 };
+    expect(getHighlights(summary, health)[0]).toMatchObject({
+      topic: 'pressure',
+      day: 'today',
+      delta: -4,
     });
-    const health: HealthSignals = { ...ZERO_HEALTH, todayMigraine: 6 };
-    const highlights = getHighlights(summary, health);
-    expect(highlights[0]).toMatchObject({ topic: 'migraine', day: 'today', score: 6 });
   });
 
   it('returns a calm highlight when there are no candidates', () => {
@@ -412,7 +389,7 @@ describe('getHighlights', () => {
   });
 
   it('returns 2 highlights when second candidate has weight >= 30', () => {
-    // Thunder umbrella (w=100) + migraine score 6 (w=85, different topic) → 2 highlights
+    // Thunder umbrella (w=100) + pressure drop (w=46, different topic) → 2 highlights
     const thunderUmbrella: UmbrellaVerdict = {
       level: 'take',
       kind: 'rain',
@@ -426,16 +403,16 @@ describe('getHighlights', () => {
     const summary = makeEmptySummary({
       today: makeDayPart({ umbrella: thunderUmbrella }),
     });
-    const health: HealthSignals = { ...ZERO_HEALTH, todayMigraine: 6 };
+    const health: HealthSignals = { ...ZERO_HEALTH, pressureDrop6h: -4 };
     const highlights = getHighlights(summary, health);
     expect(highlights).toHaveLength(2);
     const topics = highlights.map((h) => h.topic);
     expect(topics).toContain('umbrella');
-    expect(topics).toContain('migraine');
+    expect(topics).toContain('pressure');
   });
 
   it('returns only 1 highlight when second candidate weight < 30', () => {
-    // 'maybe' umbrella today → w=35; migraine score 2 → w=18 (< SECONDARY_MIN_WEIGHT=30)
+    // 'maybe' umbrella today → w=35; moderate air quality → w=22 (< SECONDARY_MIN_WEIGHT=30)
     const maybeUmbrella: UmbrellaVerdict = {
       level: 'maybe',
       kind: 'rain',
@@ -449,10 +426,62 @@ describe('getHighlights', () => {
     const summary = makeEmptySummary({
       today: makeDayPart({ umbrella: maybeUmbrella }),
     });
-    const health: HealthSignals = { ...ZERO_HEALTH, todayMigraine: 2 };
+    const health: HealthSignals = { ...ZERO_HEALTH, aqi: 45 };
     const highlights = getHighlights(summary, health);
     expect(highlights).toHaveLength(1);
     expect(highlights[0]).toMatchObject({ topic: 'umbrella', day: 'today' });
+  });
+
+  const verdict = (level: 'take' | 'maybe'): UmbrellaVerdict => ({
+    level,
+    kind: 'rain',
+    ranges: [{ from: 8, to: 12 }],
+    intermittent: false,
+    mm: level === 'take' ? 2 : 0.1,
+    cm: 0,
+    maxProb: level === 'take' ? 90 : 55,
+    thunder: false,
+  });
+
+  it("ranks the earlier day first: tomorrow's maybe beats the day after's take", () => {
+    const s = makeEmptySummary({
+      tomorrow: makeDayPart({ date: TOMORROW, umbrella: verdict('maybe') }),
+      dayAfterTomorrow: makeDayPart({ date: '2024-06-17', umbrella: verdict('take') }),
+    });
+    expect(getHighlights(s, ZERO_HEALTH)[0]).toMatchObject({
+      topic: 'umbrella',
+      day: 'tomorrow',
+    });
+  });
+
+  it("puts today's strong wind before tomorrow's umbrella, then orders same-day by weight", () => {
+    const wind = { level: 'strong' as const, gusts: 60, ranges: [{ from: 13, to: 15 }] };
+    const s = makeEmptySummary({
+      today: makeDayPart({ umbrella: verdict('take'), wind }),
+      tomorrow: makeDayPart({ date: TOMORROW, umbrella: verdict('maybe') }),
+    });
+    // Teaser (today's umbrella omitted): wind today, then tomorrow's umbrella
+    expect(
+      getHighlights(s, ZERO_HEALTH, { omitTodayUmbrella: true }).map((h) => [h.topic, h.day]),
+    ).toEqual([
+      ['wind', 'today'],
+      ['umbrella', 'tomorrow'],
+    ]);
+    // Dialog: same day → higher weight first (umbrella 80 > wind 60)
+    expect(getHighlights(s, ZERO_HEALTH).map((h) => [h.topic, h.day])).toEqual([
+      ['umbrella', 'today'],
+      ['wind', 'today'],
+    ]);
+  });
+
+  it('falls back to the highest weight when nothing reaches 30', () => {
+    const s = makeEmptySummary({
+      today: makeDayPart(),
+      tomorrow: makeDayPart({ date: TOMORROW }),
+    });
+    const health: HealthSignals = { ...ZERO_HEALTH, aqi: 45 };
+    // Air quality weighs 22 (< 30): it is the highest, so it wins instead of the calm phrase
+    expect(getHighlights(s, health)).toEqual([{ topic: 'air', day: 'today', aqi: 45 }]);
   });
 
   it('two candidates with the same topic are not both returned', () => {
@@ -470,11 +499,179 @@ describe('getHighlights', () => {
     };
     const summary = makeEmptySummary({
       today: makeDayPart({ umbrella: takeUmbrella }),
-      tomorrow: makeDayPart({ date: '2024-06-16', umbrella: takeUmbrella }),
+      tomorrow: makeDayPart({ date: TOMORROW, umbrella: takeUmbrella }),
     });
     const highlights = getHighlights(summary, ZERO_HEALTH);
     // Both are 'umbrella' topic → second is filtered out → only 1 returned
     expect(highlights).toHaveLength(1);
     expect(highlights[0]).toMatchObject({ topic: 'umbrella', day: 'today' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Day-after comparison basis, overview and presentation helpers
+// ---------------------------------------------------------------------------
+
+describe('buildDaySummary — feltDeltaDayAfter', () => {
+  it('compares the day after tomorrow with TOMORROW, not with today', () => {
+    const hours = [
+      ...makeHours(TODAY, 7, 22, { apparentTemperature: 30 }),
+      ...makeHours(TOMORROW, 7, 22, { apparentTemperature: 20 }),
+      ...makeHours('2024-06-17', 7, 22, { apparentTemperature: 15 }),
+    ];
+    const r = buildDaySummary({
+      hours,
+      daily: [],
+      timezone: 'UTC',
+      now: NOW,
+      wakingWindow: WAKING,
+    });
+    expect(r.feltDelta).toBe(-10); // tomorrow vs today
+    expect(r.feltDeltaDayAfter).toBe(-5); // day after vs tomorrow
+    expect(r.tomorrowFelt).toEqual({ min: 20, max: 20 });
+  });
+});
+
+describe('compareFelt', () => {
+  const base: FeltRange = { min: 5, max: 9 };
+  it('returns the base range it was compared with and a signed tone', () => {
+    const c = compareFelt(-5, { min: 1, max: 4 }, base);
+    expect(c).toMatchObject({ similar: false, tone: 'colder', adjective: 'colder', delta: -5 });
+    expect(c?.base).toEqual(base);
+  });
+  it('is similar below the threshold', () => {
+    expect(compareFelt(1, { min: 5, max: 10 }, base)).toMatchObject({
+      similar: true,
+      tone: 'similar',
+    });
+  });
+  it('is null without delta or base', () => {
+    expect(compareFelt(null, base, base)).toBeNull();
+    expect(compareFelt(3, base, null)).toBeNull();
+  });
+  it('picks the adjective from how warm the day feels', () => {
+    expect(feltAdjective(-3, 18)).toBe('cooler');
+    expect(feltAdjective(3, 26)).toBe('hotter');
+    expect(feltAdjective(3, 5)).toBe('milder');
+    expect(feltAdjective(3, 15)).toBe('warmer');
+  });
+});
+
+describe('buildOverview / isCalmDay', () => {
+  const dry = {
+    level: 'none',
+    kind: 'rain',
+    ranges: [],
+    intermittent: false,
+    mm: 0,
+    cm: 0,
+    maxProb: null,
+    thunder: false,
+  } satisfies UmbrellaVerdict;
+
+  it('skips missing days and carries weather code and strong wind', () => {
+    const summary = makeEmptySummary({
+      tomorrow: makeDayPart({
+        date: TOMORROW,
+        felt: { min: 5, max: 7 },
+        umbrella: dry,
+        wind: { level: 'strong', gusts: 46, ranges: [] },
+      }),
+      tomorrowDaily: makeDaily(TOMORROW, { weatherCode: 61 }),
+    });
+    const items = buildOverview(summary);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      day: 'tomorrow',
+      weatherCode: 3, // daily code 61 but a dry verdict → overcast
+      strongWind: 'strong',
+    });
+  });
+
+  it('does not flag a breezy day as strong wind', () => {
+    const summary = makeEmptySummary({
+      today: makeDayPart({ wind: { level: 'breezy', gusts: 30, ranges: [] } }),
+    });
+    const [today] = buildOverview(summary);
+    expect(today.strongWind).toBeNull();
+  });
+
+  it('is calm only when dry and no wind level', () => {
+    expect(isCalmDay(makeDayPart({ umbrella: dry, wind: null }))).toBe(true);
+    expect(
+      isCalmDay(makeDayPart({ umbrella: dry, wind: { level: null, gusts: 5, ranges: [] } })),
+    ).toBe(true);
+    expect(
+      isCalmDay(
+        makeDayPart({ umbrella: dry, wind: { level: 'breezy', gusts: 30, ranges: [] } }),
+      ),
+    ).toBe(false);
+    expect(isCalmDay(makeDayPart({ umbrella: null }))).toBe(false);
+  });
+});
+
+describe('buildNightChips', () => {
+  const base: NightNote = {
+    from: 23,
+    to: 7,
+    precip: null,
+    wetMorning: false,
+    thunder: false,
+    wind: null,
+    frost: null,
+    warmNight: null,
+    minTemp: null,
+  };
+  it('is empty for a quiet night', () => {
+    expect(buildNightChips(base)).toEqual([]);
+  });
+  it('makes one chip per note, in a fixed order', () => {
+    const chips = buildNightChips({
+      ...base,
+      precip: { kind: 'rain', mm: 6.3, cm: 0, ranges: [{ from: 23, to: 7 }] },
+      wetMorning: true,
+      wind: { level: 'strong', gusts: 46 },
+      frost: 'frost',
+      minTemp: 1,
+    });
+    expect(chips.map((c) => c.id)).toEqual(['precip', 'wet', 'wind', 'frost']);
+    expect(chips[0].vars).toEqual({ mm: 6.3, cm: 0 });
+    expect(chips[2].varKeys.level).toBe('summary.wind.strong');
+  });
+});
+
+describe('getHighlights — dialog vs teaser', () => {
+  it("lets today's umbrella lead unless omitTodayUmbrella is set", () => {
+    const umbrella: UmbrellaVerdict = {
+      level: 'take',
+      kind: 'rain',
+      ranges: [{ from: 11, to: 23 }],
+      intermittent: false,
+      mm: 4,
+      cm: 0,
+      maxProb: 100,
+      thunder: false,
+    };
+    const s = makeEmptySummary({ today: makeDayPart({ umbrella }) });
+    expect(getHighlights(s, ZERO_HEALTH)[0]).toMatchObject({ topic: 'umbrella', day: 'today' });
+    expect(
+      getHighlights(s, ZERO_HEALTH, { omitTodayUmbrella: true }).some(
+        (h) => h.topic === 'umbrella',
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('overviewSky', () => {
+  it('shows overcast when a dry day has a precipitation code', () => {
+    for (const code of [51, 61, 80, 71, 95]) expect(overviewSky(code, 'none')).toBe(3);
+  });
+  it('keeps the code when it rains, for non-precip codes, and without a verdict', () => {
+    expect(overviewSky(61, 'maybe')).toBe(61);
+    expect(overviewSky(61, 'take')).toBe(61);
+    expect(overviewSky(61, null)).toBe(61);
+    expect(overviewSky(45, 'none')).toBe(45);
+    expect(overviewSky(0, 'none')).toBe(0);
+    expect(overviewSky(null, 'none')).toBeNull();
   });
 });

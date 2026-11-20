@@ -1,6 +1,5 @@
 import type { DailyWeather, SummaryHour, WakingWindow } from '../types/weather';
-import type { Language } from '../hooks/useLanguage';
-import { getGustLevel, getMigraineRisk, GUST_THRESHOLDS, type GustLevel } from './weatherCodes';
+import { getGustLevel, GUST_THRESHOLDS, type GustLevel } from './weatherCodes';
 
 // "Today & Tomorrow" summary: verdicts for the user's waking hours, in the location's local time.
 // Pure functions only — wording lives in TodayTomorrowSummary.tsx.
@@ -12,8 +11,7 @@ export const SUMMARY_THRESHOLDS = {
   feltStrong: 4, // °C: ranks higher in the teaser
   precipMm: 0.1, // mm/h counted as precipitation
   wetProb: 40, // %: modelled precip with at least this probability → "wet" hour
-  possibleProb: 30, // %: this probability alone (no modelled amount) → "possible" hour
-  minProb: 15, // %: modelled precip below this probability is ignored
+  possibleProb: 50, // %: an hour at or above this probability (with or without an amount) is "possible"
   takeMm: 0.5, // mm over wet hours → "take an umbrella"
   nightMm: 1, // mm of night rain worth a side note
   nightSnowCm: 0.5, // cm of night snow worth a side note
@@ -142,10 +140,9 @@ const hasPrecip = (h: SummaryHour) => (h.precipitation ?? 0) >= SUMMARY_THRESHOL
 const isWet = (h: SummaryHour) =>
   hasPrecip(h) &&
   (h.precipProbability === null || h.precipProbability >= SUMMARY_THRESHOLDS.wetProb);
-// A modelled amount the ensemble gives almost no chance (< minProb) is not even "possible"
+// "Possible" needs a ≥ possibleProb chance; a modelled amount without any probability still counts
 const isPossible = (h: SummaryHour) =>
-  (hasPrecip(h) &&
-    (h.precipProbability === null || h.precipProbability >= SUMMARY_THRESHOLDS.minProb)) ||
+  (hasPrecip(h) && h.precipProbability === null) ||
   (h.precipProbability ?? 0) >= SUMMARY_THRESHOLDS.possibleProb ||
   isThunder(h.weatherCode);
 
@@ -396,29 +393,6 @@ export function buildDaySummary({
   };
 }
 
-// Same inputs as the first row of FutureForecast (interday ΔP of daily means), so both always agree
-export function getTomorrowMigraine(
-  todayDaily: DailyWeather | null,
-  tomorrowDaily: DailyWeather | null,
-  lang: Language,
-) {
-  if (!todayDaily || !tomorrowDaily) return null;
-  if (
-    ![todayDaily.meanPressure, tomorrowDaily.meanPressure, tomorrowDaily.humidity].every(
-      Number.isFinite,
-    )
-  )
-    return null;
-  const deltaP = Math.round(tomorrowDaily.meanPressure - todayDaily.meanPressure);
-  return getMigraineRisk(
-    deltaP,
-    tomorrowDaily.meanPressure,
-    tomorrowDaily.humidity,
-    tomorrowDaily.precipitation,
-    lang,
-  );
-}
-
 // --- Hero rain strip: fixed next N hours from the current hour (not the waking window) ---
 
 export const RAIN_STRIP_HOURS = 12;
@@ -549,8 +523,6 @@ export function buildRainOutlook({
 // --- Teaser ranking ---
 
 export interface HealthSignals {
-  todayMigraine: number | null; // hero MIGR score
-  tomorrowMigraine: number | null; // FutureForecast score
   pressureDrop6h: number | null; // only set when the hero shows the ⚡ 6h badge
   aqi: number | null; // current hour (today only)
   maxPollen: number | null; // current hour (today only)
@@ -560,12 +532,12 @@ export type Highlight =
   | { topic: 'umbrella'; day: DayKey; umbrella: UmbrellaVerdict }
   | { topic: 'wind'; day: DayKey; level: GustLevel; gusts: number; ranges: HourRange[] }
   | { topic: 'felt'; day: 'tomorrow' | 'dayAfterTomorrow'; delta: number; feltMax: number }
-  | { topic: 'migraine'; day: DayKey; score: number }
   | { topic: 'pressure'; day: 'today'; delta: number }
   | { topic: 'air'; day: 'today'; aqi: number }
   | { topic: 'pollen'; day: 'today'; value: number }
   | { topic: 'calm'; day: DayKey; felt: FeltRange | null };
 
+const DAY_ORDER: DayKey[] = ['today', 'tomorrow', 'dayAfterTomorrow'];
 const WIND_WEIGHT: Record<GustLevel, number> = { storm: 90, gale: 90, strong: 60, breezy: 20 };
 const SECONDARY_MIN_WEIGHT = 30;
 
@@ -597,15 +569,6 @@ export function getHighlights(
         { topic: 'wind', day, level: w.level, gusts: w.gusts, ranges: w.ranges },
         WIND_WEIGHT[w.level] - offset,
       );
-    const score = day === 'today' ? health.todayMigraine : health.tomorrowMigraine;
-    if (score !== null && score >= 2) {
-      let migraineWeight: number;
-      if (score >= 6) migraineWeight = 85;
-      else if (score >= 4) migraineWeight = 75;
-      else if (score >= 3) migraineWeight = 45;
-      else migraineWeight = 18;
-      add({ topic: 'migraine', day, score }, migraineWeight - offset);
-    }
   }
 
   if (
@@ -648,8 +611,13 @@ export function getHighlights(
     }
   }
 
-  candidates.sort((a, b) => b.w - a.w); // stable: insertion order (today first) breaks ties
-  const [first, ...rest] = candidates;
+  // Significant candidates rank chronologically (earlier day first, then weight); the rest by weight
+  const dayIndex = (h: Highlight) => DAY_ORDER.indexOf(h.day);
+  const significant = candidates
+    .filter((c) => c.w >= SECONDARY_MIN_WEIGHT)
+    .sort((a, b) => dayIndex(a.h) - dayIndex(b.h) || b.w - a.w);
+  const minor = candidates.filter((c) => c.w < SECONDARY_MIN_WEIGHT).sort((a, b) => b.w - a.w);
+  const [first, ...rest] = [...significant, ...minor];
   if (!first) {
     let day: DayKey | null = null;
     if (s.today) day = 'today';
@@ -661,4 +629,157 @@ export function getHighlights(
   }
   const second = rest.find((c) => c.h.topic !== first.h.topic && c.w >= SECONDARY_MIN_WEIGHT);
   return second ? [first.h, second.h] : [first.h];
+}
+
+// --- Dialog presentation helpers (pure) ---
+
+const DAY_KEYS: DayKey[] = ['today', 'tomorrow', 'dayAfterTomorrow'];
+
+export type FeltAdjective = 'cooler' | 'colder' | 'warmer' | 'hotter' | 'milder';
+
+// Adjective depends on how warm the day feels: "colder" in the cold, "hotter" in the heat
+export function feltAdjective(delta: number, feltMax: number): FeltAdjective {
+  if (delta < 0) return feltMax < 10 ? 'colder' : 'cooler';
+  if (feltMax >= 25) return 'hotter';
+  return feltMax < 10 ? 'milder' : 'warmer';
+}
+
+export interface FeltComparison {
+  similar: boolean;
+  adjective: FeltAdjective;
+  delta: number; // this day's felt max − the base day's felt max
+  tone: 'colder' | 'warmer' | 'similar';
+  base: FeltRange; // the day it is compared with: today for tomorrow, tomorrow for the day after
+}
+
+// `delta` must be the matching DaySummary field (feltDelta vs today, feltDeltaDayAfter vs tomorrow)
+// and `base` the matching basis range (todayFelt / tomorrowFelt).
+export function compareFelt(
+  delta: number | null,
+  felt: FeltRange | null,
+  base: FeltRange | null,
+): FeltComparison | null {
+  if (delta === null || !felt || !base) return null;
+  const similar = Math.abs(delta) < SUMMARY_THRESHOLDS.feltSimilar;
+  let tone: FeltComparison['tone'] = 'similar';
+  if (!similar) tone = delta < 0 ? 'colder' : 'warmer';
+  return { similar, adjective: feltAdjective(delta, felt.max), delta, tone, base };
+}
+
+export interface DayOverview {
+  day: DayKey;
+  part: DayPart;
+  weatherCode: number | null; // the day's daily WMO code
+  felt: FeltRange | null;
+  umbrella: UmbrellaVerdict | null;
+  strongWind: GustLevel | null; // only strong / gale / storm (breezy is not worth a glyph)
+}
+
+const OVERCAST_CODE = 3;
+
+// A day the umbrella verdict calls dry must not wear a rain/snow/thunder icon: show overcast instead
+export function overviewSky(
+  code: number | null,
+  umbrellaLevel: UmbrellaVerdict['level'] | null,
+) {
+  if (code !== null && code >= 51 && umbrellaLevel === 'none') return OVERCAST_CODE;
+  return code;
+}
+
+const isStrongWind = (level: GustLevel | null | undefined): level is GustLevel =>
+  level === 'strong' || level === 'gale' || level === 'storm';
+
+// One compact card per shown day; skips days without data (today once its window is over)
+export function buildOverview(summary: DaySummary): DayOverview[] {
+  const dailies = {
+    today: summary.todayDaily,
+    tomorrow: summary.tomorrowDaily,
+    dayAfterTomorrow: summary.dayAfterTomorrowDaily,
+  };
+  return DAY_KEYS.flatMap((day) => {
+    const part = summary[day];
+    if (!part) return [];
+    return [
+      {
+        day,
+        part,
+        weatherCode: overviewSky(
+          dailies[day]?.weatherCode ?? null,
+          part.umbrella?.level ?? null,
+        ),
+        felt: part.felt,
+        umbrella: part.umbrella,
+        strongWind: isStrongWind(part.wind?.level) ? part.wind.level : null,
+      },
+    ];
+  });
+}
+
+// Dry (umbrella verdict "none") and no wind worth mentioning → one collapsed row
+export function isCalmDay(part: DayPart): boolean {
+  return part.umbrella?.level === 'none' && !part.wind?.level;
+}
+
+export interface NightChip {
+  id: string;
+  labelKey: string;
+  vars: Record<string, string | number>;
+  varKeys: Record<string, string>; // translation keys resolved (and lower-cased) into vars
+  ranges: HourRange[];
+  tone: 'rain' | 'wind' | 'cold' | 'warm' | 'storm';
+}
+
+function chip(
+  id: string,
+  tone: NightChip['tone'],
+  labelKey: string,
+  extra: Partial<Pick<NightChip, 'vars' | 'varKeys' | 'ranges'>> = {},
+): NightChip {
+  return { id, tone, labelKey, vars: {}, varKeys: {}, ranges: [], ...extra };
+}
+
+function precipChip(note: NightNote): NightChip[] {
+  const p = note.precip;
+  if (!p) return [];
+  const labelKey = `summary.night.${p.kind}`;
+  return [chip('precip', 'rain', labelKey, { vars: { mm: p.mm, cm: p.cm }, ranges: p.ranges })];
+}
+
+function windChip(note: NightNote): NightChip[] {
+  if (!note.wind) return [];
+  return [
+    chip('wind', 'wind', 'summary.night.wind', {
+      vars: { g: note.wind.gusts },
+      varKeys: { level: `summary.wind.${note.wind.level}` },
+    }),
+  ];
+}
+
+function coldChip(note: NightNote): NightChip[] {
+  if (!note.frost) return [];
+  return [
+    chip('frost', 'cold', `summary.night.${note.frost}`, { vars: { t: note.minTemp ?? '' } }),
+  ];
+}
+
+function warmChip(note: NightNote): NightChip[] {
+  if (!note.warmNight) return [];
+  return [
+    chip('warm', 'warm', 'summary.night.warm', {
+      vars: { t: note.minTemp ?? '' },
+      varKeys: { label: `label.night_${note.warmNight}` },
+    }),
+  ];
+}
+
+// The night side notes as separate chips (wording and order: rain, wet roads, thunder, wind, cold, warm)
+export function buildNightChips(note: NightNote): NightChip[] {
+  return [
+    ...precipChip(note),
+    ...(note.wetMorning ? [chip('wet', 'rain', 'summary.night.wet_morning')] : []),
+    ...(note.thunder ? [chip('thunder', 'storm', 'summary.night.thunder')] : []),
+    ...windChip(note),
+    ...coldChip(note),
+    ...warmChip(note),
+  ];
 }

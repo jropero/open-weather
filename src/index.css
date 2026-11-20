@@ -312,3 +312,37 @@ body:has(dialog[open]) {
     animation: none;
   }
 }
+
+/* Today & Tomorrow dialog: content fades and rises in on open, rows staggered */
+@keyframes summary-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+dialog[open] .summary-rise {
+  animation: summary-rise 240ms ease-out both;
+}
+
+dialog[open] .summary-stagger > * {
+  animation: summary-rise 240ms ease-out both;
+  animation-delay: calc(var(--base, 0ms) + var(--n, 0) * 35ms);
+}
+
+dialog[open] .summary-stagger > :nth-child(2) { --n: 1; }
+dialog[open] .summary-stagger > :nth-child(3) { --n: 2; }
+dialog[open] .summary-stagger > :nth-child(4) { --n: 3; }
+dialog[open] .summary-stagger > :nth-child(n + 5) { --n: 4; }
+
+@media (prefers-reduced-motion: reduce) {
+  dialog[open] .summary-rise,
+  dialog[open] .summary-stagger > * {
+    animation: none;
+  }
+}
