@@ -94,8 +94,15 @@ function OverviewCard({ o }: Readonly<{ o: DayOverview }>) {
         >
           <Icon size={36} strokeWidth={1.5} className={tint.icon} />
         </span>
-        <span className="text-lg font-bold leading-none text-slate-900 tabular-nums">
-          {o.felt ? `${o.felt.min}–${o.felt.max}°` : '–'}
+        <span className="flex flex-col items-center gap-0.5">
+          <span className="text-lg font-bold leading-none text-slate-900 tabular-nums">
+            {o.felt ? `${o.felt.min}–${o.felt.max}°` : '–'}
+          </span>
+          {o.felt && (
+            <span className="text-[10px] font-medium leading-none text-slate-400">
+              {t('summary.felt.caption')}
+            </span>
+          )}
         </span>
         <span className="flex items-center gap-1.5">
           <RainLine umbrella={o.umbrella} />

@@ -346,3 +346,31 @@ dialog[open] .summary-stagger > :nth-child(n + 5) { --n: 4; }
     animation: none;
   }
 }
+
+/* Urgent alert banner: one soft fade/scale-in on mount (no loop) */
+@keyframes urgent-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.urgent-in {
+  animation: urgent-in 420ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urgent-in {
+    animation: none;
+  }
+}
+
+/* Pull-to-refresh is custom; stop the browser's own overscroll refresh */
+html {
+  overscroll-behavior-y: contain;
+}

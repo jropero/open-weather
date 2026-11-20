@@ -1,4 +1,13 @@
 import { describe, it, expect } from 'vite-plus/test';
+import { TEMP_TREND_MIN_DELTA, isWindTileLevel, tempTrend } from '../heroAlerts';
+import {
+  migraineLevelIndex,
+  compassIndex,
+  roundHighLow,
+  showGusts,
+  uvShown,
+} from '../heroMetrics';
+import { URGENT_MAX_BANNERS, formatClock, nextSunEvent, splitUrgent } from '../heroAlerts';
 import type { HourlyWeather } from '../../types/weather';
 import {
   sumPrecip,
@@ -178,5 +187,102 @@ describe('formatLeadTime', () => {
     expect(formatLeadTime(40, true)).toBe('in 40min');
     expect(formatLeadTime(40, false)).toBe('en 40min');
     expect(formatLeadTime(150, true)).toBe('in 2h');
+  });
+});
+
+describe('hero tile thresholds', () => {
+  it('tempTrend drops swings below the threshold', () => {
+    expect(TEMP_TREND_MIN_DELTA).toBe(1.5);
+    expect(tempTrend(0.2, 0.2)).toBeNull();
+    expect(tempTrend(null, -1.4)).toBeNull();
+    expect(tempTrend(null, null)).toBeNull();
+  });
+  it('tempTrend uses 6h, falling back to 3h', () => {
+    expect(tempTrend(1, 1.5)).toEqual({ delta: 1.5, span: 6 });
+    expect(tempTrend(-2, null)).toEqual({ delta: -2, span: 3 });
+  });
+  it('wind tile excludes breezy', () => {
+    expect(isWindTileLevel('breezy')).toBe(false);
+    expect(isWindTileLevel('strong')).toBe(true);
+  });
+});
+
+describe('heroMetrics', () => {
+  it('uvShown hides rounded 0', () => {
+    expect(uvShown(0.4)).toBe(false);
+    expect(uvShown(0.5)).toBe(true);
+    expect(uvShown(null)).toBe(false);
+  });
+  it('showGusts from breezy', () => {
+    expect(showGusts(27)).toBe(false);
+    expect(showGusts(28)).toBe(true);
+  });
+  it('roundHighLow', () => {
+    expect(roundHighLow(9.4, 4.6)).toEqual({ max: 9, min: 5 });
+    expect(roundHighLow(NaN, 1)).toBeNull();
+    expect(roundHighLow(undefined, 1)).toBeNull();
+  });
+  it('compassIndex wraps', () => {
+    expect(compassIndex(360)).toBe(0);
+    expect(compassIndex(225)).toBe(5);
+    expect(compassIndex(-45)).toBe(7);
+  });
+});
+
+describe('splitUrgent', () => {
+  const c = (key: string, severity: number) => ({ key, severity });
+  it('moves severity >= 70 to banners, highest first, max 2', () => {
+    const { urgent, rest } = splitUrgent([
+      c('a', 58),
+      c('b', 80),
+      c('c', 95),
+      c('d', 72),
+      c('e', 10),
+    ]);
+    expect(urgent.map((x) => x.key)).toEqual(['c', 'b']);
+    expect(rest.map((x) => x.key)).toEqual(['d', 'a', 'e']);
+    expect(urgent.length).toBeLessThanOrEqual(URGENT_MAX_BANNERS);
+  });
+  it('never duplicates or drops an alert', () => {
+    const all = [c('a', 100), c('b', 70), c('c', 69), c('d', 90)];
+    const { urgent, rest } = splitUrgent(all);
+    expect([...urgent, ...rest].map((x) => x.key).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('no severe alert → no banner', () => {
+    expect(splitUrgent([c('a', 69)]).urgent).toEqual([]);
+  });
+});
+
+describe('nextSunEvent', () => {
+  const daily = [
+    { sunrise: '2026-11-20T06:48', sunset: '2026-11-20T15:52' },
+    { sunrise: '2026-11-21T06:50', sunset: '2026-11-21T15:50' },
+  ];
+  const at = (s: string) => new Date(s + 'Z').getTime();
+  it('daytime → today sunset', () => {
+    expect(nextSunEvent(daily, at('2026-11-20T10:00'))?.kind).toBe('sunset');
+  });
+  it('before sunrise → today sunrise', () => {
+    expect(nextSunEvent(daily, at('2026-11-20T03:00'))?.kind).toBe('sunrise');
+  });
+  it('after sunset → tomorrow sunrise', () => {
+    expect(nextSunEvent(daily, at('2026-11-20T20:00'))).toEqual({
+      kind: 'sunrise',
+      at: at('2026-11-21T06:50'),
+    });
+  });
+  it('no data → null', () => {
+    expect(nextSunEvent([{ sunrise: '', sunset: '' }], 0)).toBeNull();
+    expect(nextSunEvent(daily, at('2026-12-01T00:00'))).toBeNull();
+  });
+  it('formatClock uses the given timezone', () => {
+    expect(formatClock(at('2026-11-20T15:52'), 'Europe/Zurich')).toBe('16:52');
+    expect(formatClock(at('2026-11-20T15:52'), 'Pacific/Auckland')).toBe('04:52');
+  });
+});
+
+describe('migraineLevelIndex', () => {
+  it('maps scores to the five levels', () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map(migraineLevelIndex)).toEqual([0, 0, 1, 2, 3, 3, 4]);
   });
 });

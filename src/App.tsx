@@ -7,10 +7,8 @@ import {
   getWeatherInfo,
   getThomsDiscomfortIndex,
   getMigraineRisk,
-  getWindDirection,
   getWindChillIndex,
   getStormPotential,
-  getUvInfo,
   wmoToCondition,
 } from './utils/weatherCodes';
 import { getNightType, getFrostType, getWindAlert } from './utils/heroAlerts';
@@ -20,7 +18,7 @@ import { StaleDataBanner } from './components/StaleDataBanner';
 import WeatherSvgEffects from './components/WeatherSvgEffects';
 import { RAIN_INTENSITY, generateWeatherParticles } from './utils/weatherParticles';
 import AuroraSvg from './components/AuroraSvg';
-import { MapPin, Search, HelpCircle, Wind, Cloud } from 'lucide-react';
+import { MapPin, Search, HelpCircle, Cloud } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
 import { HistoricalPressure } from './components/HistoricalPressure';
@@ -31,6 +29,13 @@ import { OtherLocations } from './components/OtherLocations';
 import { TodayTomorrowSummary } from './components/TodayTomorrowSummary';
 import { RainStrip } from './components/RainStrip';
 import { HeroIcon } from './components/HeroIcon';
+import { ConditionLine } from './components/ConditionLine';
+import { migraineLevelIndex } from './utils/heroMetrics';
+import { SunEventLine } from './components/SunEventLine';
+import { FreshnessLine } from './components/FreshnessLine';
+import { PullIndicator } from './components/PullIndicator';
+import { HeroMetrics } from './components/HeroMetrics';
+import { PreviewSelect } from './components/PreviewSelect';
 import { FeltTemp } from './components/FeltTemp';
 import { FatiguePopoverContent } from './components/FatiguePopoverContent';
 import { purgeStaleCache } from './utils/cacheCleanup';
@@ -55,6 +60,10 @@ function WeatherDashboard() {
   const { language, setLanguage, t } = useLanguage();
   const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
   const [previewCondition, setPreviewCondition] = React.useState<string>('auto');
+  // Dev tool: the weather-condition preview select only shows with ?preview in the URL
+  const [showPreview] = React.useState(() =>
+    new URLSearchParams(globalThis.location.search).has('preview'),
+  );
   const now = useNow();
 
   React.useEffect(() => {
@@ -228,6 +237,19 @@ function WeatherDashboard() {
 
   // --- Computed display values extracted from JSX to avoid nested ternaries ---
 
+  const alertProps = {
+    pressureTrend: data.pressureTrend,
+    tempDelta3h,
+    tempDelta6h,
+    windAlert,
+    nightType,
+    frostType,
+    stormPotential,
+    isFog: wmoCondition === 'fog',
+    weatherCode: data.current.weatherCode,
+    onOpenDetails: () => summaryDialogRef.current?.showModal(),
+  };
+
   let migraineBarClass: string;
   if (currentMigraineRisk.score >= 6)
     migraineBarClass = 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]';
@@ -238,6 +260,18 @@ function WeatherDashboard() {
   else if (currentMigraineRisk.score >= 2)
     migraineBarClass = 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]';
   else migraineBarClass = 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+
+  const migraineLevelWord = t(`migr.level.${migraineLevelIndex(currentMigraineRisk.score)}`);
+  const migraineTextClass =
+    [
+      'text-emerald-300',
+      'text-emerald-300',
+      'text-yellow-300',
+      'text-orange-300',
+      'text-red-300',
+      'text-red-300',
+      'text-purple-300',
+    ][currentMigraineRisk.score] ?? 'text-emerald-300';
 
   let windChillBarClass: string;
   if (!currentWindChill || currentWindChill.value > 0)
@@ -273,46 +307,9 @@ function WeatherDashboard() {
           </h1>
         </button>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Preview weather condition (dev) */}
-          <select
-            value={previewCondition}
-            onChange={(e) => setPreviewCondition(e.target.value)}
-            aria-label="Preview weather condition"
-            className="appearance-none bg-white/25 border-0 text-white rounded-full py-1.5 pl-3.5 pr-7 text-xs font-bold focus:ring-2 focus:ring-white/50 backdrop-blur-md cursor-pointer outline-none hover:bg-white/30 transition-all"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 0.6rem center',
-            }}
-          >
-            <option value="auto" className="text-slate-800 bg-white">
-              auto
-            </option>
-            <option value="clear" className="text-slate-800 bg-white">
-              ☀️ clear
-            </option>
-            <option value="partly-cloudy" className="text-slate-800 bg-white">
-              ⛅ partly
-            </option>
-            <option value="cloudy" className="text-slate-800 bg-white">
-              ☁️ cloudy
-            </option>
-            <option value="rain" className="text-slate-800 bg-white">
-              🌧️ rain
-            </option>
-            <option value="storm" className="text-slate-800 bg-white">
-              ⛈️ storm
-            </option>
-            <option value="snow" className="text-slate-800 bg-white">
-              ❄️ snow
-            </option>
-            <option value="fog" className="text-slate-800 bg-white">
-              🌫️ fog
-            </option>
-            <option value="aurora" className="text-slate-800 bg-white">
-              🌌 aurora
-            </option>
-          </select>
+          {showPreview && (
+            <PreviewSelect value={previewCondition} onChange={setPreviewCondition} />
+          )}
 
           {/* Selector de idioma */}
           <select
@@ -352,6 +349,8 @@ function WeatherDashboard() {
           </button>
         </div>
       </header>
+
+      <PullIndicator onRefresh={refresh} />
 
       {stale && fetchedAt !== null && (
         <StaleDataBanner
@@ -452,6 +451,17 @@ function WeatherDashboard() {
                   />
                 </div>
                 <span className="text-[11px] font-black">{currentMigraineRisk.score}</span>
+                {/* Zero-width wrapper: the level word never widens the gauge column */}
+                <span
+                  className="absolute left-1/2 top-full mt-0.5 flex w-0 justify-center overflow-visible"
+                  title={t('hero.migr.level').replace('{level}', migraineLevelWord)}
+                >
+                  <span
+                    className={`whitespace-nowrap text-[9px] font-bold uppercase leading-none tracking-wide ${migraineTextClass}`}
+                  >
+                    {migraineLevelWord}
+                  </span>
+                </span>
               </div>
 
               {/* Temperature + weather icon */}
@@ -537,39 +547,23 @@ function WeatherDashboard() {
               </div>
             </div>
 
-            <p className="text-xl opacity-90 mb-1 capitalize">{weatherLabel}</p>
+            <ConditionLine
+              label={weatherLabel}
+              max={todayDaily?.maxTemp}
+              min={todayDaily?.minTemp}
+            />
 
-            <div className="flex items-center justify-center gap-4 text-sm font-medium opacity-80 mb-4">
-              <span>
-                {t('label.humidity')}: {Math.round(data.current.humidity)}%
-              </span>
-              <span className="w-px h-4 bg-white/30" />
-              <span className="flex items-center gap-1">
-                <Wind size={14} />
-                {data.current.windSpeed > 0
-                  ? `${Math.round(data.current.windSpeed)} km/h ${getWindDirection(data.current.windDirection, language)}`
-                  : t('label.wind_calm')}
-              </span>
-              {data.airQuality?.uvIndex != null &&
-                data.airQuality.uvIndex > 0 &&
-                (() => {
-                  const uvInfo = getUvInfo(data.airQuality.uvIndex, language);
-                  let uvHeroColor: string;
-                  if (data.airQuality.uvIndex < 3) uvHeroColor = 'text-emerald-300';
-                  else if (data.airQuality.uvIndex < 6) uvHeroColor = 'text-yellow-300';
-                  else if (data.airQuality.uvIndex < 8) uvHeroColor = 'text-orange-300';
-                  else if (data.airQuality.uvIndex < 11) uvHeroColor = 'text-red-300';
-                  else uvHeroColor = 'text-purple-300';
-                  return (
-                    <>
-                      <span className="w-px h-4 bg-white/30" />
-                      <span className={`text-xs font-semibold ${uvHeroColor}`}>
-                        ☀️ UV {Math.round(data.airQuality.uvIndex)} · {uvInfo.label}
-                      </span>
-                    </>
-                  );
-                })()}
-            </div>
+            <HeroMetrics
+              humidity={data.current.humidity}
+              windSpeed={data.current.windSpeed}
+              windDirection={data.current.windDirection}
+              windGusts={data.current.windGusts}
+              uvIndex={data.airQuality?.uvIndex}
+            />
+            <SunEventLine daily={data.daily} now={now} timezone={locationTz} />
+
+            {/* Severe alerts: banners under the condition line, above the rain strip */}
+            <AlertBadges {...alertProps} part="urgent" />
 
             {/* Rain in the next 12 h: sentence + hourly bars (replaces the rain alert tile) */}
             <RainStrip
@@ -641,18 +635,15 @@ function WeatherDashboard() {
             />
 
             {/* Alert badges — grouped by category, each group is its own flex row */}
-            <AlertBadges
-              pressureTrend={data.pressureTrend}
-              tempDelta3h={tempDelta3h}
-              tempDelta6h={tempDelta6h}
-              windAlert={windAlert}
-              nightType={nightType}
-              frostType={frostType}
-              stormPotential={stormPotential}
-              isFog={wmoCondition === 'fog'}
-              weatherCode={data.current.weatherCode}
-              onOpenDetails={() => summaryDialogRef.current?.showModal()}
-            />
+            <AlertBadges {...alertProps} />
+
+            {!stale && fetchedAt !== null && (
+              <FreshnessLine
+                fetchedAt={fetchedAt}
+                refreshing={refreshing}
+                onRefresh={refresh}
+              />
+            )}
           </section>
         </div>
 

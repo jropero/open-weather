@@ -1,8 +1,20 @@
 import { useState } from 'react';
+import {
+  CloudLightning,
+  Gauge,
+  Snowflake,
+  Tornado,
+  TriangleAlert,
+  Wind,
+  type LucideIcon,
+} from 'lucide-react';
 import type { WeatherData } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
 import {
   formatLeadTime,
+  isWindTileLevel,
+  splitUrgent,
+  tempTrend,
   type FrostType,
   type NightType,
   type WindAlert,
@@ -24,6 +36,8 @@ interface Props {
   weatherCode: number;
   /** Opens the Today & Tomorrow dialog (tooltips don't exist on touch screens) */
   onOpenDetails?: () => void;
+  /** 'urgent' renders only the severe banners, 'tiles' (default) the remaining tile grid */
+  part?: 'urgent' | 'tiles';
 }
 
 interface Chip {
@@ -34,6 +48,8 @@ interface Chip {
   label: string;
   value?: string;
   title?: string;
+  /** lucide icon for the urgent banner */
+  Icon?: LucideIcon;
 }
 
 const MAX_VISIBLE = 4;
@@ -68,6 +84,7 @@ function pressureChip(
   if (drop) sharp = isEn ? sharpEn : sharpEs;
   return {
     key: 'pressure',
+    Icon: Gauge,
     severity,
     cls,
     emoji: '🧭',
@@ -81,9 +98,9 @@ function pressureChip(
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function tempChip(d3: number | null, d6: number | null, isEn: boolean): Chip | null {
-  const d = d6 ?? d3;
-  if (d === null || abs1(d) === 0) return null;
-  const span = d6 === null ? 3 : 6;
+  const trend = tempTrend(d3, d6);
+  if (!trend) return null;
+  const { delta: d, span } = trend;
   let severity = 10;
   let cls = NEUTRAL;
   if (d >= 3) [severity, cls] = [45, RED];
@@ -103,7 +120,7 @@ function tempChip(d3: number | null, d6: number | null, isEn: boolean): Chip | n
 }
 
 const WIND: Record<
-  WindAlert['level'],
+  Exclude<WindAlert['level'], 'breezy'>,
   { severity: number; cls: string; emoji: string; es: string; en: string }
 > = {
   storm: {
@@ -121,13 +138,6 @@ const WIND: Record<
     en: 'Gale',
   },
   strong: { severity: 55, cls: AMBER, emoji: '🌬️', es: 'Viento fuerte', en: 'Strong wind' },
-  breezy: {
-    severity: 25,
-    cls: 'bg-teal-500/25 border-teal-400/35',
-    emoji: '🌬️',
-    es: 'Ventoso',
-    en: 'Breezy',
-  },
 };
 
 const NIGHT: Record<NightType, { severity: number; cls: string; emoji: string }> = {
@@ -169,10 +179,11 @@ function buildChips(p: Props, isEn: boolean, t: (k: string) => string): Chip[] {
 
   if (p.pressureTrend) push(pressureChip(p.pressureTrend, isEn));
   push(tempChip(p.tempDelta3h, p.tempDelta6h, isEn));
-  if (p.windAlert) {
-    const w = WIND[p.windAlert.level] ?? WIND.breezy;
+  if (p.windAlert && isWindTileLevel(p.windAlert.level)) {
+    const w = WIND[p.windAlert.level as keyof typeof WIND];
     push({
       key: 'wind',
+      Icon: p.windAlert.level === 'storm' ? Tornado : Wind,
       severity: w.severity,
       cls: w.cls,
       emoji: w.emoji,
@@ -194,6 +205,7 @@ function buildChips(p: Props, isEn: boolean, t: (k: string) => string): Chip[] {
     const f = FROST[p.frostType];
     push({
       key: 'frost',
+      Icon: Snowflake,
       severity: f.severity,
       cls: f.cls,
       emoji: f.emoji,
@@ -207,6 +219,7 @@ function buildChips(p: Props, isEn: boolean, t: (k: string) => string): Chip[] {
     };
     push({
       key: 'storm',
+      Icon: CloudLightning,
       severity: s.severity,
       cls: s.cls,
       emoji: '⛈️',
@@ -269,10 +282,53 @@ function Tile({
   );
 }
 
-export function AlertBadges(props: Props) {
-  const { language, t } = useLanguage();
+const BANNER =
+  'urgent-in flex w-full max-w-sm mx-auto items-center gap-2.5 rounded-2xl border px-2.5 py-2 text-left text-sm text-white shadow-md backdrop-blur-md transition-colors hover:brightness-110 outline-none focus-visible:ring-2 focus-visible:ring-white/70';
+
+function UrgentBanner({ chip: c, onClick }: Readonly<{ chip: Chip; onClick?: () => void }>) {
+  const Icon = c.Icon ?? TriangleAlert;
+  const tint =
+    c.severity >= 85
+      ? 'bg-red-600/40 border-red-300/50'
+      : 'bg-orange-500/35 border-orange-300/50';
+  const chipTint = c.severity >= 85 ? 'bg-red-500/50' : 'bg-orange-400/50';
+  return (
+    <button
+      type="button"
+      data-urgent
+      onClick={onClick}
+      aria-haspopup="dialog"
+      title={c.title}
+      className={`${BANNER} ${tint}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${chipTint}`}
+      >
+        <Icon size={18} strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-bold">{c.label}</span>
+        {c.value && <span className="font-semibold tabular-nums opacity-90"> · {c.value}</span>}
+      </span>
+    </button>
+  );
+}
+
+function UrgentBanners({ chips, onOpen }: Readonly<{ chips: Chip[]; onOpen?: () => void }>) {
+  if (!chips.length) return null;
+  return (
+    <div className="flex flex-col gap-2 mb-3">
+      {chips.map((c) => (
+        <UrgentBanner key={c.key} chip={c} onClick={onOpen} />
+      ))}
+    </div>
+  );
+}
+
+function TileGrid({ chips, onOpen }: Readonly<{ chips: Chip[]; onOpen?: () => void }>) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
-  const chips = buildChips(props, language === 'en', t);
   if (!chips.length) return null;
 
   // Never hide just one chip behind a toggle — show it instead
@@ -291,7 +347,7 @@ export function AlertBadges(props: Props) {
           chip={c}
           single={single}
           spanBoth={i === visible.length - 1 && i % 2 === 0}
-          onClick={props.onOpenDetails}
+          onClick={onOpen}
         />
       ))}
       {hidden > 0 && (
@@ -308,4 +364,12 @@ export function AlertBadges(props: Props) {
       )}
     </div>
   );
+}
+
+export function AlertBadges(props: Readonly<Props>) {
+  const { language, t } = useLanguage();
+  const { urgent, rest } = splitUrgent(buildChips(props, language === 'en', t));
+  if (props.part === 'urgent')
+    return <UrgentBanners chips={urgent} onOpen={props.onOpenDetails} />;
+  return <TileGrid chips={rest} onOpen={props.onOpenDetails} />;
 }

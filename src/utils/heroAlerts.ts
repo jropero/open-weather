@@ -132,3 +132,77 @@ export function formatLeadTime(minutesFromNow: number, isEn: boolean): string {
   if (minutesFromNow < 60) return `${prefix} ${minutesFromNow}min`;
   return `${prefix} ${Math.floor(minutesFromNow / 60)}h`;
 }
+
+/** Minimum |Δ| (°C) for the temperature-trend tile; smaller swings are not worth a tile. */
+export const TEMP_TREND_MIN_DELTA = 1.5;
+
+/** Next-6h temperature change (falls back to 3 h); null when missing or below the threshold. */
+export function tempTrend(
+  d3: number | null,
+  d6: number | null,
+): { delta: number; span: 3 | 6 } | null {
+  const delta = d6 ?? d3;
+  if (delta === null || Math.abs(delta) < TEMP_TREND_MIN_DELTA) return null;
+  return { delta, span: d6 === null ? 3 : 6 };
+}
+
+/** Wind tile levels: breezy gusts only show in the hero metrics line. */
+export function isWindTileLevel(level: WindAlert['level']): boolean {
+  return level !== 'breezy';
+}
+
+/** Severity from which an alert leaves the tile grid and becomes an urgent banner. */
+export const URGENT_MIN_SEVERITY = 70;
+/** At most this many urgent banners are stacked; further severe alerts go back to the grid. */
+export const URGENT_MAX_BANNERS = 2;
+
+/**
+ * Splits ranked alerts into urgent banners (severity ≥ 70, highest first, max 2) and the rest.
+ * Every input lands in exactly one list, so the grid and the banners can never show the same alert.
+ */
+export function splitUrgent<T extends { severity: number }>(
+  chips: readonly T[],
+): { urgent: T[]; rest: T[] } {
+  const ranked = [...chips].sort((a, b) => b.severity - a.severity);
+  const severe = ranked.filter((c) => c.severity >= URGENT_MIN_SEVERITY);
+  const urgent = severe.slice(0, URGENT_MAX_BANNERS);
+  const rest = ranked.filter((c) => !urgent.includes(c));
+  return { urgent, rest };
+}
+
+export interface SunEvent {
+  kind: 'sunrise' | 'sunset';
+  /** Instant in ms (the daily strings are UTC-equivalent, parsed with +Z) */
+  at: number;
+}
+
+function sunEventsOf(d: { sunrise?: string; sunset?: string }): SunEvent[] {
+  const out: SunEvent[] = [];
+  if (d.sunrise) out.push({ kind: 'sunrise', at: new Date(d.sunrise + 'Z').getTime() });
+  if (d.sunset) out.push({ kind: 'sunset', at: new Date(d.sunset + 'Z').getTime() });
+  return out;
+}
+
+/** The next sunrise/sunset after `now` from the daily entries (night → tomorrow's sunrise). */
+export function nextSunEvent(
+  daily: ReadonlyArray<{ sunrise?: string; sunset?: string }>,
+  now: number,
+): SunEvent | null {
+  const future = daily.flatMap(sunEventsOf).filter((e) => Number.isFinite(e.at) && e.at > now);
+  if (!future.length) return null;
+  return future.reduce((a, b) => (b.at < a.at ? b : a));
+}
+
+/** "16:52" in the given IANA timezone (falls back to the device zone for an invalid one). */
+export function formatClock(ms: number, timezone?: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  };
+  try {
+    return new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: timezone }).format(ms);
+  } catch {
+    return new Intl.DateTimeFormat('en-GB', opts).format(ms);
+  }
+}

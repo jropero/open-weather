@@ -27,6 +27,11 @@ function TeaserDay({ o }: Readonly<{ o: DayOverview }>) {
       <span className="flex items-center gap-1 text-sm font-bold leading-none tabular-nums">
         <Icon size={18} strokeWidth={1.5} aria-hidden="true" />
         {felt(o)}
+        {o.felt && (
+          <span className="-ml-0.5 self-end text-[9px] font-medium leading-none text-white/60">
+            {t('summary.felt.caption')}
+          </span>
+        )}
       </span>
       {rainy && (
         <Umbrella

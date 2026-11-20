@@ -22,10 +22,12 @@ async function openDashboard(page: Page) {
   await expect(page.getByText('Cargando datos del clima')).toBeHidden({ timeout: 30_000 });
 }
 
-// Tiles = the hero alert buttons; the rain strip and the Today & Tomorrow teaser (sr-only text) are excluded
+// Tiles = the hero alert buttons; the rain strip, urgent banners and the Today & Tomorrow teaser (sr-only text) are excluded
 const alertTiles = (page: Page) =>
   page
-    .locator('button[aria-haspopup="dialog"].rounded-2xl:not([data-rain-strip])')
+    .locator(
+      'button[aria-haspopup="dialog"].rounded-2xl:not([data-rain-strip]):not([data-urgent])',
+    )
     .filter({ hasNotText: /Hoy y mañana:/ });
 
 test('dashboard loads without horizontal scroll', async ({ page }) => {
