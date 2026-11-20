@@ -28,7 +28,7 @@ import { useNow } from '../hooks/useNow';
 import { useEnsembleData } from '../hooks/useEnsembleData';
 import { hasMeaningfulRow } from '../utils/seasonal';
 import {
-  CUMULATIVE_VARS,
+  DAILY_VARS,
   classifySpread,
   ensembleDaysInWeek,
   localMidnightIndices,
@@ -38,12 +38,16 @@ import {
 } from '../utils/ensembleStats';
 
 const HOUR_MS = 60 * 60 * 1000;
-const WEEK_HOURS = 7 * 24;
 
-// Variables whose EC46 weekly mean is drawn as a flat "normal" line
-const FLAT_NORMAL_VARS: ReadonlySet<EnsembleVar> = new Set(['temperature_2m', 'pressure_msl']);
+// Variables whose EC46 weekly mean is drawn as a flat "normal" line (sunshine: per-day share)
+const FLAT_NORMAL_VARS: ReadonlySet<EnsembleVar> = new Set([
+  'temperature_2m',
+  'pressure_msl',
+  'sunshine_duration',
+]);
 // Variables that can't go below 0 (Y axis starts at 0)
 const NON_NEGATIVE_VARS: ReadonlySet<EnsembleVar> = new Set([
+  'sunshine_duration',
   'precipitation',
   'snowfall',
   'wind_speed_10m',
@@ -162,6 +166,7 @@ function yDomainFor(
   points: EnsemblePoint[],
   rows: ChartRow[],
   nonNegative: boolean,
+  daily: boolean,
 ): [number, number] {
   let min = Infinity;
   let max = -Infinity;
@@ -173,12 +178,22 @@ function yDomainFor(
   points.forEach((p) => p.members.forEach(take));
   rows.forEach((r) => take(r.normal));
   if (min > max) return [0, 1];
+  if (daily) {
+    // Hours of sunshine per day: 0 … max(10, highest p90), even hours
+    const p90 = Math.max(0, ...points.map((p) => p.stats?.p90 ?? 0));
+    return [0, Math.max(10, Math.ceil(p90 / 2) * 2)];
+  }
   const pad = Math.max((max - min) * 0.06, 0.5);
   const lo = nonNegative ? 0 : min - pad;
   const hi = max + pad;
   // Snap both ends to a round step so the 5 default ticks land on round numbers
   const step = niceStep((hi - lo) / 4);
   return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+}
+
+/** 0, 2, 4 … max (every 2 h) for the daily sunshine axis. */
+function evenTicks(max: number): number[] {
+  return Array.from({ length: Math.floor(max / 2) + 1 }, (_, i) => i * 2);
 }
 
 /** 1, 2, 2.5 or 5 × 10^n — the smallest "round" step ≥ raw. */
@@ -307,7 +322,13 @@ export function EnsembleDetailView({
     data: points,
     loading,
     error,
-  } = useEnsembleData(location.latitude, location.longitude, period.start, variable);
+  } = useEnsembleData(
+    location.latitude,
+    location.longitude,
+    period.start,
+    variable,
+    location.timezone,
+  );
 
   useEffect(() => {
     const el = dialogRef.current;
@@ -326,7 +347,7 @@ export function EnsembleDetailView({
     [initialVariable, period],
   );
   const varMeta = VARS.find((v) => v.key === variable)!;
-  const cumulative = CUMULATIVE_VARS.has(variable);
+  const daily = DAILY_VARS.has(variable);
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const timeZone = location.timezone;
 
@@ -354,44 +375,36 @@ export function EnsembleDetailView({
   // EC46 weekly normal (model climatology) for the selected variable
   const weeklyNormal = useMemo(() => {
     // Hourly precipitation/snowfall have no meaningful weekly-normal line (the weekly total
-    // spread over 168 h is ~0.05 mm/h), so a normal is drawn only as a flat weekly mean
-    // (temperature, pressure) or as a cumulative pace (sunshine).
-    if (!varMeta.seasonal || (!cumulative && !FLAT_NORMAL_VARS.has(variable))) return null;
+    // spread over 168 h is ~0.05 mm/h), so a normal is drawn only as a flat line (temperature,
+    // pressure: weekly mean; sunshine: weekly total / 7 per day).
+    if (!varMeta.seasonal || !FLAT_NORMAL_VARS.has(variable)) return null;
     const { mean, anomaly } = period.values[varMeta.seasonal];
     if (mean === null || anomaly === null) return null;
     const n = mean - anomaly;
-    return variable === 'sunshine_duration' ? n / 3600 : n;
-  }, [period, varMeta, variable, cumulative]);
+    // Sunshine *_mean is a period total in seconds → hours per day
+    return variable === 'sunshine_duration' ? n / 3600 / 7 : n;
+  }, [period, varMeta, variable]);
 
   const chartData = useMemo<ChartRow[]>(() => {
     if (!points?.length) return [];
-    const first = points[0].time;
-    return points.map((pt, i) => {
-      let normal: number | null = null;
-      if (weeklyNormal !== null) {
-        // Cumulative: normal pace over the covered hours (a partial week gets a partial normal)
-        normal = cumulative
-          ? (weeklyNormal * ((pt.time - first) / HOUR_MS + 1)) / WEEK_HOURS
-          : weeklyNormal;
-      }
-      return {
-        i,
-        mean: pt.stats?.mean ?? null,
-        p10: pt.stats?.p10 ?? null,
-        p90: pt.stats?.p90 ?? null,
-        normal,
-      };
-    });
-  }, [points, weeklyNormal, cumulative]);
+    return points.map((pt, i) => ({
+      i,
+      mean: pt.stats?.mean ?? null,
+      p10: pt.stats?.p10 ?? null,
+      p90: pt.stats?.p90 ?? null,
+      normal: weeklyNormal,
+    }));
+  }, [points, weeklyNormal]);
 
-  const nonNegative = cumulative || NON_NEGATIVE_VARS.has(variable);
+  const nonNegative = NON_NEGATIVE_VARS.has(variable);
   const yDomain = useMemo(
     () =>
       points?.length
-        ? yDomainFor(points, chartData, nonNegative)
+        ? yDomainFor(points, chartData, nonNegative, daily)
         : ([0, 10] as [number, number]),
-    [points, chartData, nonNegative],
+    [points, chartData, nonNegative, daily],
   );
+  const yTicks = useMemo(() => (daily ? evenTicks(yDomain[1]) : undefined), [daily, yDomain]);
   const midnights = useMemo(
     () => (points?.length ? localMidnightIndices(points, timeZone) : []),
     [points, timeZone],
@@ -405,12 +418,13 @@ export function EnsembleDetailView({
 
   const fmtValue = useCallback(
     (v: number) => {
-      if (variable === 'temperature_2m' || variable === 'snowfall') return v.toFixed(1);
+      if (variable === 'temperature_2m' || variable === 'snowfall' || daily)
+        return v.toFixed(1);
       // Hourly precipitation is mostly < 2 mm — rounding to integers would show "0–0 mm"
       if (variable === 'precipitation' && Math.abs(v) < 10) return v.toFixed(1);
       return String(Math.round(v));
     },
-    [variable],
+    [variable, daily],
   );
 
   const renderXTick = useCallback(
@@ -441,12 +455,12 @@ export function EnsembleDetailView({
         <div className="rounded-lg bg-slate-800/95 border border-white/10 px-2.5 py-1.5 text-[11px] text-slate-100 shadow-lg">
           <div className="font-bold text-white mb-0.5">
             {capitalize(
-              fmtTime(pt.time, {
-                weekday: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
+              fmtTime(
+                pt.time,
+                daily
+                  ? { weekday: 'short', day: 'numeric' }
+                  : { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' },
+              ),
             )}
           </div>
           <div>
@@ -468,7 +482,7 @@ export function EnsembleDetailView({
         </div>
       );
     },
-    [chartData, points, fmtTime, fmtValue, t, varMeta.unit],
+    [chartData, points, fmtTime, fmtValue, t, varMeta.unit, daily],
   );
 
   const spreadBadge = () => {
@@ -490,8 +504,6 @@ export function EnsembleDetailView({
       </div>
     );
   };
-
-
 
   let ensembleBody: React.ReactNode;
   if (loading) {
@@ -594,15 +606,12 @@ export function EnsembleDetailView({
               <figcaption className="flex items-center justify-between gap-2 px-3 pt-2 pb-0">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   {label}
-                  {cumulative && points?.length ? (
+                  {daily && (
                     <span className="normal-case font-semibold tracking-normal">
                       {' · '}
-                      {t('ensemble.cumulative').replace(
-                        '{date}',
-                        fmtTime(points[0].time, { weekday: 'short', day: 'numeric' }),
-                      )}
+                      {t('ensemble.daily_sun')}
                     </span>
-                  ) : null}
+                  )}
                 </span>
                 <span className="text-[10px] font-semibold text-slate-400">{varMeta.unit}</span>
               </figcaption>
@@ -626,6 +635,7 @@ export function EnsembleDetailView({
                     orientation="right"
                     mirror
                     domain={yDomain}
+                    ticks={yTicks}
                     allowDataOverflow
                     tickFormatter={(v: number) =>
                       Number.isInteger(v) ? String(v) : fmtValue(v)

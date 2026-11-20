@@ -50,6 +50,7 @@ export function useEnsembleData(
   lon: number,
   weekStart: string,
   variable: EnsembleVar,
+  timeZone?: string,
 ) {
   const [data, setData] = useState<EnsemblePoint[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,7 @@ export function useEnsembleData(
     const key = storageKey(lat, lon, variable);
     const done = (raw: RawEnsemble) => {
       if (controller.signal.aborted) return;
-      setData(toWeekPoints(raw, weekStart, variable));
+      setData(toWeekPoints(raw, weekStart, variable, timeZone));
       setLoading(false);
     };
 
@@ -95,7 +96,7 @@ export function useEnsembleData(
 
     void load();
     return () => controller.abort();
-  }, [lat, lon, weekStart, variable]);
+  }, [lat, lon, weekStart, variable, timeZone]);
 
   return { data, loading, error };
 }

@@ -3,7 +3,7 @@ import {
   computeStats,
   classifySpread,
   makePoint as buildPoint,
-  toCumulative,
+  toDailyTotals,
   localMidnightIndices,
   ensembleDaysInWeek,
   parseEnsembleResponse,
@@ -33,33 +33,51 @@ describe('makePoint', () => {
 });
 
 // ---------------------------------------------------------------------------
-// toCumulative
+// toDailyTotals
 // ---------------------------------------------------------------------------
 
-describe('toCumulative', () => {
-  it('sums each member over time and recomputes stats', () => {
-    const pts = [makePoint([1, 2], 0), makePoint([1, 0], 1), makePoint([2, 4], 2)];
-    const cum = toCumulative(pts);
-    expect(cum.map((p) => p.members)).toEqual([
-      [1, 2],
-      [2, 2],
-      [4, 6],
-    ]);
-    expect(cum[2].stats?.mean).toBe(5);
+describe('toDailyTotals', () => {
+  const H = 3_600_000;
+  const t0 = Date.parse('2026-11-16T00:00:00Z');
+  /** `hours` hourly points starting at `start`, member values from `f(hourIndex)`. */
+  const series = (start: number, hours: number, f: (i: number) => (number | null)[]) =>
+    Array.from({ length: hours }, (_, i) => makePoint(f(i), start + i * H));
+
+  it('sums each member per UTC day and holds the total across the day', () => {
+    const pts = series(t0, 48, (i) => (i < 24 ? [0.5, 0.25] : [1, 0]));
+    const out = toDailyTotals(pts, 'UTC');
+    expect(out).toHaveLength(48);
+    expect(out[0].members).toEqual([12, 6]);
+    expect(out[23].members).toEqual([12, 6]);
+    expect(out[24].members).toEqual([24, 0]);
+    expect(out[30].stats?.mean).toBe(12);
   });
 
-  it('a missing hour adds nothing; a member with no values stays null', () => {
-    const pts = [makePoint([1, null], 0), makePoint([null, null], 1), makePoint([1, null], 2)];
-    const cum = toCumulative(pts);
-    expect(cum.map((p) => p.members)).toEqual([
-      [1, null],
-      [1, null],
-      [2, null],
-    ]);
+  it('uses the location timezone for day boundaries and drops partial edge days', () => {
+    // 2026-11-16T00Z … 72 h in Pacific/Auckland (UTC+13): local days start at 11:00Z
+    const pts = series(t0, 72, () => [1]);
+    const out = toDailyTotals(pts, 'Pacific/Auckland');
+    // 00–10Z = local 13:00–23:00 of Nov 16 (11 h) → partial → null
+    expect(out[0].members).toEqual([null]);
+    expect(out[0].stats).toBeNull();
+    // 11Z Nov 16 … 10Z Nov 17 = full local day Nov 17 (24 h)
+    expect(out[11].members).toEqual([24]);
+    expect(out[34].members).toEqual([24]);
+    // 11Z Nov 17 … 10Z Nov 18 = Nov 18, full
+    expect(out[35].members).toEqual([24]);
+    // last hours = Nov 19 local, only 13 h in slice → partial
+    expect(out[71].members).toEqual([null]);
+  });
+
+  it('a member missing > 2 hours of a day is null; ≤ 2 missing hours are tolerated (not read as 0)', () => {
+    const pts = series(t0, 24, (i) => [i < 2 ? null : 1, i < 3 ? null : 1, 1]);
+    const out = toDailyTotals(pts, 'UTC');
+    expect(out[0].members).toEqual([22, null, 24]);
+    expect(out[0].stats?.mean).toBe(23);
   });
 
   it('empty input → empty output', () => {
-    expect(toCumulative([])).toEqual([]);
+    expect(toDailyTotals([], 'UTC')).toEqual([]);
   });
 });
 
@@ -200,11 +218,14 @@ describe('classifySpread', () => {
       expect(classifySpread([point], 'pressure_msl')).toEqual({ label: 'agree' });
     });
 
-    it('hourly precipitation (3 mm) vs. cumulative sunshine (10 h per week) thresholds', () => {
-      // members [0, 2, …, 12]: spread 9.6 → disagree for hourly precip, agree for weekly sunshine
+    it('hourly precipitation (3 mm) vs. daily sunshine (3 h per day) thresholds', () => {
+      // members [0, 2, …, 12]: spread 9.6 → disagree for both
       const point = makePoint([0, 2, 4, 6, 8, 10, 12]);
       expect(classifySpread([point], 'precipitation')).toEqual({ label: 'disagree' });
-      expect(classifySpread([point], 'sunshine_duration')).toEqual({ label: 'agree' });
+      expect(classifySpread([point], 'sunshine_duration')).toEqual({ label: 'disagree' });
+      // members [4 … 6.4] step 0.4: spread 2.4 → agree for sunshine, below 3 h
+      const narrow = makePoint([4, 4.4, 4.8, 5.2, 5.6, 6, 6.4]);
+      expect(classifySpread([narrow], 'sunshine_duration')).toEqual({ label: 'agree' });
     });
 
     it('hourly snowfall uses an hourly threshold (2 cm)', () => {
@@ -343,11 +364,20 @@ describe('toWeekPoints', () => {
     expect(pts[1].members).toEqual([1800, null]);
   });
 
-  it('sunshine is converted to hours and accumulated', () => {
-    const pts = toWeekPoints(raw, weekStart, 'sunshine_duration');
+  it('sunshine is converted to hours; a partial day yields null (daily totals)', () => {
+    const pts = toWeekPoints(raw, weekStart, 'sunshine_duration', 'UTC');
     expect(pts.map((p) => p.members)).toEqual([
-      [1, 2],
-      [1.5, 2],
+      [null, null],
+      [null, null],
     ]);
+  });
+
+  it('sunshine over a full day gives the daily total in hours', () => {
+    const full = {
+      times: Array.from({ length: 24 }, (_, i) => ws + i * H),
+      members: [Array.from({ length: 24 }, () => 1800)],
+    };
+    const pts = toWeekPoints(full, weekStart, 'sunshine_duration', 'UTC');
+    expect(pts[5].members).toEqual([12]);
   });
 });

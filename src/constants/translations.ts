@@ -268,13 +268,13 @@ export const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.bimodal.detail':
       'Los modelos se dividen en dos grupos con resultados muy distintos. Puede producirse cualquiera de los dos escenarios.',
     'ensemble.footnote':
-      'Cada línea fina es un modelo individual del conjunto ECMWF IFS (50 miembros + control). Las bandas muestran el rango central (p10–p90 y p25–p75); la línea gruesa, la media. Línea discontinua: normal del modelo semanal EC46. El sol se muestra acumulado; precipitación y nieve, por horas.',
+      'Cada línea fina es un modelo individual del conjunto ECMWF IFS (50 miembros + control). Las bandas muestran el rango central (p10–p90 y p25–p75); la línea gruesa, la media. Línea discontinua: normal del modelo semanal EC46. El sol se muestra en horas por día; precipitación y nieve, por horas.',
     'ensemble.low_confidence':
       '⚠ Semana {week}: señal orientativa. La incertidumbre del ensemble es alta más allá de 10 días.',
     'ensemble.var.wind': 'Viento',
     'ensemble.legend.normal': 'Normal',
     'ensemble.legend.now': 'Ahora',
-    'ensemble.cumulative': 'Acumulado desde {date}',
+    'ensemble.daily_sun': 'Horas de sol por día',
     'ensemble.coverage': 'Modelos disponibles para {n} de 7 días',
     'ensemble.tooltip.mean': 'Media',
     'ensemble.tooltip.normal': 'Normal',
@@ -588,13 +588,13 @@ export const translations: Record<Language, Record<string, string>> = {
     'ensemble.spread.bimodal.detail':
       'The models split into two distinct clusters. Either outcome is plausible.',
     'ensemble.footnote':
-      'Each thin line is one model run from the ECMWF IFS ensemble (50 members + control). The bands show the central range (p10–p90 and p25–p75); the thick line is the mean. Dashed line: EC46 weekly model normal. Sunshine is shown as a running total; precipitation and snow per hour.',
+      'Each thin line is one model run from the ECMWF IFS ensemble (50 members + control). The bands show the central range (p10–p90 and p25–p75); the thick line is the mean. Dashed line: EC46 weekly model normal. Sunshine is shown as hours per day; precipitation and snow per hour.',
     'ensemble.low_confidence':
       '⚠ Week {week}: indicative only. Ensemble uncertainty is high beyond 10 days.',
     'ensemble.var.wind': 'Wind',
     'ensemble.legend.normal': 'Normal',
     'ensemble.legend.now': 'Now',
-    'ensemble.cumulative': 'Running total since {date}',
+    'ensemble.daily_sun': 'Sunshine hours per day',
     'ensemble.coverage': 'Model runs available for {n} of 7 days',
     'ensemble.tooltip.mean': 'Mean',
     'ensemble.tooltip.normal': 'Normal',

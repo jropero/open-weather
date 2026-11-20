@@ -33,11 +33,17 @@ export interface SpreadClassification {
 }
 
 /**
- * Variables shown as a running total over the week, so the end of the curve equals the
- * weekly total shown in the outlook cell. Precipitation and snowfall stay hourly on purpose:
- * users read them to see *which day/hour* is likely to be wet or snowy, which a total hides.
+ * Variables shown as one value per local day (hours of sunshine per day) instead of hourly.
+ * Each day is drawn as a flat step across its hours so x positions still match the hourly
+ * day gridlines. Precipitation and snowfall stay hourly on purpose: users read them to see
+ * *which hour* is likely to be wet or snowy, which a daily total hides.
  */
-export const CUMULATIVE_VARS: ReadonlySet<EnsembleVar> = new Set(['sunshine_duration']);
+export const DAILY_VARS: ReadonlySet<EnsembleVar> = new Set(['sunshine_duration']);
+
+/** A local day needs at least this many hours inside the slice to get a daily total. */
+export const MIN_DAY_HOURS = 20;
+/** A member's daily total is dropped (null) when more than this many of its hours are missing. */
+export const MAX_MISSING_HOURS = 2;
 
 // ---- Ensemble window & raw response ---------------------------------------
 
@@ -94,11 +100,15 @@ export function parseEnsembleResponse(json: unknown, variable: EnsembleVar): Raw
   return { times, members };
 }
 
-/** Slices one UTC week, converts sunshine to hours, running totals for CUMULATIVE_VARS. */
+/**
+ * Slices one UTC week and converts sunshine to hours; DAILY_VARS become per-local-day totals
+ * (`timeZone` = the location's IANA zone).
+ */
 export function toWeekPoints(
   raw: RawEnsemble,
   weekStart: string,
   variable: EnsembleVar,
+  timeZone?: string,
 ): EnsemblePoint[] {
   const startMs = Date.parse(`${weekStart}T00:00:00Z`);
   const endMs = startMs + WEEK_MS;
@@ -113,7 +123,7 @@ export function toWeekPoints(
       ),
     );
   });
-  return CUMULATIVE_VARS.has(variable) ? toCumulative(points) : points;
+  return DAILY_VARS.has(variable) ? toDailyTotals(points, timeZone) : points;
 }
 
 function sortedPercentile(sorted: number[], p: number): number {
@@ -148,21 +158,52 @@ export function makePoint(time: number, members: (number | null)[]): EnsemblePoi
   return { time, members, stats: valid.length ? computeStats(valid) : null };
 }
 
+function localDayKeyFormatter(timeZone?: string): Intl.DateTimeFormat {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone });
+  } catch {
+    return new Intl.DateTimeFormat('en-CA');
+  }
+}
+
+/** Sum of one member over a day's hours; null when more than MAX_MISSING_HOURS are missing. */
+function memberDayTotal(hours: EnsemblePoint[], m: number): number | null {
+  let sum = 0;
+  let missing = 0;
+  for (const h of hours) {
+    const v = h.members[m];
+    if (v === null || v === undefined || !Number.isFinite(v)) missing++;
+    else sum += v;
+  }
+  return missing > MAX_MISSING_HOURS ? null : sum;
+}
+
 /**
- * Running total per member from the first point. A missing hour adds nothing but keeps the
- * member's line going; a member that never had a value stays `null`.
+ * Per-local-day totals, expanded back to the hourly grid (every hour of a day carries that
+ * day's total, so the chart draws a flat step per day). Days with fewer than MIN_DAY_HOURS
+ * hours in the slice (partial edge days) get all-null members, so a half day never looks
+ * cloudy. Missing hours are never read as 0: a member with more than MAX_MISSING_HOURS
+ * missing hours that day is null.
  */
-export function toCumulative(points: EnsemblePoint[]): EnsemblePoint[] {
+export function toDailyTotals(points: EnsemblePoint[], timeZone?: string): EnsemblePoint[] {
   if (!points.length) return [];
+  const fmt = localDayKeyFormatter(timeZone);
   const n = points[0].members.length;
-  const sums: (number | null)[] = Array.from({ length: n }, () => null);
-  return points.map((p) => {
-    for (let m = 0; m < n; m++) {
-      const v = p.members[m];
-      if (v !== null && v !== undefined && Number.isFinite(v)) sums[m] = (sums[m] ?? 0) + v;
-    }
-    return makePoint(p.time, [...sums]);
+  const byDay = new Map<string, EnsemblePoint[]>();
+  for (const p of points) {
+    const key = fmt.format(p.time);
+    byDay.set(key, [...(byDay.get(key) ?? []), p]);
+  }
+  const totals = new Map<string, (number | null)[]>();
+  byDay.forEach((hours, key) => {
+    totals.set(
+      key,
+      Array.from({ length: n }, (_, m) =>
+        hours.length >= MIN_DAY_HOURS ? memberDayTotal(hours, m) : null,
+      ),
+    );
   });
+  return points.map((p) => makePoint(p.time, totals.get(fmt.format(p.time))!));
 }
 
 /**
@@ -205,7 +246,7 @@ function isBimodal(members: number[]): boolean {
 
 /**
  * p90-p10 spread threshold to classify as "wide". Hourly values, except sunshine, which is a
- * running weekly total (CUMULATIVE_VARS).
+ * daily total (DAILY_VARS).
  */
 const WIDE_THRESHOLD: Record<EnsembleVar, number> = {
   temperature_2m: 4, // °C
@@ -213,7 +254,7 @@ const WIDE_THRESHOLD: Record<EnsembleVar, number> = {
   wind_speed_10m: 20, // km/h
   precipitation: 3, // mm per hour
   snowfall: 2, // cm per hour
-  sunshine_duration: 10, // h per week (values are converted to hours)
+  sunshine_duration: 3, // h per day (values are converted to hours)
 };
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
