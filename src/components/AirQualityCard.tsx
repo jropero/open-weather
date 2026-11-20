@@ -62,7 +62,8 @@ export function AirQualityCard({ aq, timezone }: Props) {
           {isEn ? 'Air Quality' : 'Calidad del Aire'}
         </h3>
 
-        <div className="flex items-center gap-2">
+        {/* Wraps: in the half-width card the dominant-pollutant chip doesn't fit next to the badge */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-2xl font-black text-slate-900 leading-none">
             {Math.round(aq.currentAqi)}
           </span>
