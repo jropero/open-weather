@@ -28,6 +28,7 @@ import { useLanguage, type Language } from './hooks/useLanguage';
 import { OtherLocations } from './components/OtherLocations';
 import { TodayTomorrowSummary } from './components/TodayTomorrowSummary';
 import { RainStrip } from './components/RainStrip';
+import { LightStrip } from './components/LightStrip';
 import { HeroIcon } from './components/HeroIcon';
 import { ConditionLine } from './components/ConditionLine';
 import { migraineLevelIndex } from './utils/heroMetrics';
@@ -572,6 +573,9 @@ function WeatherDashboard() {
               timezone={locationTz}
               onOpenDetails={() => summaryDialogRef.current?.showModal()}
             />
+
+            {/* Outdoor light (lux) over the next daylight block */}
+            <LightStrip hours={data.summaryHours} now={now} timezone={locationTz} />
 
             {/* Shrimp Progress Bar */}
             {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (

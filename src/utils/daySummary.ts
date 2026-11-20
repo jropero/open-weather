@@ -4,7 +4,7 @@ import { getGustLevel, GUST_THRESHOLDS, type GustLevel } from './weatherCodes';
 // "Today & Tomorrow" summary: verdicts for the user's waking hours, in the location's local time.
 // Pure functions only — wording lives in TodayTomorrowSummary.tsx.
 
-const HOUR_MS = 60 * 60 * 1000;
+export const HOUR_MS = 60 * 60 * 1000;
 
 export const SUMMARY_THRESHOLDS = {
   feltSimilar: 2, // °C: |Δ felt max| below this → "similar to today"
@@ -88,7 +88,7 @@ export interface DaySummary {
   dayAfterTomorrowDaily: DailyWeather | null;
 }
 
-interface LocalHour extends SummaryHour {
+export interface LocalHour extends SummaryHour {
   ms: number;
   date: string;
   hour: number;
@@ -96,7 +96,7 @@ interface LocalHour extends SummaryHour {
 
 // --- Local time of the location (IANA timezone; falls back to the device timezone) ---
 
-function makeLocalizer(timezone?: string | null) {
+export function makeLocalizer(timezone?: string | null) {
   const opts: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: '2-digit',
@@ -148,7 +148,7 @@ const isPossible = (h: SummaryHour) =>
 
 // Groups picked hours into spells; a single dry hour between two spells doesn't split them
 // eslint-disable-next-line sonarjs/cognitive-complexity
-function spells(seg: LocalHour[], pick: (h: LocalHour) => boolean) {
+export function spells<T extends { hour: number }>(seg: T[], pick: (h: T) => boolean) {
   const idx = seg.flatMap((h, i) => (pick(h) ? [i] : []));
   const groups: [number, number][] = [];
   for (const i of idx) {

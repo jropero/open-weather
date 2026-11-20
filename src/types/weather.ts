@@ -77,6 +77,8 @@ export interface SummaryHour {
   cloudCover: number | null; // % (0–100); null = missing
   isDay: boolean | null; // Open-Meteo is_day; null = missing
   sunshine: number | null; // seconds of sunshine within the hour (0–3600); null = missing (old cache or no data)
+  directRadiation: number | null; // W/m² mean over the preceding hour; null = missing (old cache)
+  diffuseRadiation: number | null; // W/m² mean over the preceding hour; null = missing (old cache)
 }
 
 // Waking hours in the location's local time; `end` is exclusive (07–23 covers the 07:00…22:00 hour slots)

@@ -26,7 +26,7 @@ async function openDashboard(page: Page) {
 const alertTiles = (page: Page) =>
   page
     .locator(
-      'button[aria-haspopup="dialog"].rounded-2xl:not([data-rain-strip]):not([data-urgent])',
+      'button[aria-haspopup="dialog"].rounded-2xl:not([data-rain-strip]):not([data-light-strip]):not([data-urgent])',
     )
     .filter({ hasNotText: /Hoy y mañana:/ });
 

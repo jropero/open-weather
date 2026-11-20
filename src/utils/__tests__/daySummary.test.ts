@@ -50,6 +50,8 @@ function makeHour(time: string, overrides: Partial<SummaryHour> = {}): SummaryHo
     weatherCode: null,
     windGusts: null,
     sunshine: null,
+    directRadiation: null,
+    diffuseRadiation: null,
     isDay: null,
     cloudCover: null,
     ...overrides,

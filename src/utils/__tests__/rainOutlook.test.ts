@@ -25,6 +25,8 @@ function hours(override: (i: number) => Partial<SummaryHour> = () => ({})): Summ
     weatherCode: 3,
     windGusts: 10,
     sunshine: null,
+    directRadiation: null,
+    diffuseRadiation: null,
     isDay: null,
     cloudCover: null,
     ...override(i),
