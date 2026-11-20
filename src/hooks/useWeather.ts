@@ -122,7 +122,7 @@ export function useWeather(location: Location) {
       try {
         const modelParam = getModelParam(location.latitude, location.longitude);
         // Fetch 1 (UTC): current + hourly only — hourly timestamps must be UTC so +Z parsing works throughout the app
-        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape&past_days=8&timezone=UTC${modelParam}`;
+        const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,apparent_temperature&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape,sunshine_duration,is_day,cloud_cover&past_days=8&timezone=UTC${modelParam}`;
         // Fetch 2 (auto): all daily variables including sunrise/sunset — utc_offset_seconds in the response lets us convert sunrise/sunset back to UTC strings
         const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&past_days=8&timezone=auto${modelParam}`;
         // Fetch 3: current weather_code only from the global model (no models= param).
@@ -263,6 +263,9 @@ export function useWeather(location: Location) {
                 snowfall: h.snowfall?.[i] ?? null,
                 weatherCode: h.weather_code?.[i] ?? null,
                 windGusts: h.wind_gusts_10m?.[i] ?? null,
+                sunshine: h.sunshine_duration?.[i] ?? null,
+                cloudCover: h.cloud_cover?.[i] ?? null,
+                isDay: h.is_day?.[i] == null ? null : h.is_day[i] === 1,
               });
             }
           }
@@ -281,6 +284,9 @@ export function useWeather(location: Location) {
             windGusts: currentData.current.wind_gusts_10m ?? 0,
             windDirection: currentData.current.wind_direction_10m,
             surfacePressure: currentData.current.pressure_msl,
+            apparentTemperature: Number.isFinite(currentData.current.apparent_temperature)
+              ? currentData.current.apparent_temperature
+              : null,
             elevation: currentData.elevation,
           },
           daily: dailyWeather,

@@ -38,6 +38,9 @@ function makeHour(time: string, overrides: Partial<SummaryHour> = {}): SummaryHo
     snowfall: null,
     weatherCode: null,
     windGusts: null,
+    sunshine: null,
+    isDay: null,
+    cloudCover: null,
     ...overrides,
   };
 }

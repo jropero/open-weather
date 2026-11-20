@@ -13,20 +13,14 @@ import {
   getUvInfo,
   wmoToCondition,
 } from './utils/weatherCodes';
-import {
-  sumPrecip,
-  getNightType,
-  getFrostType,
-  getPrecipOnset,
-  getWindAlert,
-} from './utils/heroAlerts';
+import { getNightType, getFrostType, getWindAlert } from './utils/heroAlerts';
 import { AlertBadges } from './components/AlertBadges';
 import { AirQualityCard } from './components/AirQualityCard';
 import { StaleDataBanner } from './components/StaleDataBanner';
 import WeatherSvgEffects from './components/WeatherSvgEffects';
 import { RAIN_INTENSITY, generateWeatherParticles } from './utils/weatherParticles';
 import AuroraSvg from './components/AuroraSvg';
-import { MapPin, Search, HelpCircle, Wind, Cloud, Moon } from 'lucide-react';
+import { MapPin, Search, HelpCircle, Wind, Cloud } from 'lucide-react';
 import { DailyForecast } from './components/DailyForecast';
 import { FutureForecast } from './components/FutureForecast';
 import { HistoricalPressure } from './components/HistoricalPressure';
@@ -35,6 +29,10 @@ import { LanguageProvider } from './context/LanguageContext';
 import { useLanguage, type Language } from './hooks/useLanguage';
 import { OtherLocations } from './components/OtherLocations';
 import { TodayTomorrowSummary } from './components/TodayTomorrowSummary';
+import { RainStrip } from './components/RainStrip';
+import { HeroIcon } from './components/HeroIcon';
+import { FeltTemp } from './components/FeltTemp';
+import { FatiguePopoverContent } from './components/FatiguePopoverContent';
 import { purgeStaleCache } from './utils/cacheCleanup';
 
 // Code-split: the help text and the long-range outlook (with its two drill-down dialogs and
@@ -53,6 +51,7 @@ function WeatherDashboard() {
     useWeather(currentLocation);
   const [isSelectorOpen, setIsSelectorOpen] = React.useState(false);
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
+  const summaryDialogRef = React.useRef<HTMLDialogElement>(null);
   const { language, setLanguage, t } = useLanguage();
   const [activePopover, setActivePopover] = React.useState<'migraine' | 'fatigue' | null>(null);
   const [previewCondition, setPreviewCondition] = React.useState<string>('auto');
@@ -77,18 +76,20 @@ function WeatherDashboard() {
 
   // Badge inputs — pure helpers in utils/heroAlerts.ts (tested); cheap, so not memoized
   const hourly = data?.hourly ?? [];
-  const rain = { h3: sumPrecip(hourly, 3), h6: sumPrecip(hourly, 6), h24: sumPrecip(hourly) };
   // "Night" = local hours at the location (API timezone, else the saved location's zone)
   const locationTz = data?.timezone ?? currentLocation.timezone;
   const nightType = getNightType(hourly, locationTz);
   const frostType = getFrostType(hourly, locationTz);
-  const precipOnset = getPrecipOnset(hourly, now);
   const windAlert = data ? getWindAlert(data.current.windGusts, hourly, now) : null;
 
   // Not memoized: cheap, and React Compiler treats `data.current` like a ref and can't preserve a manual memo on it
   const currentWindChill = data
     ? getWindChillIndex(data.current.temperature, data.current.windSpeed, language)
     : null;
+  const penguinFelt = getPenguinFelt(
+    data?.current.apparentTemperature,
+    currentWindChill?.value,
+  );
 
   const stormPotential = React.useMemo(() => {
     if (!data?.hourly.length) return null;
@@ -193,6 +194,7 @@ function WeatherDashboard() {
   );
 
   const isEn = language === 'en';
+  const isPolar = data.current.temperature < 10 && currentWindChill != null;
 
   let pressureText: string;
   if (data.current.surfacePressure > 1022) {
@@ -388,33 +390,8 @@ function WeatherDashboard() {
               <div className="absolute inset-0 bg-white opacity-0 anim-lightning" />
             )}
           </div>
-          <section className="text-center">
-            <div className="flex justify-center mb-4 drop-shadow-xl">
-              <div className="relative">
-                {isNight && [1, 2, 3].includes(data.current.weatherCode) ? (
-                  <>
-                    <Moon
-                      size={52}
-                      className="text-indigo-200 fill-indigo-200 absolute top-[5px] -right-6 animate-moon drop-shadow-lg"
-                      strokeWidth={1}
-                    />
-                    <Cloud
-                      size={120}
-                      className={`${weatherColor} ${weatherAnimation}`}
-                      strokeWidth={1}
-                    />
-                  </>
-                ) : (
-                  <WeatherIcon
-                    size={120}
-                    className={`${weatherColor} ${weatherAnimation}`}
-                    strokeWidth={1}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-center items-center gap-6 sm:gap-8 mb-2">
+          <section className="text-center pt-6">
+            <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2">
               {/* Left Progress Bar: Migraine Risk */}
               <div
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- wrapper contains positioned popover; layout preserved
@@ -435,7 +412,7 @@ function WeatherDashboard() {
                 {/* Custom Popover */}
                 {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                 <div
-                  className={`absolute bottom-full mb-3 left-0 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom-left ${
+                  className={`absolute top-full mt-3 left-0 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-top-left ${
                     activePopover === 'migraine'
                       ? 'opacity-100 scale-100 translate-y-0 visible'
                       : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
@@ -477,8 +454,16 @@ function WeatherDashboard() {
                 <span className="text-[11px] font-black">{currentMigraineRisk.score}</span>
               </div>
 
-              {/* Temperature Display */}
-              <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
+              {/* Temperature + weather icon */}
+              <div className="flex items-center gap-1">
+                <h2 className="text-6xl font-light">{Math.round(data.current.temperature)}°</h2>
+                <FeltTemp value={data.current.apparentTemperature} />
+                <HeroIcon
+                  icon={WeatherIcon}
+                  className={`${weatherColor} ${weatherAnimation}`}
+                  nightCloudy={isNight && [1, 2, 3].includes(data.current.weatherCode)}
+                />
+              </div>
 
               {/* Right Progress Bar: Fatigue Level */}
               <div
@@ -500,35 +485,21 @@ function WeatherDashboard() {
                 {/* Custom Popover */}
                 {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                 <div
-                  className={`absolute bottom-full mb-3 right-0 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-bottom-right ${
+                  className={`absolute top-full mt-3 right-0 flex flex-col gap-1 w-64 bg-slate-900/95 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl shadow-2xl z-50 text-[11px] text-white text-left transition-all duration-200 origin-top-right ${
                     activePopover === 'fatigue'
                       ? 'opacity-100 scale-100 translate-y-0 visible'
                       : 'opacity-0 scale-95 translate-y-2 invisible pointer-events-none'
                   }`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="font-bold border-b border-white/10 pb-1 mb-1 text-xs text-indigo-300 flex items-center justify-between">
-                    <span>
-                      {language === 'en' ? 'Discomfort Index' : 'Índice de Incomodidad'}
-                    </span>
-                    <span>{currentThom.value.toFixed(1)} DI</span>
-                  </span>
-                  <div className="flex flex-col gap-1.5 font-mono text-[10px]">
-                    {currentThom.reasons.map((reason, idx) => (
-                      <div key={idx} className="flex items-start gap-1">
-                        <span className="text-indigo-400">•</span>
-                        <span>{reason}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                    {language === 'en'
-                      ? "Thom's Index tracks biological stress combined from heat & humidity."
-                      : 'El Índice de Thom mide el estrés biológico del calor y la humedad combinados.'}
-                  </span>
+                  <FatiguePopoverContent
+                    polar={isPolar}
+                    thom={currentThom}
+                    windChill={currentWindChill}
+                  />
                 </div>
 
-                {data.current.temperature < 10 && currentWindChill ? (
+                {isPolar && currentWindChill ? (
                   <>
                     <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">
                       {isEn ? 'WCI' : 'POLAR'}
@@ -541,8 +512,8 @@ function WeatherDashboard() {
                         }}
                       />
                     </div>
-                    <span className="text-[11px] font-black">
-                      {Math.round(currentWindChill.value)}°
+                    <span className="text-[11px] font-black" title={t('hero.wci.title')}>
+                      {Math.round(currentWindChill.value)}
                     </span>
                   </>
                 ) : (
@@ -600,33 +571,17 @@ function WeatherDashboard() {
                 })()}
             </div>
 
-            {/* Today & Tomorrow: one teaser line, details in a dialog */}
-            <TodayTomorrowSummary
-              data={data}
+            {/* Rain in the next 12 h: sentence + hourly bars (replaces the rain alert tile) */}
+            <RainStrip
+              hours={data.summaryHours}
               now={now}
-              todayMigraine={currentMigraineRisk}
-              placeName={getTranslatedLocationName(currentLocation.name, language)}
-              timezone={currentLocation.timezone}
-            />
-
-            {/* Alert badges — grouped by category, each group is its own flex row */}
-            <AlertBadges
-              pressureTrend={data.pressureTrend}
-              tempDelta3h={tempDelta3h}
-              tempDelta6h={tempDelta6h}
-              precipOnset={precipOnset}
-              rain={rain}
-              windAlert={windAlert}
-              nightType={nightType}
-              frostType={frostType}
-              stormPotential={stormPotential}
-              isFog={wmoCondition === 'fog'}
-              weatherCode={data.current.weatherCode}
+              timezone={locationTz}
+              onOpenDetails={() => summaryDialogRef.current?.showModal()}
             />
 
             {/* Shrimp Progress Bar */}
             {Math.floor(Math.max(0, currentThom.value - 15) / 3) > 0 && (
-              <div className="flex flex-col items-center gap-1 mt-6">
+              <div className="flex flex-col items-center gap-1 mt-2 mb-3">
                 <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">
                   {language === 'en' ? 'Shrimp Fatigue' : 'Índice Gamba'}
                 </span>
@@ -648,7 +603,7 @@ function WeatherDashboard() {
 
             {/* Penguin Wind Chill (winter) */}
             {data.current.temperature < 10 && currentWindChill && (
-              <div className="flex flex-col items-center gap-1 mt-6">
+              <div className="flex flex-col items-center gap-1 mt-2 mb-3">
                 <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">
                   {isEn ? 'Wind Chill' : 'Índice Polar'}
                 </span>
@@ -671,10 +626,34 @@ function WeatherDashboard() {
                   })}
                 </div>
                 <span className="text-[10px] font-mono font-bold text-white/70">
-                  {isEn ? 'Feels like' : 'Sensación'}: {currentWindChill.value.toFixed(1)}°C
+                  {t('hero.penguin.felt').replace('{n}', String(penguinFelt))}
                 </span>
               </div>
             )}
+
+            {/* Today & Tomorrow: one teaser line, details in a dialog */}
+            <TodayTomorrowSummary
+              data={data}
+              now={now}
+              todayMigraine={currentMigraineRisk}
+              placeName={getTranslatedLocationName(currentLocation.name, language)}
+              timezone={currentLocation.timezone}
+              dialogRef={summaryDialogRef}
+            />
+
+            {/* Alert badges — grouped by category, each group is its own flex row */}
+            <AlertBadges
+              pressureTrend={data.pressureTrend}
+              tempDelta3h={tempDelta3h}
+              tempDelta6h={tempDelta6h}
+              windAlert={windAlert}
+              nightType={nightType}
+              frostType={frostType}
+              stormPotential={stormPotential}
+              isFog={wmoCondition === 'fog'}
+              weatherCode={data.current.weatherCode}
+              onOpenDetails={() => summaryDialogRef.current?.showModal()}
+            />
           </section>
         </div>
 
@@ -798,6 +777,14 @@ function WeatherDashboard() {
     </div>
   );
   /* eslint-enable sonarjs/cognitive-complexity */
+}
+
+function getPenguinFelt(
+  apparent: number | null | undefined,
+  windChill: number | undefined,
+): number {
+  const v = typeof apparent === 'number' && Number.isFinite(apparent) ? apparent : windChill;
+  return Math.round(v ?? 0);
 }
 
 export default function App() {

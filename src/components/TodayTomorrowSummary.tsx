@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { ChevronRight, ListChecks, X } from 'lucide-react';
 import type { AirQualityData, WeatherData } from '../types/weather';
 import { useLanguage } from '../hooks/useLanguage';
@@ -8,6 +8,7 @@ import {
   buildDaySummary,
   getHighlights,
   getTomorrowMigraine,
+  RAIN_STRIP_HOURS,
   SUMMARY_THRESHOLDS,
   type DayKey,
   type DayPart,
@@ -29,6 +30,8 @@ interface TodayTomorrowSummaryProps {
   todayMigraine: MigraineResult; // the hero MIGR bar — reused so the summary can't disagree with it
   placeName: string;
   timezone?: string;
+  /** Lets the hero alert tiles open this dialog too */
+  dialogRef?: RefObject<HTMLDialogElement | null>;
 }
 
 const POLLENS: { key: keyof AirQualityData; name: string }[] = [
@@ -121,10 +124,12 @@ export function TodayTomorrowSummary({
   todayMigraine,
   placeName,
   timezone,
+  dialogRef: externalRef,
 }: TodayTomorrowSummaryProps) {
   const { language, t } = useLanguage();
   const { wakingWindow, setWakingWindow } = useWakingWindow();
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const ownRef = useRef<HTMLDialogElement>(null);
+  const dialogRef = externalRef ?? ownRef;
 
   const summary = buildDaySummary({
     hours: data.summaryHours,
@@ -155,13 +160,21 @@ export function TodayTomorrowSummary({
     language,
   );
 
-  const highlights = getHighlights(summary, {
-    todayMigraine: todayMigraine.score,
-    tomorrowMigraine: tomorrowMigraine?.score ?? null,
-    pressureDrop6h,
-    aqi,
-    maxPollen,
-  });
+  const highlights = getHighlights(
+    summary,
+    {
+      todayMigraine: todayMigraine.score,
+      tomorrowMigraine: tomorrowMigraine?.score ?? null,
+      pressureDrop6h,
+      aqi,
+      maxPollen,
+    },
+    {
+      // The hero rain strip shows today's rain when it covers every remaining waking hour
+      omitTodayUmbrella:
+        !!summary.today && summary.today.to - summary.today.from <= RAIN_STRIP_HOURS,
+    },
+  );
 
   // --- Wording ---
   const windLabel = (level: GustLevel) => t(`summary.wind.${level}`);

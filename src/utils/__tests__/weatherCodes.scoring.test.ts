@@ -157,6 +157,19 @@ describe('getWindChillIndex', () => {
     expect(result.shortLabel).toBe('FRESC');
   });
 
+  it('reasons: formula applied ends with "Índice: X", never "Sensación"', () => {
+    const r = getWindChillIndex(5, 20, 'es').reasons;
+    expect(r[0]).toContain('Fórmula');
+    expect(r[2]).toMatch(/^Índice: -?\d+\.\d$/);
+    expect(getWindChillIndex(5, 20, 'en').reasons[2]).toMatch(/^Index: /);
+  });
+
+  it('reasons: wind <= 4.8 says the formula needs more wind and index = temperature', () => {
+    const r = getWindChillIndex(5, 3, 'en').reasons;
+    expect(r[0]).toContain('needs wind > 4.8');
+    expect(r[2]).toContain('5.0');
+  });
+
   // --- output band coverage ---
 
   it("'FRÍO' band: temp=0 wind=20 → wci ≈ -5.2 (formula applies, wci in (-10, 0])", () => {

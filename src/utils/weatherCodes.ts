@@ -259,17 +259,23 @@ export function getWindChillIndex(temp: number, windSpeed: number, lang: Languag
     wci = Math.round(temp * 10) / 10;
   }
 
-  const reasons = isEn
-    ? [
-        `Formula: 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16`,
-        `Values: T = ${Math.round(temp)}°C, V = ${Math.round(windSpeed)} km/h`,
-        `Feels like: ${wci.toFixed(1)}°C`,
-      ]
-    : [
-        `Fórmula: 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16`,
-        `Valores: T = ${Math.round(temp)}°C, V = ${Math.round(windSpeed)} km/h`,
-        `Sensación: ${wci.toFixed(1)}°C`,
-      ];
+  const values = `${isEn ? 'Values' : 'Valores'}: T = ${Math.round(temp)}°C, V = ${Math.round(windSpeed)} km/h`;
+  let reasons: string[];
+  if (temp <= 10 && windSpeed > 4.8) {
+    reasons = [
+      `${isEn ? 'Formula' : 'Fórmula'}: 13.12 + 0.6215·T − 11.37·V^0.16 + 0.3965·T·V^0.16`,
+      values,
+      `${isEn ? 'Index' : 'Índice'}: ${wci.toFixed(1)}`,
+    ];
+  } else {
+    reasons = [
+      isEn ? 'The formula needs wind > 4.8 km/h' : 'La fórmula necesita viento > 4,8 km/h',
+      values,
+      isEn
+        ? `Index equals the air temperature: ${wci.toFixed(1)}`
+        : `El índice es igual a la temperatura del aire: ${wci.toFixed(1)}`,
+    ];
+  }
 
   if (wci > 0)
     return {

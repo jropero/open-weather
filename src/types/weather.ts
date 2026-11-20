@@ -15,6 +15,8 @@ export interface CurrentWeather {
   windGusts: number;
   windDirection: number;
   surfacePressure: number;
+  /** Felt temperature (°C); null when missing. Absent in old `weather_last` entries. */
+  apparentTemperature: number | null;
   elevation: number;
 }
 
@@ -72,6 +74,9 @@ export interface SummaryHour {
   snowfall: number | null;
   weatherCode: number | null;
   windGusts: number | null;
+  cloudCover: number | null; // % (0–100); null = missing
+  isDay: boolean | null; // Open-Meteo is_day; null = missing
+  sunshine: number | null; // seconds of sunshine within the hour (0–3600); null = missing (old cache or no data)
 }
 
 // Waking hours in the location's local time; `end` is exclusive (07–23 covers the 07:00…22:00 hour slots)

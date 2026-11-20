@@ -419,6 +419,133 @@ export function getTomorrowMigraine(
   );
 }
 
+// --- Hero rain strip: fixed next N hours from the current hour (not the waking window) ---
+
+export const RAIN_STRIP_HOURS = 12;
+
+// Sunshine seconds within an hour: ≥ 30 min = sun, ≥ 10 min = partly sunny
+export const SUN_FULL_S = 1800;
+export const SUN_SOME_S = 600;
+
+// Night sky from cloud cover (%): ≤ 30 clear, ≤ 70 partly, above cloudy
+export const NIGHT_CLEAR_MAX = 30;
+export const NIGHT_PARTLY_MAX = 70;
+
+export interface RainStripHour {
+  ms: number; // UTC start of the hour
+  hour: number; // local hour at the location
+  mm: number | null; // null = no data (never drawn as dry)
+  prob: number | null;
+  kind: 'rain' | 'snow' | 'freezing' | null; // null = below the precipitation threshold
+  sky: 'sun' | 'partly' | 'cloud' | 'moon' | 'moon_partly' | null; // dry sky; null = wet or no data
+}
+
+export interface RainOutlook {
+  hours: RainStripHour[];
+  umbrella: UmbrellaVerdict | null; // same rules as the Today & Tomorrow dialog, applied to these hours
+  startsNow: boolean; // the first spell includes the current hour
+  mm: number; // total over the strip
+  cm: number;
+  clearLevel: 'clear' | 'mixed'; // clear hours (sun/moon) ≥ half of the known-sky hours → 'clear'
+  headerSky: 'sun' | 'moon' | 'partly' | 'moon_partly' | null; // first clear hour's sky, else first partly hour's
+  clearRanges: HourRange[]; // spells of clear hours ('clear') or clear + partly hours ('mixed'), merged like rain spells
+  clearIntermittent: boolean; // more than two clear spells, shown as one span
+  clearStartsNow: boolean; // the first clear spell includes the current hour
+  sunHours: number; // total sunshine over the strip in hours (nulls skipped)
+}
+
+type Sky = RainStripHour['sky'];
+const isClearSky = (k: Sky) => k === 'sun' || k === 'moon';
+const isPartlySky = (k: Sky) => k === 'partly' || k === 'moon_partly';
+
+function clearSummary(skies: Sky[]) {
+  const clear = skies.filter(isClearSky).length;
+  const known = skies.filter((k) => k !== null).length;
+  const level: RainOutlook['clearLevel'] = clear * 2 >= known && clear > 0 ? 'clear' : 'mixed';
+  const header = skies.find(isClearSky) ?? skies.find(isPartlySky) ?? null;
+  const pick = (k: Sky) => isClearSky(k) || (level === 'mixed' && isPartlySky(k));
+  return { level, header: header as RainOutlook['headerSky'], pick };
+}
+
+function nightSky(cover: number | null | undefined): RainStripHour['sky'] {
+  if (cover == null) return null;
+  if (cover <= NIGHT_CLEAR_MAX) return 'moon';
+  return cover <= NIGHT_PARTLY_MAX ? 'moon_partly' : 'cloud';
+}
+
+function daySky(h: SummaryHour): RainStripHour['sky'] {
+  const s = h.sunshine ?? null;
+  if (s === null) return null;
+  if (s >= SUN_FULL_S) return 'sun';
+  if (s >= SUN_SOME_S) return 'partly';
+  return h.isDay === true ? 'cloud' : null;
+}
+
+function stripSky(h: SummaryHour, kind: RainStripHour['kind']): RainStripHour['sky'] {
+  if (kind !== null) return null;
+  return h.isDay === false ? nightSky(h.cloudCover) : daySky(h);
+}
+
+function stripKind(h: SummaryHour): RainStripHour['kind'] {
+  if (!hasPrecip(h) && (h.snowfall ?? 0) <= 0) return null;
+  if (isFreezing(h.weatherCode)) return 'freezing';
+  return isSnow(h) ? 'snow' : 'rain';
+}
+
+export function buildRainOutlook({
+  hours,
+  now,
+  timezone,
+  span = RAIN_STRIP_HOURS,
+}: {
+  hours: SummaryHour[];
+  now: number;
+  timezone?: string | null;
+  span?: number;
+}): RainOutlook | null {
+  const local = makeLocalizer(timezone);
+  const startIdx = hours.findIndex((h) => {
+    const ms = Date.parse(`${h.time}Z`);
+    return ms <= now && now < ms + HOUR_MS;
+  });
+  if (startIdx < 0) return null;
+  const seg: LocalHour[] = hours.slice(startIdx, startIdx + span).map((h) => {
+    const ms = Date.parse(`${h.time}Z`);
+    return { ...h, ms, ...local(ms) };
+  });
+  if (!seg.length) return null;
+
+  const umbrella = assessUmbrella(seg);
+  const strip: RainStripHour[] = seg.map((h) => {
+    const kind = stripKind(h);
+    return {
+      ms: h.ms,
+      hour: h.hour,
+      mm: h.precipitation,
+      prob: h.precipProbability,
+      kind,
+      sky: stripSky(h, kind),
+    };
+  });
+  const first = umbrella?.ranges[0];
+  const skyOf = new Map(seg.map((h, i) => [h.ms, strip[i].sky]));
+  const cs = clearSummary(strip.map((h) => h.sky));
+  const sunny = spells(seg, (h) => cs.pick(skyOf.get(h.ms) ?? null));
+  return {
+    hours: strip,
+    umbrella,
+    startsNow: !!first && umbrella?.level !== 'none' && first.from === seg[0].hour,
+    mm: round1(sum(seg, (h) => h.precipitation)),
+    cm: round1(sum(seg, (h) => h.snowfall)),
+    clearLevel: cs.level,
+    headerSky: cs.header,
+    clearRanges: sunny.ranges,
+    clearIntermittent: sunny.intermittent,
+    clearStartsNow: sunny.ranges[0]?.from === seg[0].hour,
+    sunHours: round1(sum(seg, (h) => h.sunshine ?? 0) / 3600),
+  };
+}
+
 // --- Teaser ranking ---
 
 export interface HealthSignals {
@@ -445,7 +572,11 @@ const SECONDARY_MIN_WEIGHT = 30;
 // Up to two points for the teaser: the most important one, plus a second if it matters too.
 // Today outranks tomorrow at equal weight; health "now" values only count while today is shown.
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[] {
+export function getHighlights(
+  s: DaySummary,
+  health: HealthSignals,
+  { omitTodayUmbrella = false }: { omitTodayUmbrella?: boolean } = {},
+): Highlight[] {
   const candidates: { h: Highlight; w: number }[] = [];
   const add = (h: Highlight, w: number) => candidates.push({ h, w });
 
@@ -455,7 +586,8 @@ export function getHighlights(s: DaySummary, health: HealthSignals): Highlight[]
     ['dayAfterTomorrow', s.dayAfterTomorrow, 10],
   ] as const) {
     if (!part) continue;
-    const u = part.umbrella;
+    // The hero rain strip already shows today's rain when it covers the rest of today's window
+    const u = day === 'today' && omitTodayUmbrella ? null : part.umbrella;
     if (u?.level === 'take')
       add({ topic: 'umbrella', day, umbrella: u }, (u.thunder ? 100 : 80) - offset);
     if (u?.level === 'maybe') add({ topic: 'umbrella', day, umbrella: u }, 35 - offset);
