@@ -15,6 +15,7 @@ import {
   Area,
   Line,
   Bar,
+  LabelList,
   ResponsiveContainer,
   YAxis,
   XAxis,
@@ -27,6 +28,7 @@ import {
   useYAxisScale,
   usePlotArea,
 } from 'recharts';
+import { precipLabels } from '../utils/chartLabels';
 import type { XAxisTickContentProps } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
 import { useNow } from '../hooks/useNow';
@@ -96,9 +98,20 @@ const CHART_MARGIN = { top: 20, right: 0, left: 0, bottom: 0 };
 const PERCENT_DOMAIN: [number, number] = [0, 100];
 const PRECIP_DOMAIN: [number, string] = [0, 'dataMax + 15'];
 const WIND_DOMAIN: [number, string] = [0, 'dataMax + 10'];
-const PRESSURE_TICK_STYLE = {
-  fill: '#fca5a5',
+const TEMP_TICK_STYLE = {
+  fill: '#fcd34d',
   fontSize: 10,
+  fontWeight: 700,
+  stroke: '#0f172a',
+  strokeWidth: 3,
+  paintOrder: 'stroke' as const,
+};
+
+// Rain amount above each bar (see precipLabels); hourly bars are too narrow to label every one
+const HOURLY_LABEL_RADIUS = 2;
+const PRECIP_LABEL_STYLE = {
+  fill: '#c7d2fe',
+  fontSize: 9,
   fontWeight: 700,
   stroke: '#0f172a',
   strokeWidth: 3,
@@ -227,27 +240,33 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
   };
   const chartData: ChartPoint[] = viewMode === 'daily' ? dailyChartData : hourlyChartData;
 
+  // Same points plus the rain label string per bar ('' = none). Memoized like chartData.
+  const labeledChartData = useMemo(() => {
+    const labels = precipLabels(
+      chartData.map((d) => d.precip),
+      viewMode === 'daily' ? 0 : HOURLY_LABEL_RADIUS,
+    );
+    return chartData.map((d, i) => ({ ...d, precipLabel: labels[i] }));
+  }, [chartData, viewMode]);
+
   // Axis domains and ticks are memoized too (new arrays would also re-create the series, see above)
-  const { pressureDomain, tempDomain, pressureTicks } = useMemo(() => {
+  const { pressureDomain, tempDomain, tempTicks } = useMemo(() => {
     const minPressure = Math.min(...chartData.map((d) => d.pressure)) - 5;
     const maxPressure = Math.max(...chartData.map((d) => d.pressure)) + 5;
     const minTemp = Math.min(...chartData.map((d) => d.temp)) - 5;
     const maxTemp = Math.max(...chartData.map((d) => d.temp)) + 5;
 
-    // Pressure axis: round ticks inside the padded domain, unit on the top tick
-    const pressureStep = maxPressure - minPressure > 30 ? 10 : 5;
+    // Temperature axis (the visible one): round ticks inside the padded domain, unit on the top tick.
+    // Pressure keeps its own hidden axis; the 1013 hPa reference line carries its unit.
+    const tempStep = maxTemp - minTemp > 30 ? 10 : 5;
     const ticks: number[] = [];
-    for (
-      let p = Math.ceil(minPressure / pressureStep) * pressureStep;
-      p <= maxPressure;
-      p += pressureStep
-    )
-      ticks.push(p);
+    for (let v = Math.ceil(minTemp / tempStep) * tempStep; v <= maxTemp; v += tempStep)
+      ticks.push(v);
 
     return {
       pressureDomain: [minPressure, maxPressure],
       tempDomain: [minTemp, maxTemp],
-      pressureTicks: ticks,
+      tempTicks: ticks,
     };
   }, [chartData]);
 
@@ -364,20 +383,20 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           tickLine={false}
         />
 
+        <YAxis yAxisId="pressure" hide domain={pressureDomain} />
         <YAxis
-          yAxisId="pressure"
+          yAxisId="temp"
           orientation="right"
           mirror
-          domain={pressureDomain}
-          ticks={pressureTicks}
+          domain={tempDomain}
+          ticks={tempTicks}
           tickFormatter={(v: number, i: number) =>
-            i === pressureTicks.length - 1 ? `${v}${String.fromCharCode(160)}hPa` : `${v}`
+            i === tempTicks.length - 1 ? `${v}${String.fromCharCode(160)}°C` : `${v}°`
           }
-          tick={PRESSURE_TICK_STYLE}
+          tick={TEMP_TICK_STYLE}
           axisLine={false}
           tickLine={false}
         />
-        <YAxis yAxisId="temp" hide domain={tempDomain} />
         <YAxis yAxisId="humidity" hide domain={PERCENT_DOMAIN} />
         <YAxis yAxisId="precip" hide domain={PRECIP_DOMAIN} />
         <YAxis yAxisId="bg" hide domain={PERCENT_DOMAIN} />
@@ -423,7 +442,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           strokeOpacity={0.5}
           strokeDasharray="2 4"
           label={{
-            value: `1013 ${t('chart.normal')}`,
+            value: `1013 hPa ${t('chart.normal')}`,
             position: 'insideBottomLeft',
             fill: '#fca5a5',
             fontSize: 9,
@@ -450,7 +469,14 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           fill="#a5b4fc"
           opacity={0.5}
           radius={[4, 4, 0, 0]}
-        />
+        >
+          <LabelList
+            dataKey="precipLabel"
+            position="top"
+            offset={3}
+            style={PRECIP_LABEL_STYLE}
+          />
+        </Bar>
 
         {/* Presión: Area y Línea Roja */}
         <Area
@@ -490,8 +516,8 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       xTicks,
       renderXTick,
       pressureDomain,
-      pressureTicks,
       tempDomain,
+      tempTicks,
       viewMode,
       pastCount,
       t,
@@ -855,7 +881,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           {/* Keyed by view so the tooltip index from one view doesn't carry over into the other */}
           <ComposedChart
             key={viewMode}
-            data={chartData}
+            data={labeledChartData}
             margin={CHART_MARGIN}
             barCategoryGap={2}
           >

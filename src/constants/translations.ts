@@ -43,7 +43,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'chart.hum_saturated': 'Saturada',
     'chart.hint': 'Toca o desliza sobre el gráfico para ver los detalles de cada punto.',
     'chart.scale_note':
-      'Escala roja (derecha): presión en hPa. Las demás series usan su propia escala; los valores exactos aparecen en el panel superior.',
+      'Escala amarilla (derecha): temperatura en °C. Los números sobre las columnas son la lluvia en mm (por horas, solo el pico de cada chubasco). Las demás series usan su propia escala; los valores exactos aparecen en el panel superior.',
     'label.clinical_breakdown': 'Desgloses Clínicos y Matemáticos',
     'label.fatigue_calc': 'Cálculo de Fatiga (Thom)',
     'label.migraine_doi': 'Riesgo de Migraña (DOI: 10.1111/head.14482)',
@@ -364,7 +364,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'chart.hum_saturated': 'Saturated',
     'chart.hint': 'Tap or drag across the chart to see the details of each point.',
     'chart.scale_note':
-      'Red scale (right): pressure in hPa. The other series use their own scale; exact values are shown in the panel above.',
+      'Yellow scale (right): temperature in °C. Numbers above the bars are rain in mm (hourly: only the peak of each shower). The other series use their own scale; exact values are shown in the panel above.',
     'label.clinical_breakdown': 'Clinical & Mathematical Breakdowns',
     'label.fatigue_calc': 'Fatigue Calculation (Thom)',
     'label.migraine_doi': 'Migraine Risk (DOI: 10.1111/head.14482)',
