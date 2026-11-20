@@ -18,15 +18,19 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
 
 - **🚨 Real-Time Biomedical Alerts**
   - **ΔP (24h Pressure Delta):** Instantly calculates sudden atmospheric pressure drops ($\le$ -3 hPa and $\le$ -5 hPa) relative to the previous day's average. It features a **visual gradient pressure gauge** that positions the current pressure in a realistic meteorological spectrum (980 hPa to 1050 hPa) for instant clinical context.
-  - **Seasonal Index Bar:** The right-hand hero bar adapts to the season. Above 10 °C it shows **FAT.** (Thom's Discomfort Index) with a warm colour scale. Below 10 °C it switches to **POLAR / WCI** (Wind Chill Index), filling upward as the felt temperature drops, colour-coded emerald → sky → blue → purple. [NEW]
+  - **Seasonal Index Bar:** The right-hand hero bar adapts to the season. Above 10 °C it shows **FAT.** (Thom's Discomfort Index) with a warm colour scale. Below 10 °C it switches to **POLAR / WCI** (Wind Chill Index), filling upward as the felt temperature drops, colour-coded emerald → sky → blue → purple. The POLAR value is shown as an index (no °); tapping the bar opens a popover — for FAT. it explains Thom's index, for POLAR it explains the wind chill index (formula, values, and a note that it is _an index, not the felt temperature_). [NEW]
+  - **Felt Temperature [NEW]:** A small **SENS.** (Open-Meteo `apparent_temperature`) sits between the temperature and the weather icon — the single felt temperature in the hero; the penguin caption shows the same value.
   - **Thom's Discomfort Index (Thermal Fatigue):** Evaluates thermal stress by combining ambient temperature with relative humidity to warn users about cardiovascular strain and fatigue levels ("muggy air"). When discomfort is high, a **Shrimp Fatigue bar** (🦐 × 1–4) appears below the hero. [NEW]
   - **Wind Chill Index (Índice Polar):** In winter (< 10 °C), a standalone **penguin section** (🐧 × 1–4) shows the calculated felt temperature and severity level. [NEW]
   - **Frost & Ice Risk:** Overnight minimum temperature and dew point are monitored; alerts surface when frost (≤ 2 °C) or ice (≤ 0 °C) conditions are expected. [NEW]
   - **Tropical Night Alerts:** If overnight minimums exceed 20 °C (tropical), 25 °C (torrida), or 25 °C+ (ecuatorial), a contextual badge is displayed. [NEW]
   - **Bilingual Selector (ES / EN):** A glassmorphic top-right dropdown toggle that instantly translates the entire application's interface, metrics, graphs, and clinical breakdown texts in real-time.
+- **🌧️ Hero Rain & Sky Strip [NEW]**
+  - Covers a fixed **next 12 h**. When rain is expected: an umbrella verdict + spell times ("ahora–14h", "desde 18h") + total mm, then hourly bars (height = mm, opacity = probability, mm label on each bar) with a **sky icon** above the dry hours (sun / partly sun / cloud / moon / partly moon, from sunshine minutes and, at night, cloud cover).
+  - When dry: "Despejado" or "Nubes y claros" with the clear spells, the sun-hours total and the icon row only (no bars). Hidden when dry and fully overcast. Tap opens the Today & Tomorrow dialog.
 - **🌙 Day / Night Awareness [NEW]**
   - Fetches real sunrise and sunset times for the current location from Open-Meteo daily data.
-  - When it is night at the selected location the hero switches to a dark indigo palette: **clear sky** shows a `Moon` icon with a cool moonlit SVG glow; **cloudy night** shows a composed `Cloud + Moon` layered icon (moon peeking from upper-right behind the cloud) with a gentle pulse animation — no rotation.
+  - When it is night at the selected location the hero switches to a dark indigo palette: **clear sky** shows a `Moon` icon with a cool moonlit SVG glow; **cloudy night** shows a small inline `Cloud + Moon` layered icon (moon peeking from upper-right behind the cloud), now placed to the right of the temperature rather than as a big icon above it.
   - Each hourly forecast card independently detects night based on its own timestamp vs the day's sunrise/sunset, so a single scroll from evening to morning shows the correct day/night icons per card.
 - **🎨 Dynamic Context-Aware Backgrounds [NEW]**
   - **Weather-Based Color Themes:** The background gradient adapts beautifully to the current weather condition (e.g. warm sunny skies for clear days, slate blue for light rain, dark slate/navy for showers to guarantee high-contrast icon visibility, and deep electric purple for thunderstorms).
@@ -49,8 +53,7 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
   - **Environmental Assessment Phrase:** Generates a smart, localized summary description of current atmospheric conditions (e.g., `"normal pressure and comfortable humidity"`).
   - **Hourly Pressure Velocity (3h & 6h Trends) [NEW]:** Shows real-time barometric rate of change. Delta 6h acts as a critical scientific trigger matching Katsuki et al. (2023)'s highest AI gain parameter (11.7), alerting users with a warning icon (⚡) during rapid pressure drops.
   - **Temperature Velocity (3h & 6h Trends) [NEW]:** Paired badges show short-term temperature change alongside the pressure trend, flagging sharp rises (🔥) that compound heat stress.
-  - **Precipitation Onset Badge [NEW]:** Detects the next rain, snow, or freezing-rain event within the 25-hour hourly window and shows a live countdown ("in 10 min", "in 2h") plus 3h / 6h / 12h accumulated rain totals.
-  - **Grouped Alert Badges [NEW]:** Hero-section badges are organised into semantic rows — pressure+temperature trends, precipitation, wind, and conditions — using horizontal flex-wrap per group to maximise density without vertical sprawl.
+  - **Alert Tiles [NEW]:** Hero alerts are a mobile-first 2-column grid of tiles ranked by severity; the top 4 are shown and the rest sit behind a "+N más" toggle. Rain lives in the rain strip (no rain tile). A single tile renders as a compact centered pill, an odd last tile keeps one column's width, centered. Tapping a tile opens the Today & Tomorrow dialog.
   - **Stacked Visual Range Bars:** Features two high-fidelity visual range sliders:
     1.  **Pressure range** (980–1050 hPa) with a customized green-orange-red color gradient.
     2.  **Relative humidity range** (0%–100%) with a dry-wet blue-green-orange gradient.
@@ -71,7 +74,7 @@ The human brain and cardiovascular system are highly sensitive to sudden changes
   - **Premium Visual Polishing:** Icon animations have been disabled and replaced by a subtle, glowing color aura (`icon-glow` drop shadow filter) to provide a premium feel without visual clutter or animation noise.
 - **🔮 Long-Range Outlook — Drill-Down Views [NEW]**
   - The Long-Range Outlook widget (EC46 weekly + SEAS5 monthly/seasonal heatmap) now supports interactive drill-downs on every cell.
-  - **Ensemble fan chart (all 6 weeks):** Tapping any weekly cell opens a full-screen overlay showing all 50 ECMWF IFS ensemble members as individual spaghetti lines, a shaded probability fan (p10–p90 / p25–p75), and the ensemble mean. A plain-language spread badge classifies whether members agree (✓), diverge (⚡), or split into two clusters (⑂). Variable switcher covers temperature, precipitation, pressure, and wind. Weeks 3–6 show an amber low-confidence banner ("indicative only — high uncertainty beyond 14 days").
+  - **Ensemble fan chart (all 6 weeks):** Tapping any weekly cell opens a full-screen overlay showing all 50 ECMWF IFS ensemble members as individual spaghetti lines, a shaded probability fan (p10–p90 / p25–p75), and the ensemble mean. A plain-language spread badge classifies whether members agree (✓), diverge (⚡), or split into two clusters (⑂). Variable switcher covers temperature, precipitation, pressure, sunshine, snowfall, and wind; sunshine is shown as hours per day (one step per local day, flat normal line, 3 h/day disagreement threshold). Weeks 3–6 show an amber low-confidence banner ("indicative only — high uncertainty beyond 14 days").
   - **Inline historical rank:** Monthly and seasonal temperature cells display a micro-label (e.g. _9/10_) computed from ERA5 history, so you can see at a glance how extreme the forecast is relative to the last decade — without needing to drill in.
   - **Climate history comparison (months + seasons):** Tapping a monthly or seasonal cell compares the SEAS5 forecast against the last 10 years of ERA5 observed history. Shows the 3 most analogous past years, a compact bar chart per variable (with a dashed linear regression trend line over the decade), and the S5 bias-corrected forecast bar. The adjusted forecast is computed as _ERA5 10-year mean + SEAS5 anomaly_ to correct for SEAS5's known cold bias (~3 °C for Alpine winters). A methodological footnote discloses that the SEAS5 anomaly baseline (1993–2016 hindcast) differs from the ERA5 baseline (2016–2025), which may introduce ~0.5–1.5 °C of overestimation.
 
@@ -144,10 +147,14 @@ Once installed, the app works **offline** — the last fetched weather data is s
     pnpm dev
     ```
 4.  Open the local URL shown by Vite+ in your browser.
-5.  Run checks and tests (Vitest, 290 tests across `src/utils/__tests__/`):
+5.  Run checks and tests (Vitest, 367 tests across `src/utils/__tests__/`):
     ```bash
     pnpm exec vp check
     pnpm test
+    ```
+6.  Run the E2E smoke tests (Playwright, Pixel 5 / iPhone 12 profiles; they hit the live Open-Meteo API and reuse a dev server on :5173):
+    ```bash
+    pnpm test:e2e
     ```
 
 ---
@@ -172,15 +179,19 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
 
 - **🚨 Alertas Biomédicas en Tiempo Real**
   - **ΔP (Variación Interdiaria de Presión):** Calcula instantáneamente caídas de presión atmosférica bruscas ($\le$ -3 hPa y $\le$ -5 hPa) respecto a la media del día anterior. Incluye un **manómetro visual degradado** que posiciona la presión actual dentro de un rango realista (980 hPa a 1050 hPa) para dar contexto instantáneo.
-  - **Barra de Índice Estacional:** La barra derecha del héroe se adapta a la estación. Por encima de 10 °C muestra **FAT.** (Índice de Incomodidad de Thom). Por debajo de 10 °C cambia a **POLAR / WCI** (Índice de Sensación Térmica), cuyo relleno sube cuanto más baja la sensación, con escala de color esmeralda → azul cielo → azul → morado. [NUEVO]
+  - **Barra de Índice Estacional:** La barra derecha del héroe se adapta a la estación. Por encima de 10 °C muestra **FAT.** (Índice de Incomodidad de Thom). Por debajo de 10 °C cambia a **POLAR / WCI** (Índice de Sensación Térmica), cuyo relleno sube cuanto más baja la sensación, con escala de color esmeralda → azul cielo → azul → morado. El valor POLAR se muestra como índice (sin °); al pulsar la barra se abre un popover — en FAT. explica el índice de Thom, en POLAR explica el índice de sensación térmica por viento (fórmula, valores y una nota de que es _un índice, no la temperatura sentida_). [NUEVO]
+  - **Temperatura Sentida [NUEVO]:** Una pequeña etiqueta **SENS.** (`apparent_temperature` de Open-Meteo) se sitúa entre la temperatura y el icono del tiempo — es la única temperatura sentida del héroe; el pie del pingüino muestra el mismo valor.
   - **Índice de Incomodidad Térmica (Thom):** Analiza el estrés térmico combinando la temperatura ambiente con la humedad relativa. Cuando la incomodidad es alta aparece el **Índice Gamba** (🦐 × 1–4) bajo el héroe. [NUEVO]
   - **Índice Polar (Sensación Térmica por Viento):** En invierno (< 10 °C), una sección independiente de **pingüinos** (🐧 × 1–4) muestra la temperatura sentida y el nivel de frío. [NUEVO]
   - **Alerta de Helada y Hielo:** Se monitoriza la temperatura mínima nocturna y el punto de rocío; se activan alertas cuando se prevé helada (≤ 2 °C) o hielo (≤ 0 °C). [NUEVO]
   - **Noches Tropicales:** Si las mínimas nocturnas superan 20 °C (tropical), 25 °C (tórrida) o más (ecuatorial), se muestra una insignia contextual. [NUEVO]
   - **Selector de Idioma Bilingüe (ES / EN):** Un control desplegable de estilo glassmorphic arriba a la derecha que traduce toda la interfaz, métricas, gráficas y desgloses de riesgo clínico en tiempo real.
+- **🌧️ Franja de Lluvia y Cielo en el Héroe [NUEVO]**
+  - Cubre las **próximas 12 h** fijas. Si hay lluvia: veredicto de paraguas + tramos horarios ("ahora–14h", "desde 18h") + total en mm, y barras por hora (altura = mm, opacidad = probabilidad, etiqueta de mm en cada barra) con un **icono de cielo** sobre las horas secas (sol / sol y nubes / nube / luna / luna y nubes, según los minutos de sol y, de noche, la nubosidad).
+  - Si no llueve: "Despejado" o "Nubes y claros" con los tramos despejados, el total de horas de sol y solo la fila de iconos (sin barras). Se oculta si no llueve y está totalmente cubierto. Al pulsar se abre el diálogo Hoy y Mañana.
 - **🌙 Detección Día / Noche [NUEVO]**
   - Obtiene la hora exacta de amanecer y anochecer para la ubicación actual desde los datos diarios de Open-Meteo.
-  - Por la noche el héroe cambia a paleta índigo oscura: **cielo despejado** muestra el icono `Luna` con un resplandor SVG frío plateado; **noche nublada** compone `Nube + Luna` como dos iconos apilados (la luna asomando por la parte superior derecha detrás de la nube) con animación de pulso suave — sin rotación.
+  - Por la noche el héroe cambia a paleta índigo oscura: **cielo despejado** muestra el icono `Luna` con un resplandor SVG frío plateado; **noche nublada** compone un pequeño icono `Nube + Luna` en línea (la luna asomando por la parte superior derecha detrás de la nube), ahora a la derecha de la temperatura en lugar de un icono grande encima.
   - Cada tarjeta horaria detecta noche de forma independiente en función de su propio timestamp frente al amanecer/anochecer del día, mostrando el icono correcto al desplazarse de tarde a madrugada.
 - **🎨 Fondos Dinámicos en Tiempo Real [NUEVO]**
   - **Colores Adaptados al Clima:** El gradiente de fondo de la app se adapta estéticamente al tiempo actual (ej. azul cielo radiante para despejado, gris/plomo para nublado, slate/azul oscuro para chubascos garantizando un contraste del 100% en los iconos, y púrpura tormenta para tempestades).
@@ -203,8 +214,7 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
   - **Frase de Diagnóstico Ambiental:** Genera una frase descriptiva del estado climático actual de forma inteligente y localizada (ej. _«presión normal y humedad confortable»_).
   - **Velocidad de Presión Horaria (Tendencias 3h y 6h) [NUEVO]:** Muestra el ritmo de cambio barométrico a corto plazo. El Delta 6h actúa como disparador de riesgo crítico, alineándose directamente con el parámetro de mayor ganancia de IA (11,7) del estudio de Katsuki et al. (2023), alertando con un icono de advertencia (⚡) en caídas rápidas.
   - **Velocidad de Temperatura (3h y 6h) [NUEVO]:** Insignias gemelas muestran la variación de temperatura a corto plazo junto a la tendencia de presión, marcando subidas bruscas (🔥) que agravan el estrés térmico.
-  - **Insignia de Inicio de Precipitación [NUEVO]:** Detecta el próximo evento de lluvia, nieve o lluvia helada en la ventana de 25 horas y muestra una cuenta atrás en vivo ("en 10 min", "en 2h") más los totales acumulados a 3h / 6h / 12h.
-  - **Insignias de Alerta Agrupadas [NUEVO]:** Las insignias del héroe se organizan en filas semánticas — tendencias de presión+temperatura, precipitación, viento y condiciones — con flex-wrap horizontal por grupo para maximizar la densidad sin apilar verticalmente.
+  - **Tarjetas de Alerta [NUEVO]:** Las alertas del héroe son una cuadrícula móvil de 2 columnas ordenada por gravedad; se muestran las 4 primeras y el resto queda tras un botón "+N más". La lluvia vive en la franja de lluvia (no hay tarjeta de lluvia). Una sola tarjeta se muestra como una píldora compacta centrada; si la última es impar, conserva el ancho de una columna y se centra. Al pulsar una tarjeta se abre el diálogo Hoy y Mañana.
   - **Barras de Rango Apiladas:** Cuenta con dos barras de rango visual de alta fidelidad:
     1.  **Rango de presión** (980–1050 hPa) con un degradado de color personalizado verde-naranja-rojo.
     2.  **Rango de humedad** (0%–100%) con un degradado para niveles seco-húmedo.
@@ -225,7 +235,7 @@ El cerebro humano y el sistema cardiovascular son altamente sensibles a los camb
   - Cada día del pronóstico de 3 días muestra las **horas de sol** (☀️ ámbar) y las **horas de precipitación** (🌧 azul cielo) directamente junto al nombre del día — obtenidas de `sunshine_duration` y `precipitation_hours` de la API diaria de Open-Meteo.
 - **🔮 Perspectiva a Largo Plazo — Vistas de Detalle [NUEVO]**
   - El widget de Perspectiva a Largo Plazo (mapa de calor EC46 semanal + SEAS5 mensual/estacional) ahora permite explorar cada celda en profundidad.
-  - **Gráfico de abanico ensemble (las 6 semanas):** Al pulsar cualquier celda semanal se abre una vista a pantalla completa con los 50 miembros individuales del conjunto ECMWF IFS como líneas espagueti, una banda de probabilidad sombreada (p10–p90 / p25–p75) y la media del conjunto. Una etiqueta en lenguaje llano clasifica si los modelos coinciden (✓), divergen (⚡) o se dividen en dos grupos (⑂). Selector de variable: temperatura, precipitación, presión y viento. Las semanas 3–6 muestran un aviso en ámbar ("señal orientativa — incertidumbre alta más allá de 14 días").
+  - **Gráfico de abanico ensemble (las 6 semanas):** Al pulsar cualquier celda semanal se abre una vista a pantalla completa con los 50 miembros individuales del conjunto ECMWF IFS como líneas espagueti, una banda de probabilidad sombreada (p10–p90 / p25–p75) y la media del conjunto. Una etiqueta en lenguaje llano clasifica si los modelos coinciden (✓), divergen (⚡) o se dividen en dos grupos (⑂). Selector de variable: temperatura, precipitación, presión, sol, nieve y viento; el sol se muestra en horas por día (un escalón por día local, línea normal plana, umbral de discrepancia de 3 h/día). Las semanas 3–6 muestran un aviso en ámbar ("señal orientativa — incertidumbre alta más allá de 14 días").
   - **Rango histórico en celda:** Las celdas de temperatura mensuales y estacionales muestran una microetiqueta (ej. _9/10_) calculada a partir del historial ERA5, para ver de un vistazo qué tan extrema es la previsión respecto a la última década — sin necesidad de entrar en detalle.
   - **Comparativa histórica (meses + estaciones):** Al pulsar una celda mensual o estacional se compara la previsión SEAS5 con los últimos 10 años de ERA5. Muestra los 3 años más análogos, un gráfico de barras por variable (con línea de tendencia de regresión lineal sobre la década) y la barra S5 ajustada. El valor ajustado se calcula como _media ERA5 10 años + anomalía SEAS5_, corrigiendo el sesgo frío conocido de SEAS5 (~3 °C en inviernos alpinos). Una nota metodológica advierte que la referencia de anomalía SEAS5 (hindcast 1993–2016) difiere de la base ERA5 (2016–2025), lo que puede suponer una sobreestimación de ~0,5–1,5 °C.
 
@@ -298,8 +308,12 @@ Una vez instalada, la app funciona **sin conexión** — los últimos datos mete
     pnpm dev
     ```
 4.  Abre la URL local que muestra Vite+ en tu navegador.
-5.  Ejecuta checks y tests (Vitest, 290 tests en `src/utils/__tests__/`):
+5.  Ejecuta checks y tests (Vitest, 367 tests en `src/utils/__tests__/`):
     ```bash
     pnpm exec vp check
     pnpm test
+    ```
+6.  Ejecuta los tests E2E de humo (Playwright, perfiles Pixel 5 / iPhone 12; usan la API real de Open-Meteo y reutilizan un servidor de desarrollo en :5173):
+    ```bash
+    pnpm test:e2e
     ```
