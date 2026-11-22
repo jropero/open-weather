@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Wind, Gauge, Thermometer, Snowflake, type LucideIcon } from 'lucide-react';
 import {
-  X,
-  Wind,
-  Gauge,
-  Thermometer,
-  CloudRain,
-  Sun,
-  Snowflake,
-  type LucideIcon,
-} from 'lucide-react';
-import {
+  Bar,
   ComposedChart,
   Line,
   XAxis,
@@ -28,7 +20,6 @@ import { useNow } from '../hooks/useNow';
 import { useEnsembleData } from '../hooks/useEnsembleData';
 import { hasMeaningfulRow } from '../utils/seasonal';
 import {
-  DAILY_VARS,
   classifySpread,
   ensembleDaysInWeek,
   localMidnightIndices,
@@ -39,93 +30,18 @@ import {
 
 const HOUR_MS = 60 * 60 * 1000;
 
-// Variables whose EC46 weekly mean is drawn as a flat "normal" line (sunshine: per-day share)
-const FLAT_NORMAL_VARS: ReadonlySet<EnsembleVar> = new Set([
-  'temperature_2m',
-  'pressure_msl',
-  'sunshine_duration',
-]);
-// Variables that can't go below 0 (Y axis starts at 0)
-const NON_NEGATIVE_VARS: ReadonlySet<EnsembleVar> = new Set([
-  'sunshine_duration',
-  'precipitation',
-  'snowfall',
-  'wind_speed_10m',
-]);
-
 // Opacities shared by the chart and its legend so the swatches match what is drawn
 const MEMBER_OPACITY = 0.15;
 const OUTER_BAND_OPACITY = 0.12;
 const INNER_BAND_OPACITY = 0.26;
+const RAIN_BAR_OPACITY = 0.7;
+// Amber at the shared 0.12 reads as grey on slate
+const SUN_BAND_OPACITY = 0.22;
 
-interface EnsembleVarMeta {
-  key: EnsembleVar;
-  /** Outlook variable that provides the EC46 weekly normal (null = no normal available). */
-  seasonal: SeasonalVariable | null;
-  labelKey: string;
-  unit: string;
-  color: string; // spaghetti / band / mean line colour
-  Icon: LucideIcon;
-}
-
-const VARS: EnsembleVarMeta[] = [
-  {
-    key: 'temperature_2m',
-    seasonal: 'temperature',
-    labelKey: 'seasonal.var.temperature',
-    unit: '°C',
-    color: '#fca5a5',
-    Icon: Thermometer,
-  },
-  {
-    key: 'precipitation',
-    seasonal: 'precipitation',
-    labelKey: 'seasonal.var.precipitation',
-    unit: 'mm',
-    color: '#7dd3fc',
-    Icon: CloudRain,
-  },
-  {
-    key: 'pressure_msl',
-    seasonal: 'pressure',
-    labelKey: 'seasonal.var.pressure',
-    unit: 'hPa',
-    color: '#c084fc',
-    Icon: Gauge,
-  },
-  {
-    key: 'sunshine_duration',
-    seasonal: 'sunshine',
-    labelKey: 'seasonal.var.sunshine',
-    unit: 'h',
-    color: '#fbbf24',
-    Icon: Sun,
-  },
-  {
-    key: 'snowfall',
-    seasonal: 'snowfall',
-    labelKey: 'seasonal.var.snowfall',
-    unit: 'cm',
-    color: '#a5f3fc',
-    Icon: Snowflake,
-  },
-  {
-    key: 'wind_speed_10m',
-    seasonal: null,
-    labelKey: 'ensemble.var.wind',
-    unit: 'km/h',
-    color: '#6ee7b7',
-    Icon: Wind,
-  },
-];
-
-const SEASONAL_TO_ENSEMBLE: Record<SeasonalVariable, EnsembleVar> = {
-  temperature: 'temperature_2m',
-  precipitation: 'precipitation',
-  pressure: 'pressure_msl',
-  sunshine: 'sunshine_duration',
-  snowfall: 'snowfall',
-};
+const TEMP_COLOR = '#fca5a5';
+const RAIN_COLOR = '#7dd3fc';
+const SUN_COLOR = '#fbbf24';
+const CHART_HEIGHT = 260;
 
 interface Props {
   location: Location;
@@ -136,12 +52,72 @@ interface Props {
   onClose: () => void;
 }
 
+interface BodyProps {
+  location: Location;
+  period: SeasonalPeriod;
+}
+
+type SingleVar = 'pressure_msl' | 'snowfall' | 'wind_speed_10m';
+type Tab = 'combined' | SingleVar;
+
+interface SingleVarMeta {
+  key: SingleVar;
+  /** Outlook variable that provides the EC46 weekly normal (null = no normal available). */
+  seasonal: SeasonalVariable | null;
+  labelKey: string;
+  unit: string;
+  color: string;
+  Icon: LucideIcon;
+  nonNegative: boolean;
+  flatNormal: boolean;
+}
+
+const VARS: SingleVarMeta[] = [
+  {
+    key: 'pressure_msl',
+    seasonal: 'pressure',
+    labelKey: 'seasonal.var.pressure',
+    unit: 'hPa',
+    color: '#c084fc',
+    Icon: Gauge,
+    nonNegative: false,
+    flatNormal: true,
+  },
+  {
+    key: 'snowfall',
+    seasonal: 'snowfall',
+    labelKey: 'seasonal.var.snowfall',
+    unit: 'cm',
+    color: '#a5f3fc',
+    Icon: Snowflake,
+    nonNegative: true,
+    flatNormal: false,
+  },
+  {
+    key: 'wind_speed_10m',
+    seasonal: null,
+    labelKey: 'ensemble.var.wind',
+    unit: 'km/h',
+    color: '#6ee7b7',
+    Icon: Wind,
+    nonNegative: true,
+    flatNormal: false,
+  },
+];
+
 interface ChartRow {
   i: number;
   mean: number | null;
   p10: number | null;
   p90: number | null;
   normal: number | null;
+  rain: number | null;
+  rainP10: number | null;
+  rainP90: number | null;
+  sun: number | null;
+  sunP10: number | null;
+  sunP90: number | null;
+  sunNormal: number | null;
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -161,12 +137,29 @@ function runs(length: number, ok: (i: number) => boolean): number[][] {
   return out;
 }
 
-/** Y domain covering every member (not only p10–p90, so outliers stay inside the plot). */
-function yDomainFor(
+/**
+ * Rain axis: starts at 0 and the top is ~3× the highest p90, so the bars stay in the lower
+ * third of the plot. Ticks only cover that lower third.
+ */
+function rainAxisFor(points: EnsemblePoint[]): { domain: [number, number]; ticks: number[] } {
+  const p90 = Math.max(0, ...points.map((p) => p.stats?.p90 ?? 0));
+  const raw = Math.max(1, p90 * 3);
+  const top = Math.ceil(raw / niceStep(raw / 4)) * niceStep(raw / 4);
+  const step = niceStep(top / 6);
+  const ticks: number[] = [];
+  for (let v = 0; v <= top / 3 + 1e-9; v += step) ticks.push(Number(v.toFixed(2)));
+  return { domain: [0, top], ticks };
+}
+
+/**
+ * Y domain covering every member (not only p10–p90, so outliers stay inside). `bottomRoom`
+ * adds that share of the range below (combined chart: temp sits above the rain bars).
+ */
+function domainFor(
   points: EnsemblePoint[],
-  rows: ChartRow[],
+  normal: number | null,
   nonNegative: boolean,
-  daily: boolean,
+  bottomRoom = 0,
 ): [number, number] {
   let min = Infinity;
   let max = -Infinity;
@@ -176,24 +169,15 @@ function yDomainFor(
     if (v > max) max = v;
   };
   points.forEach((p) => p.members.forEach(take));
-  rows.forEach((r) => take(r.normal));
+  take(normal);
   if (min > max) return [0, 1];
-  if (daily) {
-    // Hours of sunshine per day: 0 … max(10, highest p90), even hours
-    const p90 = Math.max(0, ...points.map((p) => p.stats?.p90 ?? 0));
-    return [0, Math.max(10, Math.ceil(p90 / 2) * 2)];
-  }
+  const range = Math.max(max - min, 1);
   const pad = Math.max((max - min) * 0.06, 0.5);
-  const lo = nonNegative ? 0 : min - pad;
+  const lo = nonNegative ? 0 : min - pad - range * bottomRoom;
   const hi = max + pad;
-  // Snap both ends to a round step so the 5 default ticks land on round numbers
+  // Snap both ends to a round step so the ticks land on round numbers
   const step = niceStep((hi - lo) / 4);
   return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
-}
-
-/** 0, 2, 4 … max (every 2 h) for the daily sunshine axis. */
-function evenTicks(max: number): number[] {
-  return Array.from({ length: Math.floor(max / 2) + 1 }, (_, i) => i * 2);
 }
 
 /** 1, 2, 2.5 or 5 × 10^n — the smallest "round" step ≥ raw. */
@@ -214,9 +198,17 @@ function nowIndexOf(points: EnsemblePoint[], now: number): number | null {
 
 // --- Custom chart layers ---
 
-function SpaghettiLayer({ points, color }: { points: EnsemblePoint[]; color: string }) {
+function SpaghettiLayer({
+  points,
+  color,
+  yAxisId,
+}: {
+  points: EnsemblePoint[];
+  color: string;
+  yAxisId: string;
+}) {
   const xScale = useXAxisScale();
-  const yScale = useYAxisScale('main');
+  const yScale = useYAxisScale(yAxisId);
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const paths = useMemo(() => {
@@ -268,6 +260,7 @@ function BandLayer({
   fill,
   opacity,
   zIndex,
+  yAxisId,
 }: {
   points: EnsemblePoint[];
   low: keyof EnsembleStats;
@@ -275,9 +268,10 @@ function BandLayer({
   fill: string;
   opacity: number;
   zIndex: number;
+  yAxisId: string;
 }) {
   const xScale = useXAxisScale();
-  const yScale = useYAxisScale('main');
+  const yScale = useYAxisScale(yAxisId);
 
   const paths = useMemo(() => {
     if (!xScale || !yScale || !points.length) return [];
@@ -304,55 +298,177 @@ function BandLayer({
 
 // ---
 
+function Swatch({
+  kind,
+  color,
+  opacity,
+}: {
+  kind: 'line' | 'band' | 'bar';
+  color: string;
+  opacity?: number;
+}) {
+  const cls = kind === 'line' ? 'w-4 h-0.5 rounded-full' : 'w-4 h-2 rounded-sm';
+  return (
+    <span
+      className={`inline-block ${cls}`}
+      style={{ backgroundColor: color, opacity: opacity ?? 1 }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function ChartLegend({ showNormal }: { showNormal: boolean }) {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 mt-2 text-[10px] text-slate-400">
+      <span className="flex items-center gap-1">
+        <Swatch kind="line" color={TEMP_COLOR} opacity={MEMBER_OPACITY * 3} />
+        <span>{t('ensemble.legend.members')}</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="band" color={TEMP_COLOR} opacity={OUTER_BAND_OPACITY} />
+        <span>p10–p90</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch
+          kind="band"
+          color={TEMP_COLOR}
+          opacity={OUTER_BAND_OPACITY + INNER_BAND_OPACITY}
+        />
+        <span>p25–p75</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="line" color={TEMP_COLOR} />
+        <span>{t('ensemble.legend.mean')}</span>
+      </span>
+      {showNormal && (
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-4 border-t border-dashed border-slate-200" />
+          <span>{t('ensemble.legend.normal')}</span>
+        </span>
+      )}
+      <span className="flex items-center gap-1">
+        <Swatch kind="bar" color={RAIN_COLOR} opacity={RAIN_BAR_OPACITY} />
+        <span>{t('seasonal.var.precipitation')}</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="line" color={SUN_COLOR} />
+        <span>{t('seasonal.var.sunshine')}</span>
+      </span>
+    </div>
+  );
+}
+
+function ChartCaption() {
+  const { t } = useLanguage();
+  const keys = [
+    { color: TEMP_COLOR, label: t('seasonal.var.temperature'), unit: '°C' },
+    { color: RAIN_COLOR, label: t('seasonal.var.precipitation'), unit: 'mm/h' },
+    { color: SUN_COLOR, label: t('seasonal.var.sunshine'), unit: t('ensemble.unit.sun_day') },
+  ];
+  return (
+    <figcaption className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 pt-2 pb-0 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+      {keys.map((k) => (
+        <span key={k.label} className="flex items-center gap-1">
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: k.color }}
+            aria-hidden="true"
+          />
+          {k.label}
+          <span className="normal-case font-semibold tracking-normal">{k.unit}</span>
+        </span>
+      ))}
+    </figcaption>
+  );
+}
+
+function SpreadBadge({ label }: { label: 'agree' | 'disagree' | 'bimodal' }) {
+  const { t } = useLanguage();
+  const configs = {
+    agree: { bg: 'bg-emerald-800/60 text-emerald-200', icon: '✓' },
+    disagree: { bg: 'bg-amber-800/60 text-amber-200', icon: '⚡' },
+    bimodal: { bg: 'bg-violet-800/60 text-violet-200', icon: '⑂' },
+  };
+  const cfg = configs[label];
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${cfg.bg}`}
+    >
+      <span className="text-base leading-none" aria-hidden="true">
+        {cfg.icon}
+      </span>
+      <span>{t(`ensemble.spread.${label}`)}</span>
+    </div>
+  );
+}
+
+/** Pairs the rain/sun points with the temperature points by index; mismatches become null. */
+function buildRows(
+  temp: EnsemblePoint[],
+  rain: EnsemblePoint[] | null,
+  sun: EnsemblePoint[] | null,
+  tempNormal: number | null,
+  sunNormal: number | null,
+): ChartRow[] {
+  const at = (arr: EnsemblePoint[] | null, i: number) =>
+    arr?.[i] && arr[i].time === temp[i].time ? (arr[i].stats ?? null) : null;
+  return temp.map((pt, i) => {
+    const r = at(rain, i);
+    const s = at(sun, i);
+    return {
+      i,
+      mean: pt.stats?.mean ?? null,
+      p10: pt.stats?.p10 ?? null,
+      p90: pt.stats?.p90 ?? null,
+      normal: tempNormal,
+      rain: r?.mean ?? null,
+      rainP10: r?.p10 ?? null,
+      rainP90: r?.p90 ?? null,
+      sun: s?.mean ?? null,
+      sunP10: s?.p10 ?? null,
+      sunP90: s?.p90 ?? null,
+      sunNormal: s ? sunNormal : null,
+    };
+  });
+}
+
+const fmt1 = (v: number) => v.toFixed(1);
+const fmtRain = (v: number) => (Math.abs(v) < 10 ? v.toFixed(1) : String(Math.round(v)));
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export function EnsembleDetailView({
-  location,
-  period,
-  weekIndex,
-  initialVariable,
-  lowConfidence,
-  onClose,
-}: Props) {
+function CombinedBody({ location, period }: BodyProps) {
   const { language, t } = useLanguage();
   const now = useNow();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const [variable, setVariable] = useState<EnsembleVar>(SEASONAL_TO_ENSEMBLE[initialVariable]);
 
-  const {
-    data: points,
-    loading,
-    error,
-  } = useEnsembleData(
+  const tempQ = useEnsembleData(
     location.latitude,
     location.longitude,
     period.start,
-    variable,
+    'temperature_2m',
     location.timezone,
   );
-
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (el && !el.open) el.showModal();
-  }, []);
-
-  // Snowfall tab only where the outlook itself shows a snow signal (hidden in Santo Domingo…)
-  const vars = useMemo(
-    () =>
-      VARS.filter(
-        (v) =>
-          v.key !== 'snowfall' ||
-          initialVariable === 'snowfall' ||
-          hasMeaningfulRow('snowfall', [period]),
-      ),
-    [initialVariable, period],
+  const rainQ = useEnsembleData(
+    location.latitude,
+    location.longitude,
+    period.start,
+    'precipitation',
+    location.timezone,
   );
-  const varMeta = VARS.find((v) => v.key === variable)!;
-  const daily = DAILY_VARS.has(variable);
+  const sunQ = useEnsembleData(
+    location.latitude,
+    location.longitude,
+    period.start,
+    'sunshine_duration',
+    location.timezone,
+  );
+  const points = tempQ.data;
+  const loading = tempQ.loading || rainQ.loading || sunQ.loading;
+  const error = tempQ.error;
+
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
   const timeZone = location.timezone;
 
-  const fmtDate = (d: string, opts: Intl.DateTimeFormatOptions) =>
-    new Date(`${d}T00:00:00Z`).toLocaleDateString(locale, { ...opts, timeZone: 'UTC' });
   const fmtTime = useCallback(
     (ms: number, opts: Intl.DateTimeFormatOptions) => {
       try {
@@ -364,47 +480,52 @@ export function EnsembleDetailView({
     [locale, timeZone],
   );
 
-  const weekLabel = `${t('ensemble.week')} ${weekIndex + 1}: ${fmtDate(period.start, { day: 'numeric' })}–${fmtDate(period.end, { day: 'numeric', month: 'short' })}`;
-  const coveredDays = ensembleDaysInWeek(period.start, now);
-
   const classification = useMemo(
-    () => (points && points.length ? classifySpread(points, variable) : null),
-    [points, variable],
+    () => (points && points.length ? classifySpread(points, 'temperature_2m') : null),
+    [points],
   );
 
-  // EC46 weekly normal (model climatology) for the selected variable
-  const weeklyNormal = useMemo(() => {
-    // Hourly precipitation/snowfall have no meaningful weekly-normal line (the weekly total
-    // spread over 168 h is ~0.05 mm/h), so a normal is drawn only as a flat line (temperature,
-    // pressure: weekly mean; sunshine: weekly total / 7 per day).
-    if (!varMeta.seasonal || !FLAT_NORMAL_VARS.has(variable)) return null;
-    const { mean, anomaly } = period.values[varMeta.seasonal];
-    if (mean === null || anomaly === null) return null;
-    const n = mean - anomaly;
-    // Sunshine *_mean is a period total in seconds → hours per day
-    return variable === 'sunshine_duration' ? n / 3600 / 7 : n;
-  }, [period, varMeta, variable]);
+  // EC46 weekly normals (model climatology): temperature = weekly mean; sunshine = total / 7 per day
+  const tempNormal = useMemo(() => {
+    const { mean, anomaly } = period.values.temperature;
+    return mean === null || anomaly === null ? null : mean - anomaly;
+  }, [period]);
+  const sunNormal = useMemo(() => {
+    const { mean, anomaly } = period.values.sunshine;
+    return mean === null || anomaly === null ? null : (mean - anomaly) / 3600 / 7;
+  }, [period]);
 
-  const chartData = useMemo<ChartRow[]>(() => {
-    if (!points?.length) return [];
-    return points.map((pt, i) => ({
-      i,
-      mean: pt.stats?.mean ?? null,
-      p10: pt.stats?.p10 ?? null,
-      p90: pt.stats?.p90 ?? null,
-      normal: weeklyNormal,
-    }));
-  }, [points, weeklyNormal]);
+  const rainPoints = rainQ.data;
+  const sunPoints = sunQ.data;
+  const chartData = useMemo<ChartRow[]>(
+    () =>
+      points?.length ? buildRows(points, rainPoints, sunPoints, tempNormal, sunNormal) : [],
+    [points, rainPoints, sunPoints, tempNormal, sunNormal],
+  );
+  const hasRain = chartData.some((r) => r.rain !== null);
+  const hasSun = chartData.some((r) => r.sun !== null);
 
-  const nonNegative = NON_NEGATIVE_VARS.has(variable);
-  const yDomain = useMemo(
+  const tempDomain = useMemo(
     () =>
       points?.length
-        ? yDomainFor(points, chartData, nonNegative, daily)
+        ? domainFor(points, tempNormal, false, 0.5)
         : ([0, 10] as [number, number]),
-    [points, chartData, nonNegative, daily],
+    [points, tempNormal],
   );
-  const yTicks = useMemo(() => (daily ? evenTicks(yDomain[1]) : undefined), [daily, yDomain]);
+  const tempTicks = useMemo(() => {
+    const [lo, hi] = tempDomain;
+    const step = niceStep((hi - lo) / 4);
+    const ticks: number[] = [];
+    for (let v = lo; v <= hi + 1e-9; v += step) if (v >= lo + (hi - lo) / 3) ticks.push(v);
+    return ticks;
+  }, [tempDomain]);
+  const rainAxis = useMemo(
+    () =>
+      rainPoints?.length
+        ? rainAxisFor(rainPoints)
+        : { domain: [0, 1] as [number, number], ticks: [0] },
+    [rainPoints],
+  );
   const midnights = useMemo(
     () => (points?.length ? localMidnightIndices(points, timeZone) : []),
     [points, timeZone],
@@ -416,15 +537,426 @@ export function EnsembleDetailView({
   );
   const nowIndex = points?.length ? nowIndexOf(points, now) : null;
 
-  const fmtValue = useCallback(
-    (v: number) => {
-      if (variable === 'temperature_2m' || variable === 'snowfall' || daily)
-        return v.toFixed(1);
-      // Hourly precipitation is mostly < 2 mm — rounding to integers would show "0–0 mm"
-      if (variable === 'precipitation' && Math.abs(v) < 10) return v.toFixed(1);
-      return String(Math.round(v));
+  const renderXTick = useCallback(
+    ({ x: rawX, y: rawY, payload }: XAxisTickContentProps) => {
+      const idx = Number(payload.value);
+      const pt = points?.[idx];
+      if (!pt) return <g />;
+      const sun = chartData[idx]?.sun ?? null;
+      const x = Number(rawX);
+      const y = Number(rawY);
+      return (
+        <g>
+          <text x={x} y={y + 13} textAnchor="middle" fontSize={10} fill="#94a3b8">
+            {capitalize(fmtTime(pt.time, { weekday: 'short' }))}
+          </text>
+          {sun !== null && (
+            <text x={x} y={y + 25} textAnchor="middle" fontSize={9} fill={SUN_COLOR}>
+              {`☀ ${Math.round(sun)}h`}
+            </text>
+          )}
+        </g>
+      );
     },
-    [variable, daily],
+    [points, chartData, fmtTime],
+  );
+
+  const renderTooltip = useCallback(
+    ({ active, label }: { active?: boolean; label?: unknown }) => {
+      const row = active ? chartData[Number(label)] : undefined;
+      const pt = points?.[Number(label)];
+      if (!row || !pt) return null;
+      const range = (
+        lo: number | null,
+        hi: number | null,
+        f: (v: number) => string,
+        u: string,
+      ) =>
+        lo !== null && hi !== null ? (
+          <div className="text-slate-300">
+            p10–p90: {f(lo)}–{f(hi)} {u}
+          </div>
+        ) : null;
+      return (
+        <div className="rounded-lg bg-slate-800/95 border border-white/10 px-2.5 py-1.5 text-[11px] text-slate-100 shadow-lg">
+          <div className="font-bold text-white mb-0.5">
+            {capitalize(
+              fmtTime(pt.time, {
+                weekday: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            )}
+          </div>
+          {row.mean !== null && (
+            <div className="mt-0.5" style={{ color: TEMP_COLOR }}>
+              {t('seasonal.var.temperature')}: <b>{fmt1(row.mean)} °C</b>
+              {range(row.p10, row.p90, fmt1, '°C')}
+              {row.normal !== null && (
+                <div className="text-slate-300">
+                  {t('ensemble.tooltip.normal')}: {fmt1(row.normal)} °C
+                </div>
+              )}
+            </div>
+          )}
+          {row.rain !== null && (
+            <div className="mt-0.5" style={{ color: RAIN_COLOR }}>
+              {t('seasonal.var.precipitation')}: <b>{fmtRain(row.rain)} mm/h</b>
+              {range(row.rainP10, row.rainP90, fmtRain, 'mm/h')}
+            </div>
+          )}
+          {row.sun !== null && (
+            <div className="mt-0.5" style={{ color: SUN_COLOR }}>
+              {t('seasonal.var.sunshine')} ({t('ensemble.unit.sun_day')}):{' '}
+              <b>{fmt1(row.sun)} h</b>
+              {range(row.sunP10, row.sunP90, fmt1, 'h')}
+              {row.sunNormal !== null && (
+                <div className="text-slate-300">
+                  {t('ensemble.tooltip.normal')}: {fmt1(row.sunNormal)} h
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    },
+    [chartData, points, fmtTime, t],
+  );
+
+  const empty = !points?.length || chartData.every((r) => r.mean === null);
+  if (loading || error || empty)
+    return <LoadingOrError loading={loading} error={!!error} empty={empty} />;
+
+  return (
+    <>
+      <figure className="mt-3 rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden m-0">
+        <ChartCaption />
+        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 8, right: 4, left: 4, bottom: 0 }}
+            barCategoryGap={0}
+          >
+            <XAxis
+              dataKey="i"
+              type="category"
+              ticks={noons}
+              interval={0}
+              tick={renderXTick}
+              height={36}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              yAxisId="temp"
+              orientation="right"
+              mirror
+              domain={tempDomain}
+              ticks={tempTicks}
+              allowDataOverflow
+              tickFormatter={(v: number) => (Number.isInteger(v) ? String(v) : fmt1(v))}
+              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+            />
+            <YAxis
+              yAxisId="rain"
+              orientation="left"
+              hide={!hasRain}
+              domain={rainAxis.domain}
+              ticks={rainAxis.ticks}
+              allowDataOverflow
+              tick={{ fill: RAIN_COLOR, fontSize: 10, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              width={28}
+            />
+            <YAxis yAxisId="sun" hide domain={[0, 24]} allowDataOverflow />
+
+            {midnights.map((idx) => (
+              <ReferenceLine key={idx} x={idx} yAxisId="temp" stroke="rgba(255,255,255,0.08)" />
+            ))}
+
+            {nowIndex !== null && (
+              <ReferenceLine
+                x={nowIndex}
+                yAxisId="temp"
+                stroke="rgba(255,255,255,0.45)"
+                strokeDasharray="2 3"
+                label={{
+                  value: t('ensemble.legend.now'),
+                  position: 'insideTopLeft',
+                  fill: '#cbd5e1',
+                  fontSize: 9,
+                }}
+              />
+            )}
+
+            {hasRain && rainPoints && (
+              <BandLayer
+                points={rainPoints}
+                low="p10"
+                high="p90"
+                fill={RAIN_COLOR}
+                opacity={OUTER_BAND_OPACITY}
+                zIndex={2}
+                yAxisId="rain"
+              />
+            )}
+            {hasRain && (
+              <Bar
+                dataKey="rain"
+                yAxisId="rain"
+                fill={RAIN_COLOR}
+                fillOpacity={RAIN_BAR_OPACITY}
+                isAnimationActive={false}
+                activeBar={false}
+              />
+            )}
+
+            {hasSun && sunPoints && (
+              <BandLayer
+                points={sunPoints}
+                low="p10"
+                high="p90"
+                fill={SUN_COLOR}
+                opacity={SUN_BAND_OPACITY}
+                zIndex={2}
+                yAxisId="sun"
+              />
+            )}
+            {hasSun && (
+              <Line
+                dataKey="sun"
+                yAxisId="sun"
+                stroke={SUN_COLOR}
+                strokeWidth={2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
+
+            <SpaghettiLayer points={points!} color={TEMP_COLOR} yAxisId="temp" />
+            <BandLayer
+              points={points!}
+              low="p10"
+              high="p90"
+              fill={TEMP_COLOR}
+              opacity={OUTER_BAND_OPACITY}
+              zIndex={2}
+              yAxisId="temp"
+            />
+            <BandLayer
+              points={points!}
+              low="p25"
+              high="p75"
+              fill={TEMP_COLOR}
+              opacity={INNER_BAND_OPACITY}
+              zIndex={3}
+              yAxisId="temp"
+            />
+
+            {tempNormal !== null && (
+              <Line
+                dataKey="normal"
+                yAxisId="temp"
+                stroke="#e2e8f0"
+                strokeWidth={1.25}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
+
+            <Line
+              dataKey="mean"
+              yAxisId="temp"
+              stroke={TEMP_COLOR}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 3, fill: TEMP_COLOR, stroke: '#0f172a' }}
+              isAnimationActive={false}
+            />
+
+            <Tooltip
+              content={renderTooltip}
+              cursor={{ stroke: 'rgba(255,255,255,0.25)' }}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </figure>
+
+      <ChartLegend showNormal={tempNormal !== null} />
+
+      {/* Spread classification (temperature) */}
+      {classification && (
+        <div className="mt-4">
+          <SpreadBadge label={classification.label} />
+          <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">
+            {t(`ensemble.spread.${classification.label}.detail`)}
+          </p>
+        </div>
+      )}
+
+      {/* Footnote */}
+      <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
+        {t('ensemble.footnote')}
+      </p>
+    </>
+  );
+}
+
+function SingleLegend({ color, showNormal }: { color: string; showNormal: boolean }) {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 mt-2 text-[10px] text-slate-400">
+      <span className="flex items-center gap-1">
+        <Swatch kind="line" color={color} opacity={MEMBER_OPACITY * 3} />
+        <span>{t('ensemble.legend.members')}</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="band" color={color} opacity={OUTER_BAND_OPACITY} />
+        <span>p10–p90</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="band" color={color} opacity={OUTER_BAND_OPACITY + INNER_BAND_OPACITY} />
+        <span>p25–p75</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <Swatch kind="line" color={color} />
+        <span>{t('ensemble.legend.mean')}</span>
+      </span>
+      {showNormal && (
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-4 border-t border-dashed border-slate-200" />
+          <span>{t('ensemble.legend.normal')}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LoadingOrError({
+  loading,
+  error,
+  empty,
+}: {
+  loading: boolean;
+  error: boolean;
+  empty: boolean;
+}) {
+  const { t } = useLanguage();
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 gap-3">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400" />
+        <p className="text-sm text-slate-400">{t('ensemble.loading')}</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 gap-2" role="alert">
+        <span className="text-2xl" aria-hidden="true">
+          ⚠️
+        </span>
+        <p className="text-sm text-slate-300 text-center">{t('ensemble.error')}</p>
+      </div>
+    );
+  }
+  if (empty) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 gap-2">
+        <p className="text-sm text-slate-400">{t('ensemble.no_data')}</p>
+      </div>
+    );
+  }
+  return null;
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function SingleBody({ location, period, meta }: BodyProps & { meta: SingleVarMeta }) {
+  const { language, t } = useLanguage();
+  const now = useNow();
+  const variable: EnsembleVar = meta.key;
+  const {
+    data: points,
+    loading,
+    error,
+  } = useEnsembleData(
+    location.latitude,
+    location.longitude,
+    period.start,
+    variable,
+    location.timezone,
+  );
+  const locale = language === 'en' ? 'en-GB' : 'es-ES';
+  const timeZone = location.timezone;
+  const fmtTime = useCallback(
+    (ms: number, opts: Intl.DateTimeFormatOptions) => {
+      try {
+        return new Date(ms).toLocaleString(locale, { ...opts, timeZone });
+      } catch {
+        return new Date(ms).toLocaleString(locale, opts);
+      }
+    },
+    [locale, timeZone],
+  );
+
+  const classification = useMemo(
+    () => (points && points.length ? classifySpread(points, variable) : null),
+    [points, variable],
+  );
+  // Pressure: EC46 weekly mean drawn as a flat normal line (no normal for hourly snow/wind)
+  const weeklyNormal = useMemo(() => {
+    if (!meta.seasonal || !meta.flatNormal) return null;
+    const { mean, anomaly } = period.values[meta.seasonal];
+    return mean === null || anomaly === null ? null : mean - anomaly;
+  }, [period, meta]);
+  const chartData = useMemo<ChartRow[]>(
+    () =>
+      points?.length
+        ? points.map((pt, i) => ({
+            i,
+            mean: pt.stats?.mean ?? null,
+            p10: pt.stats?.p10 ?? null,
+            p90: pt.stats?.p90 ?? null,
+            normal: weeklyNormal,
+            rain: null,
+            rainP10: null,
+            rainP90: null,
+            sun: null,
+            sunP10: null,
+            sunP90: null,
+            sunNormal: null,
+          }))
+        : [],
+    [points, weeklyNormal],
+  );
+  const yDomain = useMemo(
+    () =>
+      points?.length
+        ? domainFor(points, weeklyNormal, meta.nonNegative)
+        : ([0, 10] as [number, number]),
+    [points, weeklyNormal, meta.nonNegative],
+  );
+  const midnights = useMemo(
+    () => (points?.length ? localMidnightIndices(points, timeZone) : []),
+    [points, timeZone],
+  );
+  const noons = useMemo(
+    () => (points?.length ? localMidnightIndices(points, timeZone, 12) : []),
+    [points, timeZone],
+  );
+  const nowIndex = points?.length ? nowIndexOf(points, now) : null;
+  const fmtValue = useCallback(
+    (v: number) => (variable === 'snowfall' ? v.toFixed(1) : String(Math.round(v))),
+    [variable],
   );
 
   const renderXTick = useCallback(
@@ -455,82 +987,206 @@ export function EnsembleDetailView({
         <div className="rounded-lg bg-slate-800/95 border border-white/10 px-2.5 py-1.5 text-[11px] text-slate-100 shadow-lg">
           <div className="font-bold text-white mb-0.5">
             {capitalize(
-              fmtTime(
-                pt.time,
-                daily
-                  ? { weekday: 'short', day: 'numeric' }
-                  : { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' },
-              ),
+              fmtTime(pt.time, {
+                weekday: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
             )}
           </div>
           <div>
             {t('ensemble.tooltip.mean')}:{' '}
             <b>
-              {fmtValue(row.mean)} {varMeta.unit}
+              {fmtValue(row.mean)} {meta.unit}
             </b>
           </div>
           {row.p10 !== null && row.p90 !== null && (
             <div className="text-slate-300">
-              p10–p90: {fmtValue(row.p10)}–{fmtValue(row.p90)} {varMeta.unit}
+              p10–p90: {fmtValue(row.p10)}–{fmtValue(row.p90)} {meta.unit}
             </div>
           )}
           {row.normal !== null && (
             <div className="text-slate-300">
-              {t('ensemble.tooltip.normal')}: {fmtValue(row.normal)} {varMeta.unit}
+              {t('ensemble.tooltip.normal')}: {fmtValue(row.normal)} {meta.unit}
             </div>
           )}
         </div>
       );
     },
-    [chartData, points, fmtTime, fmtValue, t, varMeta.unit, daily],
+    [chartData, points, fmtTime, fmtValue, t, meta.unit],
   );
 
-  const spreadBadge = () => {
-    if (!classification) return null;
-    const configs = {
-      agree: { bg: 'bg-emerald-800/60 text-emerald-200', icon: '✓' },
-      disagree: { bg: 'bg-amber-800/60 text-amber-200', icon: '⚡' },
-      bimodal: { bg: 'bg-violet-800/60 text-violet-200', icon: '⑂' },
-    };
-    const cfg = configs[classification.label];
-    return (
-      <div
-        className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${cfg.bg}`}
-      >
-        <span className="text-base leading-none" aria-hidden="true">
-          {cfg.icon}
-        </span>
-        <span>{t(`ensemble.spread.${classification.label}`)}</span>
-      </div>
-    );
-  };
+  const state = (
+    <LoadingOrError
+      loading={loading}
+      error={!!error}
+      empty={!points?.length || chartData.every((r) => r.mean === null)}
+    />
+  );
+  if (loading || error || !points?.length || chartData.every((r) => r.mean === null))
+    return state;
 
-  let ensembleBody: React.ReactNode;
-  if (loading) {
-    ensembleBody = (
-      <div className="flex flex-col items-center justify-center h-48 gap-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400" />
-        <p className="text-sm text-slate-400">{t('ensemble.loading')}</p>
-      </div>
-    );
-  } else if (error) {
-    ensembleBody = (
-      <div className="flex flex-col items-center justify-center h-48 gap-2" role="alert">
-        <span className="text-2xl" aria-hidden="true">
-          ⚠️
-        </span>
-        <p className="text-sm text-slate-300 text-center">{t('ensemble.error')}</p>
-      </div>
-    );
-  } else if (!points?.length || chartData.every((r) => r.mean === null)) {
-    ensembleBody = (
-      <div className="flex flex-col items-center justify-center h-48 gap-2">
-        <p className="text-sm text-slate-400">{t('ensemble.no_data')}</p>
-      </div>
-    );
-  }
+  return (
+    <>
+      <figure className="mt-3 rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden m-0">
+        <figcaption className="flex items-center justify-between gap-2 px-3 pt-2 pb-0">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {t(meta.labelKey)}
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400">{meta.unit}</span>
+        </figcaption>
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 48, left: 16, bottom: 0 }}>
+            <XAxis
+              dataKey="i"
+              type="category"
+              ticks={noons}
+              interval={0}
+              tick={renderXTick}
+              height={24}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              yAxisId="main"
+              orientation="right"
+              mirror
+              domain={yDomain}
+              allowDataOverflow
+              tickFormatter={(v: number) => (Number.isInteger(v) ? String(v) : fmtValue(v))}
+              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              width={40}
+            />
+            {midnights.map((idx) => (
+              <ReferenceLine key={idx} x={idx} yAxisId="main" stroke="rgba(255,255,255,0.08)" />
+            ))}
+            {nowIndex !== null && (
+              <ReferenceLine
+                x={nowIndex}
+                yAxisId="main"
+                stroke="rgba(255,255,255,0.45)"
+                strokeDasharray="2 3"
+                label={{
+                  value: t('ensemble.legend.now'),
+                  position: 'insideTopLeft',
+                  fill: '#cbd5e1',
+                  fontSize: 9,
+                }}
+              />
+            )}
+            <SpaghettiLayer points={points} color={meta.color} yAxisId="main" />
+            <BandLayer
+              points={points}
+              low="p10"
+              high="p90"
+              fill={meta.color}
+              opacity={OUTER_BAND_OPACITY}
+              zIndex={2}
+              yAxisId="main"
+            />
+            <BandLayer
+              points={points}
+              low="p25"
+              high="p75"
+              fill={meta.color}
+              opacity={INNER_BAND_OPACITY}
+              zIndex={3}
+              yAxisId="main"
+            />
+            {weeklyNormal !== null && (
+              <Line
+                dataKey="normal"
+                yAxisId="main"
+                stroke="#e2e8f0"
+                strokeWidth={1.25}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
+            <Line
+              dataKey="mean"
+              yAxisId="main"
+              stroke={meta.color}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 3, fill: meta.color, stroke: '#0f172a' }}
+              isAnimationActive={false}
+            />
+            <Tooltip
+              content={renderTooltip}
+              cursor={{ stroke: 'rgba(255,255,255,0.25)' }}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </figure>
+      <SingleLegend color={meta.color} showNormal={weeklyNormal !== null} />
+      {classification && (
+        <div className="mt-4">
+          <SpreadBadge label={classification.label} />
+          <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">
+            {t(`ensemble.spread.${classification.label}.detail`)}
+          </p>
+        </div>
+      )}
+      <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
+        {t('ensemble.footnote')}
+      </p>
+    </>
+  );
+}
 
-  const label = t(varMeta.labelKey);
+const INITIAL_TAB: Partial<Record<SeasonalVariable, Tab>> = {
+  pressure: 'pressure_msl',
+  snowfall: 'snowfall',
+};
+const initialTab = (v: SeasonalVariable): Tab => INITIAL_TAB[v] ?? 'combined';
+
+export function EnsembleDetailView({
+  location,
+  period,
+  weekIndex,
+  initialVariable,
+  lowConfidence,
+  onClose,
+}: Props) {
+  const { language, t } = useLanguage();
+  const now = useNow();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [tab, setTab] = useState<Tab>(initialTab(initialVariable));
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (el && !el.open) el.showModal();
+  }, []);
+
+  // Snowfall tab only where the outlook itself shows a snow signal (hidden in Santo Domingo…)
+  const vars = useMemo(
+    () =>
+      VARS.filter(
+        (v) =>
+          v.key !== 'snowfall' ||
+          initialVariable === 'snowfall' ||
+          hasMeaningfulRow('snowfall', [period]),
+      ),
+    [initialVariable, period],
+  );
+  const locale = language === 'en' ? 'en-GB' : 'es-ES';
+  const fmtDate = (d: string, opts: Intl.DateTimeFormatOptions) =>
+    new Date(`${d}T00:00:00Z`).toLocaleDateString(locale, { ...opts, timeZone: 'UTC' });
+  const weekLabel = `${t('ensemble.week')} ${weekIndex + 1}: ${fmtDate(period.start, { day: 'numeric' })}–${fmtDate(period.end, { day: 'numeric', month: 'short' })}`;
+  const coveredDays = ensembleDaysInWeek(period.start, now);
+  const activeMeta = vars.find((v) => v.key === tab);
+
+  const tabs: { key: Tab; label: string; Icon: LucideIcon }[] = [
+    { key: 'combined', label: t('ensemble.var.combined'), Icon: Thermometer },
+    ...vars.map((v) => ({ key: v.key, label: t(v.labelKey), Icon: v.Icon })),
+  ];
 
   return (
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
@@ -543,7 +1199,6 @@ export function EnsembleDetailView({
       aria-labelledby="ensemble-detail-title"
       className="open:flex flex-col w-full max-w-none sm:max-w-2xl max-h-[92dvh] m-0 mt-auto sm:m-auto p-0 rounded-t-3xl sm:rounded-3xl bg-slate-950 text-white shadow-2xl overflow-hidden backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
-      {/* Header */}
       <header className="flex items-start justify-between gap-3 px-5 py-4 bg-slate-900 shrink-0 border-b border-white/10">
         <div className="min-w-0">
           <h2
@@ -569,26 +1224,24 @@ export function EnsembleDetailView({
         </button>
       </header>
 
-      {/* Variable switcher (scrolls horizontally on narrow screens) */}
       <div className="flex gap-1 px-4 pt-4 pb-2 shrink-0 overflow-x-auto">
-        {vars.map((v) => {
-          const active = v.key === variable;
+        {tabs.map((v) => {
+          const active = v.key === tab;
           return (
             <button
               key={v.key}
               type="button"
-              onClick={() => setVariable(v.key)}
+              onClick={() => setTab(v.key)}
               aria-pressed={active}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${active ? 'bg-white text-slate-900 shadow' : 'bg-white/10 text-slate-300 hover:bg-white/15'}`}
             >
               <v.Icon size={12} className="shrink-0" aria-hidden="true" />
-              {t(v.labelKey)}
+              {v.label}
             </button>
           );
         })}
       </div>
 
-      {/* Low-confidence banner */}
       {lowConfidence && (
         <div className="px-4 pt-1 shrink-0">
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] rounded-lg px-3 py-1.5">
@@ -597,185 +1250,11 @@ export function EnsembleDetailView({
         </div>
       )}
 
-      {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-5">
-        {ensembleBody ?? (
-          <>
-            {/* Chart */}
-            <figure className="mt-2 rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden m-0">
-              <figcaption className="flex items-center justify-between gap-2 px-3 pt-2 pb-0">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  {label}
-                  {daily && (
-                    <span className="normal-case font-semibold tracking-normal">
-                      {' · '}
-                      {t('ensemble.daily_sun')}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-400">{varMeta.unit}</span>
-              </figcaption>
-              <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart
-                  data={chartData}
-                  margin={{ top: 8, right: 48, left: 16, bottom: 0 }}
-                >
-                  <XAxis
-                    dataKey="i"
-                    type="category"
-                    ticks={noons}
-                    interval={0}
-                    tick={renderXTick}
-                    height={24}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    yAxisId="main"
-                    orientation="right"
-                    mirror
-                    domain={yDomain}
-                    ticks={yTicks}
-                    allowDataOverflow
-                    tickFormatter={(v: number) =>
-                      Number.isInteger(v) ? String(v) : fmtValue(v)
-                    }
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                  />
-
-                  {midnights.map((idx) => (
-                    <ReferenceLine
-                      key={idx}
-                      x={idx}
-                      yAxisId="main"
-                      stroke="rgba(255,255,255,0.08)"
-                    />
-                  ))}
-
-                  {nowIndex !== null && (
-                    <ReferenceLine
-                      x={nowIndex}
-                      yAxisId="main"
-                      stroke="rgba(255,255,255,0.45)"
-                      strokeDasharray="2 3"
-                      label={{
-                        value: t('ensemble.legend.now'),
-                        position: 'insideTopLeft',
-                        fill: '#cbd5e1',
-                        fontSize: 9,
-                      }}
-                    />
-                  )}
-
-                  <SpaghettiLayer points={points!} color={varMeta.color} />
-                  <BandLayer
-                    points={points!}
-                    low="p10"
-                    high="p90"
-                    fill={varMeta.color}
-                    opacity={OUTER_BAND_OPACITY}
-                    zIndex={2}
-                  />
-                  <BandLayer
-                    points={points!}
-                    low="p25"
-                    high="p75"
-                    fill={varMeta.color}
-                    opacity={INNER_BAND_OPACITY}
-                    zIndex={3}
-                  />
-
-                  {weeklyNormal !== null && (
-                    <Line
-                      dataKey="normal"
-                      yAxisId="main"
-                      stroke="#e2e8f0"
-                      strokeWidth={1.25}
-                      strokeDasharray="5 4"
-                      dot={false}
-                      activeDot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-
-                  <Line
-                    dataKey="mean"
-                    yAxisId="main"
-                    stroke={varMeta.color}
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 3, fill: varMeta.color, stroke: '#0f172a' }}
-                    isAnimationActive={false}
-                  />
-
-                  <Tooltip
-                    content={renderTooltip}
-                    cursor={{ stroke: 'rgba(255,255,255,0.25)' }}
-                    isAnimationActive={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </figure>
-
-            {/* Legend — swatch opacities match the chart */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 mt-2 text-[10px] text-slate-400">
-              <span className="flex items-center gap-1">
-                <span
-                  className="inline-block w-4 h-0.5 rounded-full"
-                  style={{ backgroundColor: varMeta.color, opacity: MEMBER_OPACITY * 3 }}
-                />
-                <span>{t('ensemble.legend.members')}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span
-                  className="inline-block w-4 h-2 rounded-sm"
-                  style={{ backgroundColor: varMeta.color, opacity: OUTER_BAND_OPACITY }}
-                />
-                <span>p10–p90</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span
-                  className="inline-block w-4 h-2 rounded-sm"
-                  style={{
-                    backgroundColor: varMeta.color,
-                    opacity: OUTER_BAND_OPACITY + INNER_BAND_OPACITY,
-                  }}
-                />
-                <span>p25–p75</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span
-                  className="inline-block w-4 h-0.5 rounded-full"
-                  style={{ backgroundColor: varMeta.color }}
-                />
-                <span>{t('ensemble.legend.mean')}</span>
-              </span>
-              {weeklyNormal !== null && (
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-4 border-t border-dashed border-slate-200" />
-                  <span>{t('ensemble.legend.normal')}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Spread classification */}
-            {classification && (
-              <div className="mt-4">
-                {spreadBadge()}
-                <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">
-                  {t(`ensemble.spread.${classification.label}.detail`)}
-                </p>
-              </div>
-            )}
-
-            {/* Footnote */}
-            <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
-              {t('ensemble.footnote')}
-            </p>
-          </>
+        {tab === 'combined' || !activeMeta ? (
+          <CombinedBody location={location} period={period} />
+        ) : (
+          <SingleBody key={tab} location={location} period={period} meta={activeMeta} />
         )}
       </div>
     </dialog>

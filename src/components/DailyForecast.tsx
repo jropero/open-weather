@@ -39,7 +39,7 @@ interface DailyForecastProps {
   timezone?: string;
 }
 
-// Same bands as the humidity "aurora" background gradient
+// Humidity bands for the detail panel label
 function getHumidityBand(humidity: number) {
   if (humidity >= 85) return { color: '#7e22ce', key: 'chart.hum_saturated' }; // Morado fuerte (saturado)
   if (humidity >= 70) return { color: '#2563eb', key: 'chart.hum_humid' }; // Azul fuerte
@@ -98,25 +98,45 @@ const CHART_MARGIN = { top: 20, right: 0, left: 0, bottom: 0 };
 const PERCENT_DOMAIN: [number, number] = [0, 100];
 const PRECIP_DOMAIN: [number, string] = [0, 'dataMax + 15'];
 const WIND_DOMAIN: [number, string] = [0, 'dataMax + 10'];
-const TEMP_TICK_STYLE = {
-  fill: '#fcd34d',
-  fontSize: 10,
-  fontWeight: 700,
-  stroke: '#0f172a',
-  strokeWidth: 3,
-  paintOrder: 'stroke' as const,
-};
+const TEMP_TICK_STYLE = { fill: '#94a3b8', fontSize: 10, fontWeight: 600 };
+
+// Series colours (same hue family as the detail panel and hourly cards, softened like the outlook chart)
+const PRESSURE_COLOR = '#f87171';
+const TEMP_COLOR = '#fcd34d';
+const RAIN_COLOR = '#a5b4fc';
+const HUMIDITY_COLOR = '#c4b5fd';
+const WIND_COLOR = '#38bdf8';
+const DAY_SEPARATOR = 'rgba(255,255,255,0.08)';
 
 // Rain amount above each bar (see precipLabels); hourly bars are too narrow to label every one
 const HOURLY_LABEL_RADIUS = 2;
 const PRECIP_LABEL_STYLE = {
   fill: '#c7d2fe',
   fontSize: 9,
-  fontWeight: 700,
+  fontWeight: 600,
   stroke: '#0f172a',
   strokeWidth: 3,
   paintOrder: 'stroke' as const,
 };
+
+function Swatch({ kind, color }: { kind: 'line' | 'dashed' | 'bar'; color: string }) {
+  if (kind === 'dashed')
+    return (
+      <span
+        className="inline-block w-4 border-t border-dashed"
+        style={{ borderColor: color }}
+        aria-hidden="true"
+      />
+    );
+  const cls = kind === 'line' ? 'w-4 h-0.5 rounded-full' : 'w-4 h-2 rounded-sm';
+  return (
+    <span
+      className={`inline-block ${cls}`}
+      style={{ backgroundColor: color, opacity: kind === 'bar' ? 0.6 : 1 }}
+      aria-hidden="true"
+    />
+  );
+}
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
@@ -133,7 +153,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
     return dDate.getTime() === today.getTime();
   });
 
-  const startIndex = Math.max(0, todayIndex - 3);
+  const startIndex = Math.max(0, todayIndex - 1);
   const targetDays = daily.slice(startIndex, startIndex + 7);
 
   // Per-day sunrise/sunset lookup for night detection in hourly view
@@ -178,7 +198,6 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           precip: d.precipitation,
           weatherCode: d.weatherCode,
           deltaP,
-          bgValue: 100,
         };
       }),
     [daily, startIndex, todayIndex, language],
@@ -219,7 +238,6 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           precipProb: h.precipProbability,
           weatherCode: h.weatherCode,
           deltaP: 0,
-          bgValue: 100,
         };
       }),
     [hourly, locale, timeFormatOpts, timezone],
@@ -236,7 +254,6 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
     precip: number;
     weatherCode: number;
     deltaP: number;
-    bgValue: number;
   };
   const chartData: ChartPoint[] = viewMode === 'daily' ? dailyChartData : hourlyChartData;
 
@@ -279,6 +296,10 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
     dailyChartData.findIndex((d) => d.isToday),
   );
   const pastCount = dailyChartData.filter((d) => d.isPast).length;
+  const midnightIdxs = useMemo(
+    () => hourlyChartData.filter((h) => h.hour === 0 && h.idx !== nowHourIdx).map((h) => h.idx),
+    [hourlyChartData, nowHourIdx],
+  );
   const xTicks = useMemo(
     () =>
       viewMode === 'daily'
@@ -310,17 +331,16 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       if (viewMode === 'daily') {
         const d = dailyChartData[idx];
         if (!d) return <g />;
-        const pastFill = d.isPast ? '#94a3b8' : '#e2e8f0';
-        const fill = d.isToday ? '#ffffff' : pastFill;
+        const fill = d.isToday ? '#ffffff' : '#94a3b8';
         return (
           <text
             x={x}
             y={y + 13}
             textAnchor="middle"
-            fontSize={12}
-            fontWeight={d.isToday ? 900 : 500}
+            fontSize={10}
+            fontWeight={d.isToday ? 800 : 600}
             fill={fill}
-            letterSpacing={d.isToday ? 1.5 : 0}
+            letterSpacing={d.isToday ? 1 : 0}
           >
             {d.isToday ? d.name : capitalize(d.name)}
           </text>
@@ -342,9 +362,9 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           x={x}
           y={y + 13}
           textAnchor={anchor}
-          fontSize={11}
-          fontWeight={isNow || isMidnight ? 800 : 500}
-          fill={isNow || isMidnight ? '#ffffff' : '#cbd5e1'}
+          fontSize={10}
+          fontWeight={isNow || isMidnight ? 800 : 600}
+          fill={isNow || isMidnight ? '#e2e8f0' : '#94a3b8'}
         >
           {tickLabel}
         </text>
@@ -361,16 +381,8 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       <>
         <defs>
           <linearGradient id="colorPressure" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2} />
-          </linearGradient>
-          <linearGradient id="humidityGradient" x1="0" y1="0" x2="1" y2="0">
-            {chartData.map((d, i) => {
-              const offset = `${(i / Math.max(1, chartData.length - 1)) * 100}%`;
-              return (
-                <stop key={i} offset={offset} stopColor={getHumidityBand(d.humidity).color} />
-              );
-            })}
+            <stop offset="0%" stopColor={PRESSURE_COLOR} stopOpacity={0.18} />
+            <stop offset="100%" stopColor={PRESSURE_COLOR} stopOpacity={0} />
           </linearGradient>
         </defs>
         <XAxis
@@ -399,7 +411,6 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
         />
         <YAxis yAxisId="humidity" hide domain={PERCENT_DOMAIN} />
         <YAxis yAxisId="precip" hide domain={PRECIP_DOMAIN} />
-        <YAxis yAxisId="bg" hide domain={PERCENT_DOMAIN} />
         <YAxis yAxisId="wind" hide domain={WIND_DOMAIN} />
 
         {/* Tap / drag / hover only drives the detail panel above — no floating box */}
@@ -418,7 +429,7 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
         {/* Past days (daily view) */}
         {viewMode === 'daily' && pastCount > 0 && (
           <ReferenceArea
-            yAxisId="bg"
+            yAxisId="humidity"
             x1={0}
             x2={pastCount - 1}
             fill="#ffffff"
@@ -434,41 +445,44 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           />
         )}
 
+        {/* Day separators + "now" (hourly view only) */}
+        {viewMode === 'hourly' &&
+          midnightIdxs.map((idx) => (
+            <ReferenceLine key={idx} x={idx} yAxisId="humidity" stroke={DAY_SEPARATOR} />
+          ))}
+        {viewMode === 'hourly' && (
+          <ReferenceLine
+            x={nowHourIdx}
+            yAxisId="humidity"
+            stroke="rgba(255,255,255,0.45)"
+            strokeDasharray="2 3"
+          />
+        )}
+
         {/* Standard atmosphere reference (hidden automatically when outside the domain) */}
         <ReferenceLine
           yAxisId="pressure"
           y={1013}
-          stroke="#fca5a5"
-          strokeOpacity={0.5}
-          strokeDasharray="2 4"
+          stroke="#e2e8f0"
+          strokeWidth={1.25}
+          strokeDasharray="5 4"
           label={{
             value: `1013 hPa ${t('chart.normal')}`,
             position: 'insideBottomLeft',
-            fill: '#fca5a5',
+            fill: '#e2e8f0',
             fontSize: 9,
-            fontWeight: 700,
+            fontWeight: 600,
           }}
         />
 
-        {/* Fondo Dinámico de Humedad (Aurora) */}
-        <Area
-          yAxisId="bg"
-          type="monotone"
-          dataKey="bgValue"
-          stroke="none"
-          fill="url(#humidityGradient)"
-          fillOpacity={0.25}
-          isAnimationActive={false}
-          activeDot={false}
-        />
-
-        {/* Precipitación: Columnas (Fondo) */}
+        {/* Precipitación: columnas cuadradas */}
         <Bar
           yAxisId="precip"
           dataKey="precip"
-          fill="#a5b4fc"
-          opacity={0.5}
-          radius={[4, 4, 0, 0]}
+          fill={RAIN_COLOR}
+          fillOpacity={0.6}
+          isAnimationActive={false}
+          activeBar={false}
         >
           <LabelList
             dataKey="precipLabel"
@@ -478,41 +492,56 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
           />
         </Bar>
 
-        {/* Presión: Area y Línea Roja */}
+        {/* Presión: línea roja con relleno tenue */}
         <Area
           yAxisId="pressure"
           type="monotone"
           dataKey="pressure"
-          stroke="#f87171"
-          strokeWidth={3}
+          stroke={PRESSURE_COLOR}
+          strokeWidth={2}
           fillOpacity={1}
           fill="url(#colorPressure)"
-          dot={{ r: 3, fill: '#f87171', strokeWidth: 1, stroke: '#1e293b' }}
-          activeDot={{ r: 5 }}
+          dot={false}
+          activeDot={false}
+          isAnimationActive={false}
         />
-        {/* Temperatura: Línea Amarilla */}
+        {/* Humedad: línea violeta fina (eje oculto 0–100 %) */}
         <Line
-          yAxisId="temp"
+          yAxisId="humidity"
           type="monotone"
-          dataKey="temp"
-          stroke="#fcd34d"
-          strokeWidth={2}
-          dot={{ r: 2, fill: '#fcd34d', strokeWidth: 1, stroke: '#1e293b' }}
+          dataKey="humidity"
+          stroke={HUMIDITY_COLOR}
+          strokeWidth={1.25}
+          dot={false}
+          activeDot={false}
+          isAnimationActive={false}
         />
-        {/* Viento: Línea Azul */}
+        {/* Viento: línea discontinua fina */}
         <Line
           yAxisId="wind"
           type="monotone"
           dataKey="wind"
-          stroke="#38bdf8"
-          strokeWidth={1.5}
+          stroke={WIND_COLOR}
+          strokeWidth={1.25}
           strokeDasharray="5 3"
           dot={false}
+          activeDot={false}
+          isAnimationActive={false}
+        />
+        {/* Temperatura: línea amarilla */}
+        <Line
+          yAxisId="temp"
+          type="monotone"
+          dataKey="temp"
+          stroke={TEMP_COLOR}
+          strokeWidth={2}
+          dot={false}
+          activeDot={false}
+          isAnimationActive={false}
         />
       </>
     ),
     [
-      chartData,
       xTicks,
       renderXTick,
       pressureDomain,
@@ -520,9 +549,18 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
       tempTicks,
       viewMode,
       pastCount,
+      midnightIdxs,
       t,
     ],
   );
+
+  const chartKeys = [
+    { color: PRESSURE_COLOR, label: t('label.pressure'), unit: 'hPa' },
+    { color: TEMP_COLOR, label: t('label.temperature'), unit: '°C' },
+    { color: RAIN_COLOR, label: t('label.rain'), unit: 'mm' },
+    { color: HUMIDITY_COLOR, label: t('label.humidity'), unit: '%' },
+    { color: WIND_COLOR, label: t('label.wind'), unit: 'km/h' },
+  ];
 
   // Detail panel content for the selected point
   const sel = chartData[activeIdx];
@@ -873,73 +911,66 @@ export function DailyForecast({ daily, hourly, timezone }: DailyForecastProps) {
         </div>
       )}
 
-      {/* Multi-Line Composed Chart */}
-      <div
-        className={`w-full mt-3 h-[184px] overflow-hidden touch-pan-y ${viewMode === 'daily' ? '' : 'px-3 sm:px-4'}`}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          {/* Keyed by view so the tooltip index from one view doesn't carry over into the other */}
-          <ComposedChart
-            key={viewMode}
-            data={labeledChartData}
-            margin={CHART_MARGIN}
-            barCategoryGap={2}
-          >
-            {chartLayers}
+      {/* Multi-Line Composed Chart (same card style as the long-range ensemble chart) */}
+      <figure className="mt-3 mx-3 rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden">
+        <figcaption className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 pt-2 pb-0 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          {chartKeys.map((k) => (
+            <span key={k.label} className="flex items-center gap-1">
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: k.color }}
+                aria-hidden="true"
+              />
+              {k.label}
+              <span className="normal-case font-semibold tracking-normal">{k.unit}</span>
+            </span>
+          ))}
+        </figcaption>
+        <div className="w-full h-[184px] overflow-hidden touch-pan-y">
+          <ResponsiveContainer width="100%" height="100%">
+            {/* Keyed by view so the tooltip index from one view doesn't carry over into the other */}
+            <ComposedChart
+              key={viewMode}
+              data={labeledChartData}
+              margin={CHART_MARGIN}
+              barCategoryGap={2}
+            >
+              {chartLayers}
 
-            {/* Selected point marker (persists after the finger lifts) */}
-            {sel && <SelectionMarker index={activeIdx} pressure={sel.pressure} />}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Guía de Lectura del Gráfico */}
-      <div className="mt-5 pt-4 px-4 border-t border-slate-700/50 text-[10px] sm:text-xs">
-        <h4 className="font-bold text-slate-400 mb-2 uppercase tracking-wider text-[9px]">
-          {t('label.how_to_interpret')}
-        </h4>
-        <p className="text-slate-300 mb-1">{t('chart.hint')}</p>
-        <p className="text-slate-400 mb-3">{t('chart.scale_note')}</p>
-        <div className="flex flex-col gap-y-2 opacity-90">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-gradient-to-b from-[#ef4444]/40 to-transparent border-t-2 border-[#f87171] flex-shrink-0"></span>
-            <span>
-              <strong className="text-slate-200">{t('label.mountain')}</strong>{' '}
-              {t('label.pressure_desc')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-1 rounded-full bg-[#fcd34d] flex-shrink-0"></span>
-            <span>
-              <strong className="text-slate-200">{t('label.yellow_line')}</strong>{' '}
-              {t('label.temperature')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[#a5b4fc]/50 flex-shrink-0"></span>
-            <span>
-              <strong className="text-slate-200">{t('label.indigo_cols')}</strong>{' '}
-              {t('label.rain_vol')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7e22ce] flex-shrink-0"></span>
-            <span>
-              <strong className="text-slate-200">{t('label.bg_aurora')}</strong>{' '}
-              {t('label.humidity_risk')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-px border-t-2 border-dashed border-[#38bdf8] flex-shrink-0"></span>
-            <span>
-              <strong className="text-slate-200">
-                {isEn ? 'Blue dashed:' : 'Línea azul:'}
-              </strong>{' '}
-              {isEn ? 'Wind speed (km/h)' : 'Velocidad del viento (km/h)'}
-            </span>
-          </div>
+              {/* Selected point marker (persists after the finger lifts) */}
+              {sel && <SelectionMarker index={activeIdx} pressure={sel.pressure} />}
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
+      </figure>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 mt-2 text-[10px] text-slate-400">
+        <span className="flex items-center gap-1">
+          <Swatch kind="line" color={PRESSURE_COLOR} />
+          <span>{t('label.pressure')}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Swatch kind="line" color={TEMP_COLOR} />
+          <span>{t('label.temperature')}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Swatch kind="bar" color={RAIN_COLOR} />
+          <span>{t('label.rain')}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Swatch kind="line" color={HUMIDITY_COLOR} />
+          <span>{t('label.humidity')}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Swatch kind="dashed" color={WIND_COLOR} />
+          <span>{t('label.wind')}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Swatch kind="dashed" color="#e2e8f0" />
+          <span>1013 hPa {t('chart.normal')}</span>
+        </span>
       </div>
+      <p className="px-4 mt-1.5 text-[10px] text-slate-500">{t('chart.hint')}</p>
     </section>
   );
 }

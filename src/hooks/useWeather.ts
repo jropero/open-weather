@@ -8,10 +8,19 @@ import type {
   SummaryHour,
 } from '../types/weather';
 import { isAbortError } from '../utils/fetchUtils';
+import { mergeModelDaily } from '../utils/modelMerge';
+
+function isSwiss(lat: number, lon: number): boolean {
+  return lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
+}
 
 function getModelParam(lat: number, lon: number): string {
-  const isSwiss = lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
-  return isSwiss ? '&models=meteoswiss_icon_ch2' : '';
+  return isSwiss(lat, lon) ? '&models=meteoswiss_icon_ch2' : '';
+}
+
+/** ICON-CH2 only covers today + 4 days; the daily request adds the global model to fill the rest. */
+function getDailyModelParam(lat: number, lon: number): string {
+  return isSwiss(lat, lon) ? '&models=meteoswiss_icon_ch2,best_match' : '';
 }
 
 /** Refetch when the shown data is older than this (matches the service worker's 30-min TTL). */
@@ -124,7 +133,7 @@ export function useWeather(location: Location) {
         // Fetch 1 (UTC): current + hourly only — hourly timestamps must be UTC so +Z parsing works throughout the app
         const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,apparent_temperature&hourly=temperature_2m,relative_humidity_2m,pressure_msl,precipitation,precipitation_probability,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dew_point_2m,snowfall,cape,sunshine_duration,is_day,cloud_cover,direct_radiation,diffuse_radiation&past_days=8&timezone=UTC${modelParam}`;
         // Fetch 2 (auto): all daily variables including sunrise/sunset — utc_offset_seconds in the response lets us convert sunrise/sunset back to UTC strings
-        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&past_days=8&timezone=auto${modelParam}`;
+        const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,pressure_msl_mean,relative_humidity_2m_mean,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunshine_duration,precipitation_hours,sunrise,sunset&past_days=8&timezone=auto${getDailyModelParam(location.latitude, location.longitude)}`;
         // Fetch 3: current weather_code only from the global model (no models= param).
         // MeteoSwiss ICON-CH2 consistently misclassifies fog (code 45) as overcast (code 3); the global
         // model is more reliable for WMO fog detection. All other current/hourly values still come from
@@ -158,6 +167,9 @@ export function useWeather(location: Location) {
           local
             ? new Date(new Date(local + 'Z').getTime() - offsetMs).toISOString().slice(0, 16)
             : '';
+
+        // Swiss: response carries one suffixed series per model; fold back to plain keys (ICON-CH2, else global)
+        dailyData.daily = mergeModelDaily(dailyData.daily);
 
         const dailyWeather: DailyWeather[] = dailyData.daily.time.map(
           (time: string, index: number) => ({
