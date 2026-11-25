@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # package.json has no packageManager field, so the version is pinned here.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.23.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Vitest unit tests only; the Playwright e2e suite hits live APIs and is not run here.
+      - name: Test
+        run: pnpm test
+
+      # tsc -b + vite build. The app uses no build-time secrets.
+      - name: Build
+        run: pnpm run build
+
+      - name: Sanity gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s dist/index.html ]; then
+            echo "Missing or empty build output: dist/index.html" >&2
+            exit 1
+          fi
+          if ! grep -q '/t/assets/' dist/index.html; then
+            echo "dist/index.html does not reference /t/ assets (wrong base?)" >&2
+            exit 1
+          fi
+
+      - name: Deploy
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST_FP: ${{ vars.SSH_HOST_FP }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          # rsync --delete empties the target: refuse anything that is not the /t folder.
+          case "$DEPLOY_PATH" in
+            */t) ;;
+            *) echo "DEPLOY_PATH must end in /t" >&2; exit 1 ;;
+          esac
+          install -d -m 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          # Pin the host key by fingerprint instead of trusting whatever the scan returns.
+          if [ -z "${SSH_HOST_FP:-}" ]; then
+            echo "SSH_HOST_FP variable is empty; set it to the server's ED25519 SHA256 fingerprint" >&2
+            exit 1
+          fi
+          tmp="$(mktemp)"
+          ssh-keyscan -T 10 -t ed25519 -p "$SSH_PORT" "$SSH_HOST" 2>/dev/null > "$tmp"
+          if [ ! -s "$tmp" ]; then
+            echo "ssh-keyscan returned no ED25519 host key" >&2
+            exit 1
+          fi
+          got="$(ssh-keygen -lf "$tmp" -E sha256 | awk '{print $2}')"
+          if [ "$got" != "$SSH_HOST_FP" ]; then
+            echo "Host key fingerprint mismatch" >&2
+            echo "expected: $SSH_HOST_FP" >&2
+            echo "got:      $got" >&2
+            exit 1
+          fi
+          install -m 600 "$tmp" ~/.ssh/known_hosts
+          rm -f "$tmp"
+          rsync -az --delete --delay-updates \
+            -e "ssh -i $HOME/.ssh/deploy -p $SSH_PORT -o IdentitiesOnly=yes" \
+            dist/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"

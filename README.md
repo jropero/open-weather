@@ -158,6 +158,22 @@ Once installed, the app works **offline** — the last fetched weather data is s
     pnpm test:e2e
     ```
 
+## 🚢 Deployment (GitHub Actions)
+
+`.github/workflows/deploy.yml` builds and deploys to https://ekult.co.uk/t/ over SSH on every push to `main` and on demand (`gh workflow run deploy.yml`). It does not run on pull requests (the repo is public and the job holds secrets).
+
+- **Steps:** `pnpm install --frozen-lockfile`, `pnpm test` (Vitest only, no e2e), `pnpm run build`, a sanity gate (`dist/index.html` exists and references `/t/assets/`), then `rsync -az --delete --delay-updates` of `dist/` to `DEPLOY_PATH`. A failed test, build or gate stops the run before the deploy step, leaving the live site untouched.
+- **Safety:** `--delete` makes the server folder identical to `dist/`, so the workflow refuses a `DEPLOY_PATH` that does not end in `/t`. The host key is pinned to `SSH_HOST_FP`. The app has no build-time secrets.
+- **One-time setup** (the deploy key and host values can be the same as for the other transit repos):
+  ```bash
+  gh secret set SSH_HOST
+  gh secret set SSH_PORT
+  gh secret set SSH_USER
+  gh secret set SSH_KEY < ~/.ssh/madrid_deploy
+  gh variable set SSH_HOST_FP --body 'SHA256:...'   # ssh-keyscan -t ed25519 HOST | ssh-keygen -lf - -E sha256
+  gh variable set DEPLOY_PATH --body '/path/to/public_html/t'
+  ```
+
 ---
 
 ---
