@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ENSEMBLE_DAYS,
   parseEnsembleResponse,
+  toRangePoints,
   toWeekPoints,
   type EnsemblePoint,
   type EnsembleVar,
@@ -48,7 +49,8 @@ function readStorage(key: string): RawEnsemble | null {
 export function useEnsembleData(
   lat: number,
   lon: number,
-  weekStart: string,
+  /** Monday-start UTC week (YYYY-MM-DD); null = the whole ensemble window. */
+  weekStart: string | null,
   variable: EnsembleVar,
   timeZone?: string,
 ) {
@@ -66,7 +68,11 @@ export function useEnsembleData(
     const key = storageKey(lat, lon, variable);
     const done = (raw: RawEnsemble) => {
       if (controller.signal.aborted) return;
-      setData(toWeekPoints(raw, weekStart, variable, timeZone));
+      setData(
+        weekStart === null
+          ? toRangePoints(raw, -Infinity, Infinity, variable, timeZone)
+          : toWeekPoints(raw, weekStart, variable, timeZone),
+      );
       setLoading(false);
     };
 

@@ -101,17 +101,16 @@ export function parseEnsembleResponse(json: unknown, variable: EnsembleVar): Raw
 }
 
 /**
- * Slices one UTC week and converts sunshine to hours; DAILY_VARS become per-local-day totals
- * (`timeZone` = the location's IANA zone).
+ * Slices the hours in [startMs, endMs) (ms UTC; `-Infinity`/`Infinity` = no limit) and converts
+ * sunshine to hours; DAILY_VARS become per-local-day totals (`timeZone` = the location's IANA zone).
  */
-export function toWeekPoints(
+export function toRangePoints(
   raw: RawEnsemble,
-  weekStart: string,
+  startMs: number,
+  endMs: number,
   variable: EnsembleVar,
   timeZone?: string,
 ): EnsemblePoint[] {
-  const startMs = Date.parse(`${weekStart}T00:00:00Z`);
-  const endMs = startMs + WEEK_MS;
   const scale = variable === 'sunshine_duration' ? 1 / 3600 : 1;
   const points: EnsemblePoint[] = [];
   raw.times.forEach((t, i) => {
@@ -124,6 +123,52 @@ export function toWeekPoints(
     );
   });
   return DAILY_VARS.has(variable) ? toDailyTotals(points, timeZone) : points;
+}
+
+/** One UTC week (Monday-start `weekStart` = YYYY-MM-DD, 7 days). */
+export function toWeekPoints(
+  raw: RawEnsemble,
+  weekStart: string,
+  variable: EnsembleVar,
+  timeZone?: string,
+): EnsemblePoint[] {
+  const startMs = Date.parse(`${weekStart}T00:00:00Z`);
+  return toRangePoints(raw, startMs, startMs + WEEK_MS, variable, timeZone);
+}
+
+/** Index of the Monday-start UTC week (`YYYY-MM-DD`, 7 days) containing `time`, or -1. */
+export function weekIndexOf(time: number, weekStarts: string[]): number {
+  return weekStarts.findIndex((ws) => {
+    const start = Date.parse(`${ws}T00:00:00Z`);
+    return time >= start && time < start + WEEK_MS;
+  });
+}
+
+/**
+ * Per-point value of the week each point falls in (`normals[w]` belongs to `weekStarts[w]`);
+ * null outside every week or when that week's normal is null.
+ */
+export function stepNormals(
+  points: EnsemblePoint[],
+  weekStarts: string[],
+  normals: (number | null)[],
+): (number | null)[] {
+  return points.map((p) => normals[weekIndexOf(p.time, weekStarts)] ?? null);
+}
+
+/** First point of each week inside the chart (`index` into `points`, `week` into `weekStarts`). */
+export function weekStartIndices(
+  points: EnsemblePoint[],
+  weekStarts: string[],
+): { index: number; week: number }[] {
+  const result: { index: number; week: number }[] = [];
+  let prev = -1;
+  points.forEach((p, index) => {
+    const week = weekIndexOf(p.time, weekStarts);
+    if (week !== -1 && week !== prev) result.push({ index, week });
+    prev = week;
+  });
+  return result;
 }
 
 function sortedPercentile(sorted: number[], p: number): number {

@@ -8,6 +8,7 @@ import {
   Sun,
   Snowflake,
   ChevronDown,
+  Maximize2,
   type LucideIcon,
 } from 'lucide-react';
 import type {
@@ -33,6 +34,9 @@ import { SeasonalAttribution } from './SeasonalAttribution';
 // Drill-down dialogs load on first tap (own chunks)
 const EnsembleDetailView = lazy(() =>
   import('./EnsembleDetailView').then((m) => ({ default: m.EnsembleDetailView })),
+);
+const EnsembleRangeView = lazy(() =>
+  import('./EnsembleRangeView').then((m) => ({ default: m.EnsembleRangeView })),
 );
 const ClimateDetailView = lazy(() =>
   import('./ClimateDetailView').then((m) => ({ default: m.ClimateDetailView })),
@@ -82,6 +86,7 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
     period: SeasonalPeriod;
     variable: SeasonalVariable;
   } | null>(null);
+  const [rangeOpen, setRangeOpen] = useState(false);
   const [climateTarget, setClimateTarget] = useState<{ period: SeasonalPeriod } | null>(null);
 
   const locale = language === 'en' ? 'en-GB' : 'es-ES';
@@ -386,6 +391,20 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
   } else {
     outlookBody = (
       <>
+        {tier === 'weeks' && (
+          <div className="flex justify-end mb-2">
+            <button
+              type="button"
+              onClick={() => setRangeOpen(true)}
+              aria-haspopup="dialog"
+              title={t('ensemble.range.open.title')}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-100 transition-colors"
+            >
+              <Maximize2 size={12} aria-hidden="true" />
+              {t('ensemble.range.open')}
+            </button>
+          </div>
+        )}
         <div className="relative overflow-x-auto -mx-1 px-1 pb-1">
           <table className="w-full border-separate border-spacing-1">
             <caption className="sr-only">{`${t('title.long_range')} — ${t('seasonal.tier.' + tier)}`}</caption>
@@ -459,6 +478,13 @@ export function LongRangeOutlook({ location }: LongRangeOutlookProps) {
             initialVariable={drillTarget.variable}
             lowConfidence={drillTarget.weekIndex >= 2}
             onClose={() => setDrillTarget(null)}
+          />
+        )}
+        {rangeOpen && outlook && (
+          <EnsembleRangeView
+            location={location}
+            weeks={outlook.weeks}
+            onClose={() => setRangeOpen(false)}
           />
         )}
         {climateTarget && (

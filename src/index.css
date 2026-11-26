@@ -347,6 +347,30 @@ dialog[open] .summary-stagger > :nth-child(n + 5) { --n: 4; }
   }
 }
 
+/* 15-day chart: "turn your phone" hint rotates the phone icon a quarter turn and back */
+@keyframes range-rotate {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+
+  60%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+.range-rotate-hint {
+  animation: range-rotate 2.4s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .range-rotate-hint {
+    animation: none;
+    transform: rotate(90deg);
+  }
+}
+
 /* Urgent alert banner: one soft fade/scale-in on mount (no loop) */
 @keyframes urgent-in {
   from {

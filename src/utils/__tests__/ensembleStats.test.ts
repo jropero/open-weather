@@ -8,6 +8,10 @@ import {
   ensembleDaysInWeek,
   parseEnsembleResponse,
   toWeekPoints,
+  toRangePoints,
+  weekIndexOf,
+  stepNormals,
+  weekStartIndices,
   MIN_ENSEMBLE_DAYS_IN_WEEK,
 } from '../ensembleStats';
 import type { EnsemblePoint } from '../ensembleStats';
@@ -379,5 +383,80 @@ describe('toWeekPoints', () => {
     };
     const pts = toWeekPoints(full, weekStart, 'sunshine_duration', 'UTC');
     expect(pts[5].members).toEqual([12]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toRangePoints
+// ---------------------------------------------------------------------------
+
+describe('toRangePoints', () => {
+  const H = 3_600_000;
+  const D = 24 * H;
+  const t0 = Date.parse('2026-11-16T00:00:00Z');
+  // 3 days, hourly; each member constant at 1800 s of sunshine per hour
+  const raw = {
+    times: Array.from({ length: 72 }, (_, i) => t0 + i * H),
+    members: [Array.from({ length: 72 }, () => 1800)],
+  };
+
+  it('slices [start, end) and Infinity keeps everything', () => {
+    expect(
+      toRangePoints(raw, t0 + 5 * H, t0 + 8 * H, 'precipitation').map((p) => p.time),
+    ).toEqual([t0 + 5 * H, t0 + 6 * H, t0 + 7 * H]);
+    expect(toRangePoints(raw, -Infinity, Infinity, 'precipitation')).toHaveLength(72);
+  });
+
+  it('sunshine over several days gives per-day totals in hours', () => {
+    const pts = toRangePoints(raw, -Infinity, Infinity, 'sunshine_duration', 'UTC');
+    expect(pts[0].members).toEqual([12]);
+    expect(pts[40].members).toEqual([12]);
+  });
+
+  it('a partial edge day stays null', () => {
+    const pts = toRangePoints(raw, t0 + 12 * H, t0 + 2 * D, 'sunshine_duration', 'UTC');
+    expect(pts[0].members).toEqual([null]); // first day has 12 h only
+    expect(pts[20].members).toEqual([12]); // second day complete
+  });
+
+  it('toWeekPoints is the same as a 7-day range', () => {
+    const a = toWeekPoints(raw, '2026-11-16', 'precipitation');
+    const b = toRangePoints(raw, t0, t0 + 7 * D, 'precipitation');
+    expect(a).toEqual(b);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// weekIndexOf / stepNormals / weekStartIndices
+// ---------------------------------------------------------------------------
+
+describe('week helpers', () => {
+  const H = 3_600_000;
+  const weeks = ['2026-11-16', '2026-11-23'];
+  const mon1 = Date.parse('2026-11-16T00:00:00Z');
+  const mon2 = Date.parse('2026-11-23T00:00:00Z');
+  const mon3 = Date.parse('2026-11-30T00:00:00Z');
+
+  it('weekIndexOf: inside, Monday 00:00 boundary, outside', () => {
+    expect(weekIndexOf(mon1, weeks)).toBe(0);
+    expect(weekIndexOf(mon2 - 1, weeks)).toBe(0);
+    expect(weekIndexOf(mon2, weeks)).toBe(1);
+    expect(weekIndexOf(mon3, weeks)).toBe(-1);
+    expect(weekIndexOf(mon1 - 1, weeks)).toBe(-1);
+  });
+
+  const pts = [mon1 + 5 * H, mon2 - H, mon2, mon3 + H].map((t) => buildPoint(t, [1]));
+
+  it('stepNormals: each point gets its week normal; null weeks and outside give null', () => {
+    expect(stepNormals(pts, weeks, [10, 20])).toEqual([10, 10, 20, null]);
+    expect(stepNormals(pts, weeks, [null, 20])).toEqual([null, null, 20, null]);
+  });
+
+  it('weekStartIndices: first point of each week inside the chart', () => {
+    expect(weekStartIndices(pts, weeks)).toEqual([
+      { index: 0, week: 0 },
+      { index: 2, week: 1 },
+    ]);
+    expect(weekStartIndices([], weeks)).toEqual([]);
   });
 });
