@@ -3,6 +3,8 @@ import type { Language } from '../hooks/useLanguage';
 // Translation tables. Both languages must define exactly the same keys (see i18n test).
 export const translations: Record<Language, Record<string, string>> = {
   es: {
+    'hero.critter.penguin': 'Haz saltar al pingüino',
+    'hero.critter.shrimp': 'Haz bailar a la gamba',
     'title.pressure_humidity': 'Presión y Humedad',
     'title.daily_forecast': 'Ventana de 7 Días (Evolución y Pronóstico)',
     'title.future_forecast': 'Próximos 3 Días',
@@ -389,6 +391,8 @@ export const translations: Record<Language, Record<string, string>> = {
       'Nota metodológica: la anomalía SEAS5 se calcula respecto a su climatología 1993–2016, aplicada aquí sobre la media ERA5 2016–2025 (periodo más cálido). Esto puede sobreestimar el valor ajustado en ~0,5–1,5 °C.',
   },
   en: {
+    'hero.critter.penguin': 'Make the penguin hop',
+    'hero.critter.shrimp': 'Make the shrimp dance',
     'title.pressure_humidity': 'Pressure & Humidity',
     'title.daily_forecast': '7-Day Window (Evolution & Forecast)',
     'title.future_forecast': 'Next 3 Days',

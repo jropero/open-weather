@@ -28,6 +28,7 @@ import { useLanguage, type Language } from './hooks/useLanguage';
 import { OtherLocations } from './components/OtherLocations';
 import { TodayTomorrowSummary } from './components/TodayTomorrowSummary';
 import { RainStrip } from './components/RainStrip';
+import { HeroCritters } from './components/HeroCritters';
 import { LightStrip } from './components/LightStrip';
 import { HeroIcon } from './components/HeroIcon';
 import { ConditionLine } from './components/ConditionLine';
@@ -583,16 +584,10 @@ function WeatherDashboard() {
                 <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">
                   {language === 'en' ? 'Shrimp Fatigue' : 'Índice Gamba'}
                 </span>
-                <div className="flex justify-center items-center h-12 gap-1 p-3 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
-                  {Array.from({ length: 4 }).map((_, idx) => (
-                    <span
-                      key={idx}
-                      className={`text-5xl transition-all duration-300 ${idx < Math.min(4, Math.floor(Math.max(0, currentThom.value - 15) / 3)) ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
-                    >
-                      🦐
-                    </span>
-                  ))}
-                </div>
+                <HeroCritters
+                  kind="shrimp"
+                  activeCount={Math.min(4, Math.floor(Math.max(0, currentThom.value - 15) / 3))}
+                />
                 <span className="text-[10px] font-mono font-bold text-white/70">
                   Thom: {currentThom.value.toFixed(1)} DI
                 </span>
@@ -605,24 +600,10 @@ function WeatherDashboard() {
                 <span className="text-[9px] font-bold tracking-widest opacity-75 uppercase">
                   {isEn ? 'Wind Chill' : 'Índice Polar'}
                 </span>
-                <div className="flex justify-center items-center h-12 gap-1 p-3 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
-                  {Array.from({ length: 4 }).map((_, idx) => {
-                    const wci = currentWindChill.value;
-                    let activePenguins: number;
-                    if (wci > 0) activePenguins = 1;
-                    else if (wci > -10) activePenguins = 2;
-                    else if (wci > -25) activePenguins = 3;
-                    else activePenguins = 4;
-                    return (
-                      <span
-                        key={idx}
-                        className={`text-5xl transition-all duration-300 ${idx < activePenguins ? 'opacity-100 scale-100' : 'opacity-20 scale-90'}`}
-                      >
-                        🐧
-                      </span>
-                    );
-                  })}
-                </div>
+                <HeroCritters
+                  kind="penguin"
+                  activeCount={penguinCount(currentWindChill.value)}
+                />
                 <span className="text-[10px] font-mono font-bold text-white/70">
                   {t('hero.penguin.felt').replace('{n}', String(penguinFelt))}
                 </span>
@@ -771,6 +752,12 @@ function WeatherDashboard() {
     </div>
   );
   /* eslint-enable sonarjs/cognitive-complexity */
+}
+
+function penguinCount(wci: number): number {
+  if (wci > 0) return 1;
+  if (wci > -10) return 2;
+  return wci > -25 ? 3 : 4;
 }
 
 function getPenguinFelt(

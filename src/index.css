@@ -394,6 +394,52 @@ dialog[open] .summary-stagger > :nth-child(n + 5) { --n: 4; }
   }
 }
 
+/* Hero critters (penguin / shrimp): one-shot tap animations, transform/opacity only */
+@keyframes critter-penguin {
+  0% { transform: translateY(0) rotate(0); }
+  20% { transform: translateY(-10px) rotate(-12deg); }
+  45% { transform: translateY(-6px) rotate(12deg); }
+  70% { transform: translateY(0) rotate(-8deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+@keyframes critter-shrimp {
+  0% { transform: scaleX(1) rotate(0) translateY(0); }
+  30% { transform: scaleX(-1) rotate(-10deg) translateY(-6px); }
+  60% { transform: scaleX(-1) rotate(8deg) translateY(0); }
+  80% { transform: scaleX(1) rotate(-4deg) translateY(-3px); }
+  100% { transform: scaleX(1) rotate(0) translateY(0); }
+}
+
+@keyframes critter-pop {
+  0% { opacity: 0; transform: translate(var(--cx, 0), 0) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--cx, 0), -22px) scale(1); }
+}
+
+.critter-penguin {
+  animation: critter-penguin 700ms ease-in-out both;
+}
+
+.critter-shrimp {
+  animation: critter-shrimp 700ms ease-in-out both;
+}
+
+.critter-particle {
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0;
+  animation: critter-pop 800ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .critter-penguin,
+  .critter-shrimp,
+  .critter-particle {
+    animation: none;
+  }
+}
+
 /* Pull-to-refresh is custom; stop the browser's own overscroll refresh */
 html {
   overscroll-behavior-y: contain;
