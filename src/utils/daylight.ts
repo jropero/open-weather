@@ -26,6 +26,22 @@ export function luxLevel(lux: number): LightLevel {
   return lux < VERY_BRIGHT_LUX ? 'bright' : 'very_bright';
 }
 
+export type CurrentLight =
+  | { kind: 'night' }
+  | { kind: 'day'; lux: number; level: LightLevel; wm2: number };
+
+/** Current outdoor light from instantaneous radiation; null when there is no data. */
+export function currentLight(
+  direct: number | null | undefined,
+  diffuse: number | null | undefined,
+  isDay: boolean | null | undefined,
+): CurrentLight | null {
+  const lux = estimateLux(direct ?? null, diffuse ?? null);
+  if (lux === null) return null;
+  if (lux === 0 || (isDay === false && lux < EDGE_TRIM_LUX)) return { kind: 'night' };
+  return { kind: 'day', lux, level: luxLevel(lux), wm2: (direct ?? 0) + (diffuse ?? 0) };
+}
+
 /** "~25k" style, 2 significant digits; `sep` is the decimal separator. */
 export function formatLux(lux: number, language: 'es' | 'en', long = true): string {
   const r = Number(lux.toPrecision(2));

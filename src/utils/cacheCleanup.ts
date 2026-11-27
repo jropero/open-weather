@@ -14,6 +14,9 @@ export function purgeStaleCache() {
       const key = localStorage.key(i);
       if (key?.startsWith('hist_cache_') && !key.endsWith(todayMonthDay)) {
         localStorage.removeItem(key);
+      } else if (key === 'other_locations_cache') {
+        // Replaced by other_locations_cache_v2 (adds current light fields)
+        localStorage.removeItem(key);
       } else if (key?.startsWith('ensemble_cache_') && !key.startsWith('ensemble_cache_v2_')) {
         // v1 stored precomputed stats per hour (larger, different shape) — no longer read
         localStorage.removeItem(key);

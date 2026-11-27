@@ -98,6 +98,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'light.tomorrow': 'Mañana: {s}',
     'light.title':
       'Luz exterior estimada a partir de la radiación solar (±15 %). 10 000 lux ≈ terapia de luz.',
+    'light.now.night': 'noche',
+    'light.now.title': 'Luz exterior ~{v} lux ({w} W/m², estimación ±15 %)',
+    'light.now.night.title': 'Luz exterior: es de noche',
     'light.sr': '{s}. Máximo aproximado {v} lux ({w} W/m²) a las {h} h.',
     'hero.chips.less': 'Mostrar menos',
     'label.night_tropical': 'Noche Tropical',
@@ -480,6 +483,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'light.tomorrow': 'Tomorrow: {s}',
     'light.title':
       'Outdoor light estimated from solar radiation (±15 %). 10,000 lux ≈ light therapy.',
+    'light.now.night': 'night',
+    'light.now.title': 'Outdoor light ~{v} lux ({w} W/m², estimate ±15 %)',
+    'light.now.night.title': 'Outdoor light: it is night',
     'light.sr': '{s}. Peak about {v} lux ({w} W/m²) at {h}h.',
     'hero.chips.less': 'Show less',
     'label.night_tropical': 'Tropical Night',

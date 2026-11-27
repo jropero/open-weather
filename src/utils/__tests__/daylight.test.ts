@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vite-plus/test';
-import { BRIGHT_LUX, buildLightOutlook, estimateLux, formatLux, luxLevel } from '../daylight';
+import {
+  BRIGHT_LUX,
+  buildLightOutlook,
+  currentLight,
+  estimateLux,
+  formatLux,
+  luxLevel,
+} from '../daylight';
 import type { SummaryHour } from '../../types/weather';
 
 const hourStr = (ms: number) => new Date(ms).toISOString().slice(0, 13) + ':00';
@@ -147,5 +154,26 @@ describe('buildLightOutlook', () => {
       ),
     ).toBeNull();
     expect(buildLightOutlook(series(), T0 - 5 * 24 * H, 'UTC')).toBeNull();
+  });
+});
+
+describe('currentLight', () => {
+  it('null without data', () => {
+    expect(currentLight(null, 5, true)).toBeNull();
+    expect(currentLight(undefined, undefined, true)).toBeNull();
+  });
+  it('night when zero or dark with is_day = 0', () => {
+    expect(currentLight(0, 0, null)).toEqual({ kind: 'night' });
+    expect(currentLight(0.2, 0.1, false)).toEqual({ kind: 'night' });
+  });
+  it('day with level and W/m²', () => {
+    expect(currentLight(4, 44, true)).toEqual({
+      kind: 'day',
+      lux: 5680,
+      level: 'dim',
+      wm2: 48,
+    });
+    expect(currentLight(600, 100, true)).toMatchObject({ level: 'very_bright' });
+    expect(currentLight(1, 2, false)).toMatchObject({ kind: 'day', level: 'dark' });
   });
 });

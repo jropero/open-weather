@@ -16,6 +16,7 @@ import {
 } from '../utils/weatherCodes';
 import { useSeasonalTrends, type SeasonalTrend } from '../hooks/useSeasonalTrends';
 import { classifyAnomaly, getAnomalyClass, getSeasonName } from '../utils/seasonal';
+import { LocationLux } from './LocationLux';
 import { SeasonalAttribution } from './SeasonalAttribution';
 
 // All 12 predefined cities — the trend cache covers the active one too, so switching location needs no request
@@ -41,6 +42,9 @@ interface OtherLocationData {
     humidity: number;
     weatherCode: number;
     windSpeed: number;
+    directRadiation?: number | null;
+    diffuseRadiation?: number | null;
+    isDay?: boolean | null;
   } | null;
   error?: boolean;
 }
@@ -79,7 +83,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
     // Aborted when the active location changes again before the 13 requests finish
     const controller = new AbortController();
     const isMounted = () => !controller.signal.aborted;
-    const CACHE_KEY = 'other_locations_cache';
+    const CACHE_KEY = 'other_locations_cache_v2';
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -109,7 +113,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
       const allLocs = PREDEFINED_LOCATIONS.filter((loc) => loc.id !== 'gps');
       const promises = allLocs.map(async (loc) => {
         try {
-          const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m&timezone=auto`;
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m,direct_radiation,diffuse_radiation,is_day&timezone=auto`;
           const res = await fetch(url, { signal: controller.signal });
           if (!res.ok) throw new Error('Failed to fetch');
           const data = await res.json();
@@ -122,6 +126,9 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
               humidity: data.current.relative_humidity_2m,
               weatherCode: data.current.weather_code,
               windSpeed: data.current.wind_speed_10m ?? 0,
+              directRadiation: data.current.direct_radiation ?? null,
+              diffuseRadiation: data.current.diffuse_radiation ?? null,
+              isDay: data.current.is_day == null ? null : data.current.is_day === 1,
             },
           };
         } catch {
@@ -492,7 +499,7 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
               </div>
 
               {/* Line 2 / Right Column: Pressure and Humidity metrics */}
-              <div className="flex items-center gap-4 text-[11px] text-slate-500 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
+              <div className="flex items-center gap-x-4 text-[11px] text-slate-500 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0 flex-wrap gap-y-1">
                 <div
                   className="flex items-center gap-1.5"
                   title={language === 'en' ? 'Pressure' : 'Presión'}
@@ -516,6 +523,11 @@ export function OtherLocations({ currentLocation }: OtherLocationsProps) {
                       {Math.round(weather.humidity)}%
                     </span>
                   </div>
+                  <LocationLux
+                    direct={weather.directRadiation}
+                    diffuse={weather.diffuseRadiation}
+                    isDay={weather.isDay}
+                  />
                   {thermalWidget}
                 </div>
               </div>
